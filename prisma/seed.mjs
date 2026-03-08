@@ -20,10 +20,10 @@ async function main() {
             publishedAt: new Date(),
             versions: {
               create: {
-                version: 1,
-                title: 'Home',
-                content: '# Welcome\n\nThis is the home page.',
-                changelog: 'Initial published version.'
+                versionNumber: 1,
+                instructionPrompt: 'Create a welcoming home page with project overview.',
+                generatedSchemaJson: { sections: ['hero', 'features', 'cta'] },
+                notes: 'Initial published version.'
               }
             }
           },
@@ -36,10 +36,10 @@ async function main() {
             content: '# About\n\nDraft content pending review.',
             versions: {
               create: {
-                version: 1,
-                title: 'About',
-                content: '# About\n\nDraft content pending review.',
-                changelog: 'Initial draft.'
+                versionNumber: 1,
+                instructionPrompt: 'Draft an about page that explains the mission.',
+                generatedSchemaJson: { sections: ['mission', 'team'] },
+                notes: 'Initial draft.'
               }
             }
           }
@@ -47,28 +47,44 @@ async function main() {
       }
     },
     include: {
-      pages: true
+      pages: {
+        include: {
+          versions: true
+        }
+      }
     }
   });
+
+  const homePage = project.pages[0];
+  const homeVersion = homePage?.versions[0];
+
+  if (homePage && homeVersion) {
+    await prisma.page.update({
+      where: { id: homePage.id },
+      data: { currentVersionId: homeVersion.id }
+    });
+  }
 
   await prisma.asset.create({
     data: {
       projectId: project.id,
-      pageId: project.pages[0]?.id,
+      pageId: homePage?.id,
       type: AssetType.logo,
-      name: 'Primary logo',
-      url: 'https://example.com/assets/logo.svg'
+      fileName: 'logo.svg',
+      mimeType: 'image/svg+xml',
+      storageUrl: 'https://example.com/assets/logo.svg'
     }
   });
 
   await prisma.buildJob.create({
     data: {
       projectId: project.id,
-      pageId: project.pages[0]?.id,
+      pageId: homePage?.id,
+      versionId: homeVersion?.id,
       status: BuildJobStatus.completed,
       startedAt: new Date(Date.now() - 60_000),
-      completedAt: new Date(),
-      log: 'Seed build completed successfully.'
+      finishedAt: new Date(),
+      errorMessage: null
     }
   });
 

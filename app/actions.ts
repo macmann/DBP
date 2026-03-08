@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { PageStatus } from "@prisma/client";
+import { PageStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { slugify } from "@/lib/utils/slugify";
 
@@ -87,18 +87,43 @@ export async function createPage(projectSlug: string, formData: FormData) {
   const slug = await ensureUniquePageSlug(project.id, baseSlug);
   const referenceLinks = parseReferenceLinks(referenceLinksInput);
 
-  const page = await prisma.page.create({
-    data: {
-      projectId: project.id,
-      title,
-      slug,
-      prompt: prompt || null,
-      referenceLinks,
-      status: PageStatus.draft
-    },
-    select: {
-      id: true
-    }
+  const page = await prisma.$transaction(async (tx) => {
+    const createdPage = await tx.page.create({
+      data: {
+        projectId: project.id,
+        title,
+        slug,
+        prompt: prompt || null,
+        referenceLinks,
+        status: PageStatus.draft
+      },
+      select: {
+        id: true
+      }
+    });
+
+    const createdVersion = await tx.pageVersion.create({
+      data: {
+        pageId: createdPage.id,
+        versionNumber: 1,
+        instructionPrompt: prompt || null,
+        generatedSchemaJson: Prisma.JsonNull,
+        notes: "Initial draft version"
+      },
+      select: {
+        id: true
+      }
+    });
+
+    return tx.page.update({
+      where: { id: createdPage.id },
+      data: {
+        currentVersionId: createdVersion.id
+      },
+      select: {
+        id: true
+      }
+    });
   });
 
   redirect(`/projects/${project.slug}/pages/${page.id}`);
