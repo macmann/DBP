@@ -73,6 +73,10 @@ function isValidUrl(value: string): boolean {
   }
 }
 
+function hasOnlyAllowedKeys(record: Record<string, unknown>, allowedKeys: string[]): boolean {
+  return Object.keys(record).every((key) => allowedKeys.includes(key));
+}
+
 export function validateGeneratedPageSchema(
   payload: unknown,
 ): ValidationResult<GeneratedPageSchema> {
@@ -92,6 +96,18 @@ export function validateGeneratedPageSchema(
   if (!isRecord(payload.theme)) {
     errors.push("theme must be an object.");
   } else {
+    if (
+      !hasOnlyAllowedKeys(payload.theme, [
+        "primaryColor",
+        "accentColor",
+        "fontFamily",
+        "spacing",
+        "radius",
+      ])
+    ) {
+      errors.push("theme contains unsupported keys.");
+    }
+
     if (
       typeof payload.theme.primaryColor !== "string" ||
       payload.theme.primaryColor.trim().length === 0
@@ -113,18 +129,28 @@ export function validateGeneratedPageSchema(
       errors.push("theme.fontFamily must be a non-empty string.");
     }
 
-    if (payload.theme.spacing !== undefined && typeof payload.theme.spacing !== "string") {
-      errors.push("theme.spacing must be a string when provided.");
+    if (payload.theme.spacing !== undefined) {
+      if (typeof payload.theme.spacing !== "string" || payload.theme.spacing.trim().length === 0) {
+        errors.push("theme.spacing must be a non-empty string when provided.");
+      }
     }
 
-    if (payload.theme.radius !== undefined && typeof payload.theme.radius !== "string") {
-      errors.push("theme.radius must be a string when provided.");
+    if (payload.theme.radius !== undefined) {
+      if (typeof payload.theme.radius !== "string" || payload.theme.radius.trim().length === 0) {
+        errors.push("theme.radius must be a non-empty string when provided.");
+      }
     }
   }
 
   if (!isRecord(payload.seo)) {
     errors.push("seo must be an object.");
   } else {
+    if (
+      !hasOnlyAllowedKeys(payload.seo, ["title", "description", "canonicalUrl", "ogImageAssetId"])
+    ) {
+      errors.push("seo contains unsupported keys.");
+    }
+
     if (typeof payload.seo.title !== "string" || payload.seo.title.trim().length === 0) {
       errors.push("seo.title must be a non-empty string.");
     } else if (payload.seo.title.length > 70) {
@@ -153,9 +179,10 @@ export function validateGeneratedPageSchema(
 
     if (
       payload.seo.ogImageAssetId !== undefined &&
-      typeof payload.seo.ogImageAssetId !== "string"
+      (typeof payload.seo.ogImageAssetId !== "string" ||
+        payload.seo.ogImageAssetId.trim().length === 0)
     ) {
-      errors.push("seo.ogImageAssetId must be a string when provided.");
+      errors.push("seo.ogImageAssetId must be a non-empty string when provided.");
     }
   }
 
@@ -196,6 +223,14 @@ export function validateGeneratedPageSchema(
           }
           if (typeof section.cta.href !== "string" || section.cta.href.trim().length === 0) {
             errors.push(`sections[${index}].cta.href must be a non-empty string.`);
+          } else {
+            const href = section.cta.href.trim();
+            const isPathHref = href.startsWith("/");
+            if (!isPathHref && !isValidUrl(href)) {
+              errors.push(
+                `sections[${index}].cta.href must be an absolute http(s) URL or root-relative path.`,
+              );
+            }
           }
         }
       }

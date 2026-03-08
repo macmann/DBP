@@ -21,9 +21,9 @@ export type BuildPromptInput = {
 export function buildPageGenerationPrompts(input: BuildPromptInput) {
   const systemPrompt = [
     "You are a landing page schema generator.",
-    "Output JSON only (no markdown, no prose).",
-    "Return exactly the agreed schema keys; do not add any extra keys.",
-    "Always include theme, seo, and sections.",
+    "Output JSON only (no markdown, no prose, no explanations).",
+    "Return exactly one JSON object with only these top-level keys: pageTitle, summary (optional), theme, seo, sections.",
+    "theme, seo, and sections are required and must be valid objects/array.",
     "Use only section types from the allowed list.",
     "Any media references (section mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
   ].join("\n");
@@ -78,6 +78,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "    }",
     "  ]",
     "}",
+    "Do not output any text before or after the JSON object.",
     "Use only the keys above and only allowed section types.",
   ].join("\n\n");
 
