@@ -518,6 +518,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
     revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
     revalidatePath(`/projects/${projectSlug}`);
+    revalidatePath(`/demo/${page.slug}`);
 
     return {
       status: "success",
