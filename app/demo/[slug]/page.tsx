@@ -15,7 +15,7 @@ const SITE_DEFAULT_TITLE = "Scaffold";
 const SITE_DEFAULT_DESCRIPTION = "Next.js (App Router) + TypeScript + Tailwind + MDX scaffold";
 
 async function getPublishedDemoPage(slug: string) {
-  return prisma.page.findFirst({
+  const page = await prisma.page.findFirst({
     where: {
       slug,
       status: "published",
@@ -29,25 +29,33 @@ async function getPublishedDemoPage(slug: string) {
           generatedSchemaJson: true,
         },
       },
-      assets: {
-        where: {
-          pageId: {
-            not: null,
-          },
-        },
-        orderBy: {
-          sortOrder: "asc",
-        },
-        select: {
-          id: true,
-          storageUrl: true,
-          metadata: true,
-          fileName: true,
-          mimeType: true,
-        },
-      },
     },
   });
+
+  if (!page) {
+    return null;
+  }
+
+  const assets = await prisma.asset.findMany({
+    where: {
+      pageId: page.id,
+    },
+    orderBy: {
+      sortOrder: "asc",
+    },
+    select: {
+      id: true,
+      storageUrl: true,
+      metadata: true,
+      fileName: true,
+      mimeType: true,
+    },
+  });
+
+  return {
+    ...page,
+    assets,
+  };
 }
 
 export async function generateMetadata({ params }: DemoPageProps): Promise<Metadata> {
