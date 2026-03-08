@@ -39,24 +39,15 @@ export default async function PageDetailPage({
   const page = await prisma.page.findFirst({
     where: {
       id: pageId,
-      projectId: projectSlug
+      project: {
+        slug: projectSlug
+      }
     },
     include: {
       project: {
         select: {
-          id: true,
+          slug: true,
           name: true
-        }
-      },
-      versions: {
-        orderBy: {
-          version: "desc"
-        },
-        take: 1
-      },
-      assets: {
-        orderBy: {
-          createdAt: "desc"
         }
       }
     }
@@ -66,13 +57,13 @@ export default async function PageDetailPage({
     notFound();
   }
 
-  const latestVersion = page.versions[0];
-  const promptText = latestVersion?.changelog ?? "No prompt has been saved for this page yet.";
+  const promptText = page.prompt ?? "No prompt has been saved for this page yet.";
+  const referenceLinks = Array.isArray(page.referenceLinks) ? page.referenceLinks.filter((link): link is string => typeof link === "string") : [];
 
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <Link href={`/projects/${page.project.id}`} className="text-sm text-neutral-500 hover:text-neutral-700">
+        <Link href={`/projects/${page.project.slug}`} className="text-sm text-neutral-500 hover:text-neutral-700">
           ← Back to {page.project.name}
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight">{page.title}</h1>
@@ -113,23 +104,21 @@ export default async function PageDetailPage({
 
       <section className="space-y-2">
         <h2 className="text-xl font-semibold">Reference links</h2>
-        {page.assets.length === 0 ? (
+        {referenceLinks.length === 0 ? (
           <p className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
             No reference links attached yet.
           </p>
         ) : (
           <ul className="space-y-2">
-            {page.assets.map((asset) => (
-              <li key={asset.id}>
+            {referenceLinks.map((link) => (
+              <li key={link}>
                 <a
-                  href={asset.url}
+                  href={link}
                   target="_blank"
                   rel="noreferrer"
                   className="block rounded-xl border border-neutral-200 p-4 text-sm transition hover:border-neutral-300 hover:bg-neutral-50"
                 >
-                  <p className="font-medium text-neutral-900">{asset.name}</p>
-                  <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">{asset.type}</p>
-                  <p className="mt-2 text-neutral-700">{asset.url}</p>
+                  <p className="text-neutral-700">{link}</p>
                 </a>
               </li>
             ))}

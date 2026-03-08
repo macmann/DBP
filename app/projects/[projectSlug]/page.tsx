@@ -22,7 +22,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   const { projectSlug } = await params;
 
   const project = await prisma.project.findUnique({
-    where: { id: projectSlug },
+    where: { slug: projectSlug },
     include: {
       pages: {
         orderBy: { updatedAt: "desc" }
@@ -45,7 +45,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           {project.description ? <p className="text-neutral-700">{project.description}</p> : null}
         </div>
         <Link
-          href={`/projects/${project.id}/pages/new`}
+          href={`/projects/${project.slug}/pages/new`}
           className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
         >
           New page
@@ -61,7 +61,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           {project.pages.map((page) => (
             <li key={page.id}>
               <Link
-                href={`/projects/${project.id}/pages/${page.id}`}
+                href={`/projects/${project.slug}/pages/${page.id}`}
                 className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 p-4 transition hover:border-neutral-300 hover:bg-neutral-50"
               >
                 <div>
