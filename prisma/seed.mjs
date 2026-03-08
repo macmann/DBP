@@ -6,6 +6,7 @@ async function main() {
   const project = await prisma.project.create({
     data: {
       name: 'Sample Documentation Project',
+      slug: 'sample-documentation-project',
       description: 'A seeded project with two starter pages.',
       pages: {
         create: [
@@ -13,6 +14,8 @@ async function main() {
             title: 'Home',
             slug: 'home',
             status: PageStatus.published,
+            prompt: 'Create a welcoming home page with project overview.',
+            referenceLinks: ['https://example.com/home-reference'],
             content: '# Welcome\n\nThis is the home page.',
             publishedAt: new Date(),
             versions: {
@@ -28,6 +31,8 @@ async function main() {
             title: 'About',
             slug: 'about',
             status: PageStatus.draft,
+            prompt: 'Draft an about page that explains the mission.',
+            referenceLinks: ['https://example.com/about-reference'],
             content: '# About\n\nDraft content pending review.',
             versions: {
               create: {

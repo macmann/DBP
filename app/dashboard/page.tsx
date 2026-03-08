@@ -15,9 +15,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-neutral-700">Select a project to view and manage its pages.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-neutral-700">Select a project to view and manage its pages.</p>
+        </div>
+        <Link href="/projects/new" className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+          New project
+        </Link>
       </div>
 
       {projects.length === 0 ? (
@@ -29,7 +34,7 @@ export default async function DashboardPage() {
           {projects.map((project) => (
             <li key={project.id}>
               <Link
-                href={`/projects/${project.id}`}
+                href={`/projects/${project.slug}`}
                 className="block rounded-xl border border-neutral-200 p-4 transition hover:border-neutral-300 hover:bg-neutral-50"
               >
                 <p className="font-medium text-neutral-900">{project.name}</p>
