@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AssetGrid } from "@/components/assets/AssetGrid";
+import { AssetPreviewGallery } from "@/components/assets/AssetPreviewGallery";
 import { AssetUploader } from "@/components/assets/AssetUploader";
 import type { UploadedAssetDto } from "@/types/asset-upload";
 
@@ -25,12 +25,12 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
     const response = await fetch("/api/assets/reorder", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         pageId,
-        assetIds: nextAssets.map((asset) => asset.id)
-      })
+        assetIds: nextAssets.map((asset) => asset.id),
+      }),
     });
 
     if (!response.ok) {
@@ -75,7 +75,7 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
 
     try {
       const response = await fetch(`/api/assets/${assetId}`, {
-        method: "DELETE"
+        method: "DELETE",
       });
 
       if (!response.ok) {
@@ -95,28 +95,44 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
   }
 
   return (
-    <section className="space-y-4">
-      <h2 className="text-xl font-semibold">Assets</h2>
-      <AssetUploader
-        projectId={projectId}
-        pageId={pageId}
-        onUploaded={(asset) => {
-          setAssets((current) => withOrder([...current, { ...asset, sortOrder: current.length }]));
-          setErrorMessage(null);
-          setStatusMessage(`Added ${asset.fileName}.`);
-        }}
-      />
+    <section className="space-y-4 rounded-xl border border-neutral-200 bg-white p-6">
+      <h2 className="text-lg font-semibold">Assets</h2>
+      <div className="space-y-2">
+        <h3 className="text-base font-semibold text-neutral-900">Asset uploader area</h3>
+        <AssetUploader
+          projectId={projectId}
+          pageId={pageId}
+          onUploaded={(asset) => {
+            setAssets((current) =>
+              withOrder([...current, { ...asset, sortOrder: current.length }]),
+            );
+            setErrorMessage(null);
+            setStatusMessage(`Added ${asset.fileName}.`);
+          }}
+        />
+      </div>
 
-      {errorMessage ? <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p> : null}
-      {statusMessage ? <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">{statusMessage}</p> : null}
+      {errorMessage ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {errorMessage}
+        </p>
+      ) : null}
+      {statusMessage ? (
+        <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
+          {statusMessage}
+        </p>
+      ) : null}
 
       {assets.length === 0 ? (
         <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-5 text-sm text-neutral-600">
           <p className="font-medium text-neutral-800">No assets uploaded yet.</p>
-          <p className="mt-1">Choose a type, then drag files into the drop zone or use the picker to add your first asset.</p>
+          <p className="mt-1">
+            Choose a type, then drag files into the drop zone or use the picker to add your first
+            asset.
+          </p>
         </div>
       ) : (
-        <AssetGrid
+        <AssetPreviewGallery
           assets={assets}
           removingAssetId={removingAssetId}
           onMoveUp={(assetId) => void handleMove(assetId, "up")}

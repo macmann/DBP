@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageStatusBadge } from "@/components/dashboard/PageStatusBadge";
 import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
+import { PageEditorForm } from "@/components/forms/PageEditorForm";
 import { prisma } from "@/lib/db";
 
 function formatDate(value: Date | null) {
@@ -11,12 +12,12 @@ function formatDate(value: Date | null) {
 
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
-    timeStyle: "short"
+    timeStyle: "short",
   }).format(value);
 }
 
 export default async function PageDetailPage({
-  params
+  params,
 }: {
   params: Promise<{ projectSlug: string; pageId: string }>;
 }) {
@@ -26,30 +27,30 @@ export default async function PageDetailPage({
     where: {
       id: pageId,
       project: {
-        slug: projectSlug
-      }
+        slug: projectSlug,
+      },
     },
     include: {
       project: {
         select: {
           slug: true,
-          name: true
-        }
+          name: true,
+        },
       },
       currentVersion: {
         select: {
           id: true,
           versionNumber: true,
           instructionPrompt: true,
-          notes: true
-        }
+          notes: true,
+        },
       },
       assets: {
         where: {
-          pageId
+          pageId,
         },
         orderBy: {
-          sortOrder: "asc"
+          sortOrder: "asc",
         },
         select: {
           id: true,
@@ -61,18 +62,15 @@ export default async function PageDetailPage({
           mimeType: true,
           storageUrl: true,
           metadata: true,
-          createdAt: true
-        }
-      }
-    }
+          createdAt: true,
+        },
+      },
+    },
   });
 
   if (!page) {
     notFound();
   }
-
-  const promptText = page.currentVersion?.instructionPrompt ?? page.prompt ?? "No prompt has been saved for this page yet.";
-  const referenceLinks = Array.isArray(page.referenceLinks) ? page.referenceLinks.filter((link): link is string => typeof link === "string") : [];
 
   return (
     <DashboardLayout
@@ -80,7 +78,7 @@ export default async function PageDetailPage({
       breadcrumbs={[
         { label: "Dashboard", href: "/dashboard" },
         { label: page.project.slug, href: `/projects/${page.project.slug}` },
-        { label: page.title }
+        { label: page.title },
       ]}
       action={{ label: "New Page", href: `/projects/${page.project.slug}/pages/new` }}
     >
@@ -100,7 +98,9 @@ export default async function PageDetailPage({
           </div>
           <div>
             <p className="text-xs uppercase tracking-wide text-neutral-500">Current version</p>
-            <p className="mt-1 text-sm text-neutral-800">{page.currentVersion ? `v${page.currentVersion.versionNumber}` : "—"}</p>
+            <p className="mt-1 text-sm text-neutral-800">
+              {page.currentVersion ? `v${page.currentVersion.versionNumber}` : "—"}
+            </p>
           </div>
           <div>
             <p className="text-xs uppercase tracking-wide text-neutral-500">Current version ID</p>
@@ -120,15 +120,25 @@ export default async function PageDetailPage({
           </div>
         </div>
 
-        <section className="space-y-2">
-          <h2 className="text-xl font-semibold">Prompt</h2>
-          <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700">{promptText}</p>
-        </section>
+        <PageEditorForm
+          projectSlug={page.project.slug}
+          pageId={page.id}
+          initialModel={{
+            details: {
+              title: page.title,
+              slug: page.slug,
+            },
+            prompt: page.currentVersion?.instructionPrompt ?? page.prompt ?? "",
+            referenceLinks: Array.isArray(page.referenceLinks)
+              ? page.referenceLinks.filter((link): link is string => typeof link === "string")
+              : [],
+          }}
+        />
 
         {page.currentVersion?.notes ? (
-          <section className="space-y-2">
-            <h2 className="text-xl font-semibold">Version notes</h2>
-            <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700">{page.currentVersion.notes}</p>
+          <section className="space-y-2 rounded-xl border border-neutral-200 bg-white p-6">
+            <h2 className="text-lg font-semibold">Version notes</h2>
+            <p className="text-sm text-neutral-700">{page.currentVersion.notes}</p>
           </section>
         ) : null}
 
@@ -145,31 +155,9 @@ export default async function PageDetailPage({
             mimeType: asset.mimeType,
             storageUrl: asset.storageUrl,
             metadata: (asset.metadata as Record<string, unknown> | null) ?? null,
-            createdAt: asset.createdAt.toISOString()
+            createdAt: asset.createdAt.toISOString(),
           }))}
         />
-
-        <section className="space-y-2">
-          <h2 className="text-xl font-semibold">Reference links</h2>
-          {referenceLinks.length === 0 ? (
-            <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-600">No reference links attached yet.</p>
-          ) : (
-            <ul className="space-y-2">
-              {referenceLinks.map((link) => (
-                <li key={link}>
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block rounded-xl border border-neutral-200 bg-white p-4 text-sm transition hover:border-neutral-300 hover:bg-neutral-50"
-                  >
-                    <p className="text-neutral-700">{link}</p>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </div>
     </DashboardLayout>
   );
