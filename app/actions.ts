@@ -416,9 +416,14 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     const parsed = validateGeneratedPageSchema(aiOutput.json);
 
     if (!parsed.success) {
+      const isMissingThemeOrSeo = parsed.errors.some(
+        (error) => error === "theme must be an object." || error === "seo must be an object.",
+      );
       const conciseValidationError = parsed.errors[0] ?? "Schema validation failed.";
       const context = {
-        reason: "schema_validation_failed",
+        reason: isMissingThemeOrSeo
+          ? "missing_theme_or_seo"
+          : "schema_validation_failed",
         error: conciseValidationError,
         requestId: aiOutput.requestId,
       };
@@ -448,12 +453,17 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       });
 
       revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+      revalidatePath(`/projects/${projectSlug}`);
 
       return {
         status: "error",
-        message: "Generated output did not pass schema validation. Review your prompt and assets, then try again.",
+        message: isMissingThemeOrSeo
+          ? "Build failed because generated output is missing required theme or SEO data. Review your prompt and try again."
+          : "Generated output did not pass schema validation. Review your prompt and assets, then try again.",
       };
     }
+
+    const generatedSchema: GeneratedPageSchema = parsed.data;
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({
@@ -473,7 +483,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
           pageId: page.id,
           versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
           instructionPrompt: page.prompt,
-          generatedSchemaJson: parsed.data as unknown as Prisma.InputJsonValue,
+          generatedSchemaJson: generatedSchema as unknown as Prisma.InputJsonValue,
           notes: "Generated via Build action.",
         },
         select: {
@@ -490,7 +500,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
           currentVersionId: version.id,
           status: PageStatus.published,
           lastError: null,
-          content: JSON.stringify(parsed.data),
+          content: JSON.stringify(generatedSchema),
           publishedAt: new Date(),
         },
       });
@@ -515,7 +525,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       message: "Build completed and new page version saved.",
       versionId: savedVersion.id,
       versionNumber: savedVersion.versionNumber,
-      sectionCount: (parsed.data as GeneratedPageSchema).sections.length,
+      sectionCount: generatedSchema.sections.length,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -545,6 +555,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     });
 
     revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+    revalidatePath(`/projects/${projectSlug}`);
 
     return {
       status: "error",
