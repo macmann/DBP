@@ -21,9 +21,11 @@ export type BuildPromptInput = {
 export function buildPageGenerationPrompts(input: BuildPromptInput) {
   const systemPrompt = [
     "You are a landing page schema generator.",
-    "Respond with JSON only. Do not include markdown fences or prose.",
-    "Use only allowed section types provided by the caller.",
-    "For any media references, only use provided mediaAssetIds.",
+    "Output JSON only (no markdown, no prose).",
+    "Return exactly the agreed schema keys; do not add any extra keys.",
+    "Always include theme, seo, and sections.",
+    "Use only section types from the allowed list.",
+    "Any media references (section mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
   ].join("\n");
 
   const userPrompt = [
@@ -47,7 +49,36 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
             .join("\n")
         : "(none provided)"
     }`,
-    "Return JSON shape: { pageTitle: string, summary?: string, theme: { primaryColor: string, accentColor: string, fontFamily: string, spacing?: string, radius?: string }, seo: { title: string, description: string, canonicalUrl?: string, ogImageAssetId?: string }, sections: Array<{ id: string, type: allowedType, heading?: string, body?: string, items?: object[], mediaAssetIds?: string[], cta?: { label: string, href: string } }> }.",
+    "Return this exact JSON shape (required keys: pageTitle, theme, seo, sections; optional keys shown with ?):",
+    "{",
+    '  "pageTitle": "string // page title",',
+    '  "summary?": "string // short page summary",',
+    '  "theme": {',
+    '    "primaryColor": "string // hex or token",',
+    '    "accentColor": "string // hex or token",',
+    '    "fontFamily": "string // font stack",',
+    '    "spacing?": "string // spacing scale",',
+    '    "radius?": "string // corner radius scale"',
+    "  },",
+    '  "seo": {',
+    '    "title": "string // SEO title",',
+    '    "description": "string // SEO description",',
+    '    "canonicalUrl?": "string // absolute URL",',
+    '    "ogImageAssetId?": "string // must match an uploaded asset.id"',
+    "  },",
+    '  "sections": [',
+    "    {",
+    '      "id": "string // stable section id",',
+    '      "type": "allowedType // must be from Allowed sections",',
+    '      "heading?": "string // section heading",',
+    '      "body?": "string // section body",',
+    '      "items?": "object[] // structured content items",',
+    '      "mediaAssetIds?": "string[] // every id must match uploaded asset.id",',
+    '      "cta?": { "label": "string", "href": "string" }',
+    "    }",
+    "  ]",
+    "}",
+    "Use only the keys above and only allowed section types.",
   ].join("\n\n");
 
   return {
