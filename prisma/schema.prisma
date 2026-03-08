@@ -42,36 +42,39 @@ model Project {
 }
 
 model Page {
-  id             String     @id @default(cuid())
-  projectId      String
-  title          String
-  slug           String
-  prompt         String?
-  referenceLinks Json?
-  status         PageStatus @default(draft)
-  content        String?
-  lastError      String?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  publishedAt    DateTime?
+  id               String     @id @default(cuid())
+  projectId        String
+  currentVersionId String?
+  title            String
+  slug             String
+  prompt           String?
+  referenceLinks   Json?
+  status           PageStatus @default(draft)
+  content          String?
+  lastError        String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  publishedAt      DateTime?
 
-  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  versions  PageVersion[]
-  assets    Asset[]
-  buildJobs BuildJob[]
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  currentVersion PageVersion?  @relation("CurrentPageVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions       PageVersion[] @relation("PageVersions")
+  assets         Asset[]
+  buildJobs      BuildJob[]
 
   @@unique([projectId, slug])
 }
 
 model Asset {
-  id        String    @id @default(cuid())
-  projectId String
-  pageId    String?
-  type      AssetType
-  name      String
-  url       String
-  metadata  Json?
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  projectId  String
+  pageId     String?
+  type       AssetType
+  fileName   String
+  mimeType   String
+  storageUrl String
+  metadata   Json?
+  createdAt  DateTime  @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   page    Page?   @relation(fields: [pageId], references: [id], onDelete: SetNull)
@@ -80,32 +83,36 @@ model Asset {
 }
 
 model PageVersion {
-  id        String   @id @default(cuid())
-  pageId    String
-  version   Int
-  title     String
-  content   String?
-  changelog String?
-  createdAt DateTime @default(now())
+  id                  String   @id @default(cuid())
+  pageId              String
+  versionNumber       Int
+  instructionPrompt   String?
+  generatedSchemaJson Json?
+  notes               String?
+  createdAt           DateTime @default(now())
 
-  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page            Page       @relation("PageVersions", fields: [pageId], references: [id], onDelete: Cascade)
+  currentForPages Page[]     @relation("CurrentPageVersion")
+  buildJobs       BuildJob[]
 
-  @@unique([pageId, version])
+  @@unique([pageId, versionNumber])
 }
 
 model BuildJob {
-  id          String         @id @default(cuid())
-  projectId   String
-  pageId      String?
-  status      BuildJobStatus @default(queued)
-  startedAt   DateTime?
-  completedAt DateTime?
-  log         String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id           String         @id @default(cuid())
+  projectId    String
+  pageId       String?
+  versionId    String?
+  status       BuildJobStatus @default(queued)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  errorMessage String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  page    Page?   @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page    Page?        @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  version PageVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
 
   @@index([projectId, status])
 }

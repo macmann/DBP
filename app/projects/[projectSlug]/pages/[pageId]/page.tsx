@@ -34,6 +34,14 @@ export default async function PageDetailPage({
           slug: true,
           name: true
         }
+      },
+      currentVersion: {
+        select: {
+          id: true,
+          versionNumber: true,
+          instructionPrompt: true,
+          notes: true
+        }
       }
     }
   });
@@ -42,7 +50,7 @@ export default async function PageDetailPage({
     notFound();
   }
 
-  const promptText = page.prompt ?? "No prompt has been saved for this page yet.";
+  const promptText = page.currentVersion?.instructionPrompt ?? page.prompt ?? "No prompt has been saved for this page yet.";
   const referenceLinks = Array.isArray(page.referenceLinks) ? page.referenceLinks.filter((link): link is string => typeof link === "string") : [];
 
   return (
@@ -70,6 +78,14 @@ export default async function PageDetailPage({
             <p className="mt-1 text-sm text-neutral-800">{page.id}</p>
           </div>
           <div>
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Current version</p>
+            <p className="mt-1 text-sm text-neutral-800">{page.currentVersion ? `v${page.currentVersion.versionNumber}` : "—"}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Current version ID</p>
+            <p className="mt-1 text-sm text-neutral-800">{page.currentVersionId ?? "—"}</p>
+          </div>
+          <div>
             <p className="text-xs uppercase tracking-wide text-neutral-500">Created</p>
             <p className="mt-1 text-sm text-neutral-800">{formatDate(page.createdAt)}</p>
           </div>
@@ -87,6 +103,13 @@ export default async function PageDetailPage({
           <h2 className="text-xl font-semibold">Prompt</h2>
           <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700">{promptText}</p>
         </section>
+
+        {page.currentVersion?.notes ? (
+          <section className="space-y-2">
+            <h2 className="text-xl font-semibold">Version notes</h2>
+            <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700">{page.currentVersion.notes}</p>
+          </section>
+        ) : null}
 
         <section className="space-y-2">
           <h2 className="text-xl font-semibold">Reference links</h2>

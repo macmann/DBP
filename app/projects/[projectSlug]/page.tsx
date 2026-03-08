@@ -11,7 +11,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
     where: { slug: projectSlug },
     include: {
       pages: {
-        orderBy: { updatedAt: "desc" }
+        orderBy: { updatedAt: "desc" },
+        include: {
+          currentVersion: {
+            select: {
+              versionNumber: true
+            }
+          }
+        }
       }
     }
   });
@@ -48,6 +55,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                   <div>
                     <p className="font-medium text-neutral-900">{page.title}</p>
                     <p className="mt-1 text-sm text-neutral-600">/{page.slug}</p>
+                    <p className="mt-1 text-xs text-neutral-500">
+                      {page.currentVersion ? `v${page.currentVersion.versionNumber}` : "No current version"}
+                    </p>
                   </div>
                   <PageStatusBadge status={page.status} />
                 </Link>
