@@ -2,8 +2,15 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { PageStatus, Prisma } from "@prisma/client";
+import { BuildJobStatus, PageStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { callOpenAIForPageSchema } from "@/lib/ai/openaiClient";
+import { buildPageGenerationPrompts } from "@/lib/ai/promptBuilder";
+import {
+  ALLOWED_SECTION_TYPES,
+  type GeneratedPageSchema,
+  validateGeneratedPageSchema,
+} from "@/lib/ai/schema";
 import { slugify } from "@/lib/utils/slugify";
 
 async function ensureUniqueProjectSlug(baseSlug: string) {
@@ -66,6 +73,20 @@ export const initialUpdatePageState: UpdatePageState = {
   status: "idle",
   message: "",
 };
+
+export type BuildPageResult =
+  | {
+      status: "success";
+      message: string;
+      versionId: string;
+      versionNumber: number;
+      sectionCount: number;
+    }
+  | {
+      status: "error";
+      message: string;
+      context?: Record<string, unknown>;
+    };
 
 function parseReferenceLinksFromForm(formData: FormData) {
   return formData
@@ -267,4 +288,204 @@ export async function updatePage(
     status: "success",
     message: "Page updated successfully.",
   };
+}
+
+export async function buildPage(projectSlug: string, pageId: string): Promise<BuildPageResult> {
+  const page = await prisma.page.findFirst({
+    where: {
+      id: pageId,
+      project: {
+        slug: projectSlug,
+      },
+    },
+    include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      assets: {
+        where: {
+          pageId,
+        },
+        orderBy: {
+          sortOrder: "asc",
+        },
+        select: {
+          id: true,
+          type: true,
+          storageUrl: true,
+          metadata: true,
+          fileName: true,
+          mimeType: true,
+        },
+      },
+    },
+  });
+
+  if (!page) {
+    return {
+      status: "error",
+      message: "Page not found.",
+    };
+  }
+
+  const buildJob = await prisma.buildJob.create({
+    data: {
+      projectId: page.project.id,
+      pageId: page.id,
+      status: BuildJobStatus.running,
+      startedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
+  try {
+    const prompts = buildPageGenerationPrompts({
+      pagePrompt: page.prompt ?? "",
+      referenceLinks: Array.isArray(page.referenceLinks)
+        ? page.referenceLinks.filter((link): link is string => typeof link === "string")
+        : [],
+      assets: page.assets,
+      allowedSections: ALLOWED_SECTION_TYPES,
+      toneBrandingHints: [
+        `Use ${page.project.name} brand voice where possible.`,
+        "Prefer concise, conversion-oriented marketing copy.",
+      ],
+    });
+
+    const aiOutput = await callOpenAIForPageSchema(prompts);
+    const parsed = validateGeneratedPageSchema(aiOutput.json);
+
+    if (!parsed.success) {
+      const context = {
+        reason: "schema_validation_failed",
+        errors: parsed.errors,
+        requestId: aiOutput.requestId,
+      };
+
+      await prisma.$transaction(async (tx) => {
+        await tx.page.update({
+          where: { id: page.id },
+          data: {
+            status: PageStatus.failed,
+            lastError: JSON.stringify(context),
+          },
+        });
+
+        await tx.buildJob.update({
+          where: { id: buildJob.id },
+          data: {
+            status: BuildJobStatus.failed,
+            finishedAt: new Date(),
+            errorMessage: "Generated response did not match expected schema.",
+          },
+        });
+      });
+
+      revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+
+      return {
+        status: "error",
+        message: "Generated output did not pass schema validation.",
+        context,
+      };
+    }
+
+    const savedVersion = await prisma.$transaction(async (tx) => {
+      const latestVersion = await tx.pageVersion.findFirst({
+        where: {
+          pageId: page.id,
+        },
+        orderBy: {
+          versionNumber: "desc",
+        },
+        select: {
+          versionNumber: true,
+        },
+      });
+
+      const version = await tx.pageVersion.create({
+        data: {
+          pageId: page.id,
+          versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
+          instructionPrompt: page.prompt,
+          generatedSchemaJson: parsed.data as unknown as Prisma.InputJsonValue,
+          notes: "Generated via Build action.",
+        },
+        select: {
+          id: true,
+          versionNumber: true,
+        },
+      });
+
+      await tx.page.update({
+        where: {
+          id: page.id,
+        },
+        data: {
+          currentVersionId: version.id,
+          status: PageStatus.draft,
+          lastError: null,
+          content: JSON.stringify(parsed.data),
+        },
+      });
+
+      await tx.buildJob.update({
+        where: { id: buildJob.id },
+        data: {
+          versionId: version.id,
+          status: BuildJobStatus.completed,
+          finishedAt: new Date(),
+        },
+      });
+
+      return version;
+    });
+
+    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+    revalidatePath(`/projects/${projectSlug}`);
+
+    return {
+      status: "success",
+      message: "Build completed and new page version saved.",
+      versionId: savedVersion.id,
+      versionNumber: savedVersion.versionNumber,
+      sectionCount: (parsed.data as GeneratedPageSchema).sections.length,
+    };
+  } catch (error) {
+    const context = {
+      reason: "build_failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+
+    await prisma.$transaction(async (tx) => {
+      await tx.page.update({
+        where: { id: page.id },
+        data: {
+          status: PageStatus.failed,
+          lastError: JSON.stringify(context),
+        },
+      });
+
+      await tx.buildJob.update({
+        where: { id: buildJob.id },
+        data: {
+          status: BuildJobStatus.failed,
+          finishedAt: new Date(),
+          errorMessage: context.error,
+        },
+      });
+    });
+
+    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+
+    return {
+      status: "error",
+      message: "Build failed.",
+      context,
+    };
+  }
 }

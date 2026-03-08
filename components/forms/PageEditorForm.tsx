@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { initialUpdatePageState, updatePage } from "@/app/actions";
+import { useActionState, useState, useTransition } from "react";
+import { buildPage, initialUpdatePageState, updatePage } from "@/app/actions";
 import { FormSection } from "@/components/forms/FormSection";
 import { FormTextArea } from "@/components/forms/FormTextArea";
 import { FormTextInput } from "@/components/forms/FormTextInput";
@@ -19,6 +19,14 @@ export function PageEditorForm({ projectSlug, pageId, initialModel }: PageEditor
     updatePage.bind(null, projectSlug, pageId),
     initialUpdatePageState,
   );
+  const [isBuildPending, startBuildTransition] = useTransition();
+  const [buildState, setBuildState] = useState<{
+    status: "idle" | "success" | "error";
+    message: string;
+  }>({
+    status: "idle",
+    message: "",
+  });
 
   return (
     <form action={formAction} className="space-y-5">
@@ -71,6 +79,17 @@ export function PageEditorForm({ projectSlug, pageId, initialModel }: PageEditor
         </p>
       ) : null}
 
+      {buildState.status === "error" ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {buildState.message}
+        </p>
+      ) : null}
+      {buildState.status === "success" ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+          {buildState.message}
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
@@ -81,12 +100,31 @@ export function PageEditorForm({ projectSlug, pageId, initialModel }: PageEditor
         </button>
         <button
           type="button"
-          className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          disabled={isBuildPending}
+          className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
           onClick={() => {
-            // Placeholder for build trigger action.
+            startBuildTransition(async () => {
+              setBuildState({ status: "idle", message: "" });
+              const result = await buildPage(projectSlug, pageId);
+
+              if (result.status === "success") {
+                setBuildState({
+                  status: "success",
+                  message: `Build succeeded. Saved v${result.versionNumber} with ${result.sectionCount} sections.`,
+                });
+              } else {
+                setBuildState({
+                  status: "error",
+                  message:
+                    result.context && Object.keys(result.context).length > 0
+                      ? `${result.message} ${JSON.stringify(result.context)}`
+                      : result.message,
+                });
+              }
+            });
           }}
         >
-          Build page
+          {isBuildPending ? "Building..." : "Build page"}
         </button>
       </div>
     </form>
