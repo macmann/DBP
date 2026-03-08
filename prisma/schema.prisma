@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PageStatus {
+  draft
+  generating
+  published
+  failed
+}
+
+enum AssetType {
+  logo
+  screenshot
+  image
+  file
+}
+
+enum BuildJobStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+model Project {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  pages       Page[]
+  assets      Asset[]
+  buildJobs   BuildJob[]
+}
+
+model Page {
+  id           String       @id @default(cuid())
+  projectId    String
+  title        String
+  slug         String
+  status       PageStatus   @default(draft)
+  content      String?
+  lastError    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  publishedAt  DateTime?
+
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions     PageVersion[]
+  assets       Asset[]
+  buildJobs    BuildJob[]
+
+  @@unique([projectId, slug])
+}
+
+model Asset {
+  id          String    @id @default(cuid())
+  projectId   String
+  pageId      String?
+  type        AssetType
+  name        String
+  url         String
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page        Page?     @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, type])
+}
+
+model PageVersion {
+  id          String    @id @default(cuid())
+  pageId      String
+  version     Int
+  title       String
+  content     String?
+  changelog   String?
+  createdAt   DateTime  @default(now())
+
+  page        Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, version])
+}
+
+model BuildJob {
+  id           String         @id @default(cuid())
+  projectId    String
+  pageId       String?
+  status       BuildJobStatus @default(queued)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  log          String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page         Page?          @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, status])
+}
