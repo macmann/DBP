@@ -93,6 +93,31 @@ export type BuildPageResult =
       message: string;
     };
 
+export type GenerateNewVersionResult =
+  | {
+      status: "success";
+      message: string;
+      versionId: string;
+      versionNumber: number;
+      sectionCount: number;
+    }
+  | {
+      status: "error";
+      message: string;
+    };
+
+export type RollbackVersionResult =
+  | {
+      status: "success";
+      message: string;
+      versionId: string;
+      versionNumber: number;
+    }
+  | {
+      status: "error";
+      message: string;
+    };
+
 export async function createProject(
   _previousState: CreateProjectState,
   formData: FormData,
@@ -563,4 +588,232 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         "Build failed due to an internal error. Please review your prompt/assets and try again.",
     };
   }
+}
+
+export async function generateNewVersion(
+  projectSlug: string,
+  pageId: string,
+  instructionPrompt: string,
+): Promise<GenerateNewVersionResult> {
+  const normalizedInstruction = instructionPrompt.trim();
+
+  if (!normalizedInstruction) {
+    return {
+      status: "error",
+      message: "Update instructions are required.",
+    };
+  }
+
+  const page = await prisma.page.findFirst({
+    where: {
+      id: pageId,
+      project: {
+        slug: projectSlug,
+      },
+    },
+    include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      currentVersion: {
+        select: {
+          id: true,
+          generatedSchemaJson: true,
+        },
+      },
+      assets: {
+        where: {
+          pageId,
+        },
+        orderBy: {
+          sortOrder: "asc",
+        },
+        select: {
+          id: true,
+          type: true,
+          storageUrl: true,
+          metadata: true,
+          fileName: true,
+          mimeType: true,
+        },
+      },
+    },
+  });
+
+  if (!page) {
+    return {
+      status: "error",
+      message: "Page not found.",
+    };
+  }
+
+  const currentSchemaValidation = validateGeneratedPageSchema(page.currentVersion?.generatedSchemaJson);
+
+  if (!currentSchemaValidation.success) {
+    return {
+      status: "error",
+      message: "Current version does not contain a valid schema to update.",
+    };
+  }
+
+  try {
+    const prompts = buildPageGenerationPrompts({
+      pagePrompt: [
+        "Revise the existing landing page schema using the update instructions below.",
+        "Return a complete updated schema, not a partial diff.",
+        `Current schema JSON:\n${JSON.stringify(currentSchemaValidation.data, null, 2)}`,
+        `Update instructions:\n${normalizedInstruction}`,
+      ].join("\n\n"),
+      referenceLinks: Array.isArray(page.referenceLinks)
+        ? page.referenceLinks.filter((link): link is string => typeof link === "string")
+        : [],
+      assets: page.assets,
+      allowedSections: ALLOWED_SECTION_TYPES,
+      toneBrandingHints: [
+        `Use ${page.project.name} brand voice where possible.`,
+        "Preserve valid structure while applying requested improvements.",
+      ],
+    });
+
+    const aiOutput = await callOpenAIForPageSchema(prompts);
+    const parsed = validateGeneratedPageSchema(aiOutput.json);
+
+    if (!parsed.success) {
+      return {
+        status: "error",
+        message: "Generated revision did not pass schema validation.",
+      };
+    }
+
+    const savedVersion = await prisma.$transaction(async (tx) => {
+      const latestVersion = await tx.pageVersion.findFirst({
+        where: {
+          pageId: page.id,
+        },
+        orderBy: {
+          versionNumber: "desc",
+        },
+        select: {
+          versionNumber: true,
+        },
+      });
+
+      const version = await tx.pageVersion.create({
+        data: {
+          pageId: page.id,
+          versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
+          instructionPrompt: normalizedInstruction,
+          generatedSchemaJson: parsed.data as unknown as Prisma.InputJsonValue,
+          notes: "Generated via iterative update.",
+        },
+        select: {
+          id: true,
+          versionNumber: true,
+        },
+      });
+
+      await tx.page.update({
+        where: {
+          id: page.id,
+        },
+        data: {
+          currentVersionId: version.id,
+          status: PageStatus.published,
+          lastError: null,
+          content: JSON.stringify(parsed.data),
+          publishedAt: new Date(),
+        },
+      });
+
+      return version;
+    });
+
+    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+    revalidatePath(`/demo/${page.slug}`);
+
+    return {
+      status: "success",
+      message: `Created v${savedVersion.versionNumber} from iterative instructions.`,
+      versionId: savedVersion.id,
+      versionNumber: savedVersion.versionNumber,
+      sectionCount: parsed.data.sections.length,
+    };
+  } catch (error) {
+    console.error("generateNewVersion failed", { projectSlug, pageId, error });
+    return {
+      status: "error",
+      message: "Failed to generate a revised version. Please try again.",
+    };
+  }
+}
+
+export async function rollbackToVersion(
+  projectSlug: string,
+  pageId: string,
+  versionId: string,
+): Promise<RollbackVersionResult> {
+  const page = await prisma.page.findFirst({
+    where: {
+      id: pageId,
+      project: {
+        slug: projectSlug,
+      },
+    },
+    select: {
+      id: true,
+      slug: true,
+    },
+  });
+
+  if (!page) {
+    return {
+      status: "error",
+      message: "Page not found.",
+    };
+  }
+
+  const version = await prisma.pageVersion.findFirst({
+    where: {
+      id: versionId,
+      pageId: page.id,
+    },
+    select: {
+      id: true,
+      versionNumber: true,
+      generatedSchemaJson: true,
+    },
+  });
+
+  if (!version) {
+    return {
+      status: "error",
+      message: "Version not found for this page.",
+    };
+  }
+
+  await prisma.page.update({
+    where: {
+      id: page.id,
+    },
+    data: {
+      currentVersionId: version.id,
+      status: PageStatus.published,
+      lastError: null,
+      content: version.generatedSchemaJson ? JSON.stringify(version.generatedSchemaJson) : null,
+      publishedAt: new Date(),
+    },
+  });
+
+  revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+  revalidatePath(`/demo/${page.slug}`);
+
+  return {
+    status: "success",
+    message: `Rolled back to v${version.versionNumber}.`,
+    versionId: version.id,
+    versionNumber: version.versionNumber,
+  };
 }

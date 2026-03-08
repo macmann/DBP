@@ -1,3 +1,5 @@
+import type { ChangeEvent } from "react";
+
 type FormTextAreaProps = {
   id: string;
   name: string;
@@ -5,6 +7,8 @@ type FormTextAreaProps = {
   placeholder?: string;
   rows?: number;
   defaultValue?: string;
+  value?: string;
+  onChange?: (event: ChangeEvent<HTMLTextAreaElement>) => void;
   error?: string;
 };
 
@@ -15,6 +19,8 @@ export function FormTextArea({
   placeholder,
   rows = 5,
   defaultValue,
+  value,
+  onChange,
   error,
 }: FormTextAreaProps) {
   return (
@@ -28,6 +34,8 @@ export function FormTextArea({
         rows={rows}
         placeholder={placeholder}
         defaultValue={defaultValue}
+        value={value}
+        onChange={onChange}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none ring-neutral-900/10 placeholder:text-neutral-400 focus:ring"

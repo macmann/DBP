@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageStatusBadge } from "@/components/dashboard/PageStatusBadge";
 import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { PageEditorForm } from "@/components/forms/PageEditorForm";
+import { VersionHistoryPanel } from "@/components/forms/VersionHistoryPanel";
 import { prisma } from "@/lib/db";
 
 function formatDate(value: Date | null) {
@@ -43,6 +44,17 @@ export default async function PageDetailPage({
           versionNumber: true,
           instructionPrompt: true,
           notes: true,
+        },
+      },
+      versions: {
+        orderBy: {
+          versionNumber: "desc",
+        },
+        select: {
+          id: true,
+          versionNumber: true,
+          createdAt: true,
+          instructionPrompt: true,
         },
       },
       assets: {
@@ -133,6 +145,18 @@ export default async function PageDetailPage({
               ? page.referenceLinks.filter((link): link is string => typeof link === "string")
               : [],
           }}
+        />
+
+        <VersionHistoryPanel
+          projectSlug={page.project.slug}
+          pageId={page.id}
+          currentVersionId={page.currentVersionId}
+          versions={page.versions.map((version) => ({
+            id: version.id,
+            versionNumber: version.versionNumber,
+            createdAt: version.createdAt.toISOString(),
+            instructionPrompt: version.instructionPrompt,
+          }))}
         />
 
         {page.currentVersion?.notes ? (
