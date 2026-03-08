@@ -33,6 +33,7 @@ export type UploadedAssetDto = {
   projectId: string;
   pageId: string | null;
   type: string;
+  sortOrder: number;
   fileName: string;
   mimeType: string;
   storageUrl: string;

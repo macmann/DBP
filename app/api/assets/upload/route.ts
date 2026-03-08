@@ -97,11 +97,22 @@ export async function POST(request: Request) {
         : {})
     };
 
+    const aggregate = await prisma.asset.aggregate({
+      where: {
+        projectId,
+        pageId
+      },
+      _max: {
+        sortOrder: true
+      }
+    });
+
     const asset = await prisma.asset.create({
       data: {
         projectId,
         pageId,
         type: type as AssetType,
+        sortOrder: (aggregate._max.sortOrder ?? -1) + 1,
         fileName: uploaded.fileName,
         mimeType: uploaded.mimeType,
         storageUrl: uploaded.storageUrl,
@@ -114,6 +125,7 @@ export async function POST(request: Request) {
       projectId: asset.projectId,
       pageId: asset.pageId,
       type: asset.type,
+      sortOrder: asset.sortOrder,
       fileName: asset.fileName,
       mimeType: asset.mimeType,
       storageUrl: asset.storageUrl,

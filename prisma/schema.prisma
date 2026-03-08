@@ -70,6 +70,7 @@ model Asset {
   projectId  String
   pageId     String?
   type       AssetType
+  sortOrder  Int       @default(0)
   fileName   String
   mimeType   String
   storageUrl String
@@ -80,6 +81,7 @@ model Asset {
   page    Page?   @relation(fields: [pageId], references: [id], onDelete: SetNull)
 
   @@index([projectId, type])
+  @@index([pageId, sortOrder])
 }
 
 model PageVersion {
