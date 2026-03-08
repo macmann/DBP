@@ -5,14 +5,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getImageDimensions } from "@/lib/storage/getImageDimensions";
 import { StorageConfigurationError, uploadAsset } from "@/lib/storage/uploadAsset";
-import {
-  ALLOWED_ASSET_MIME_TYPES,
-  type UploadAssetErrorCode,
-  type UploadAssetResponseDto,
-  type UploadedAssetDto
-} from "@/types/asset-upload";
-
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+import { validateAssetFile } from "@/lib/validation/assets";
+import { type UploadAssetErrorCode, type UploadAssetResponseDto, type UploadedAssetDto } from "@/types/asset-upload";
 
 function errorResponse(status: number, code: UploadAssetErrorCode, message: string, field?: string) {
   return NextResponse.json<UploadAssetResponseDto>(
@@ -46,21 +40,9 @@ export async function POST(request: Request) {
       return errorResponse(400, "VALIDATION_ERROR", "Please choose a file to upload.", "file");
     }
 
-    if (file.size <= 0) {
-      return errorResponse(400, "VALIDATION_ERROR", "Selected file is empty.", "file");
-    }
-
-    if (file.size > MAX_UPLOAD_BYTES) {
-      return errorResponse(400, "VALIDATION_ERROR", "File is too large. Maximum size is 10MB.", "file");
-    }
-
-    if (!ALLOWED_ASSET_MIME_TYPES.includes(file.type as (typeof ALLOWED_ASSET_MIME_TYPES)[number])) {
-      return errorResponse(
-        400,
-        "VALIDATION_ERROR",
-        "Unsupported file type. Please upload PNG, JPEG, WEBP, GIF, SVG, PDF, TXT, or ZIP files.",
-        "file"
-      );
+    const fileValidationError = validateAssetFile(file);
+    if (fileValidationError) {
+      return errorResponse(400, "VALIDATION_ERROR", fileValidationError, "file");
     }
 
     const project = await prisma.project.findUnique({
