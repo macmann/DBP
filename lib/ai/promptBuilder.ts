@@ -47,7 +47,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
             .join("\n")
         : "(none provided)"
     }`,
-    "Return JSON shape: { pageTitle: string, summary?: string, sections: Array<{ id: string, type: allowedType, heading?: string, body?: string, items?: object[], mediaAssetIds?: string[], cta?: { label: string, href: string } }> }.",
+    "Return JSON shape: { pageTitle: string, summary?: string, theme: { primaryColor: string, accentColor: string, fontFamily: string, spacing?: string, radius?: string }, seo: { title: string, description: string, canonicalUrl?: string, ogImageAssetId?: string }, sections: Array<{ id: string, type: allowedType, heading?: string, body?: string, items?: object[], mediaAssetIds?: string[], cta?: { label: string, href: string } }> }.",
   ].join("\n\n");
 
   return {
