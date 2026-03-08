@@ -40,6 +40,19 @@ export type GeneratedSection = {
 export type GeneratedPageSchema = {
   pageTitle: string;
   summary?: string;
+  theme: {
+    primaryColor: string;
+    accentColor: string;
+    fontFamily: string;
+    spacing?: string;
+    radius?: string;
+  };
+  seo: {
+    title: string;
+    description: string;
+    canonicalUrl?: string;
+    ogImageAssetId?: string;
+  };
   sections: GeneratedSection[];
 };
 
@@ -51,7 +64,18 @@ function isAllowedSectionType(value: unknown): value is AllowedSectionType {
   return typeof value === "string" && ALLOWED_SECTION_TYPES.includes(value as AllowedSectionType);
 }
 
-export function validateGeneratedPageSchema(payload: unknown): ValidationResult<GeneratedPageSchema> {
+function isValidUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function validateGeneratedPageSchema(
+  payload: unknown,
+): ValidationResult<GeneratedPageSchema> {
   const errors: string[] = [];
 
   if (!isRecord(payload)) {
@@ -63,6 +87,76 @@ export function validateGeneratedPageSchema(payload: unknown): ValidationResult<
 
   if (typeof payload.pageTitle !== "string" || payload.pageTitle.trim().length === 0) {
     errors.push("pageTitle must be a non-empty string.");
+  }
+
+  if (!isRecord(payload.theme)) {
+    errors.push("theme must be an object.");
+  } else {
+    if (
+      typeof payload.theme.primaryColor !== "string" ||
+      payload.theme.primaryColor.trim().length === 0
+    ) {
+      errors.push("theme.primaryColor must be a non-empty string.");
+    }
+
+    if (
+      typeof payload.theme.accentColor !== "string" ||
+      payload.theme.accentColor.trim().length === 0
+    ) {
+      errors.push("theme.accentColor must be a non-empty string.");
+    }
+
+    if (
+      typeof payload.theme.fontFamily !== "string" ||
+      payload.theme.fontFamily.trim().length === 0
+    ) {
+      errors.push("theme.fontFamily must be a non-empty string.");
+    }
+
+    if (payload.theme.spacing !== undefined && typeof payload.theme.spacing !== "string") {
+      errors.push("theme.spacing must be a string when provided.");
+    }
+
+    if (payload.theme.radius !== undefined && typeof payload.theme.radius !== "string") {
+      errors.push("theme.radius must be a string when provided.");
+    }
+  }
+
+  if (!isRecord(payload.seo)) {
+    errors.push("seo must be an object.");
+  } else {
+    if (typeof payload.seo.title !== "string" || payload.seo.title.trim().length === 0) {
+      errors.push("seo.title must be a non-empty string.");
+    } else if (payload.seo.title.length > 70) {
+      errors.push("seo.title must be at most 70 characters.");
+    }
+
+    if (
+      typeof payload.seo.description !== "string" ||
+      payload.seo.description.trim().length === 0
+    ) {
+      errors.push("seo.description must be a non-empty string.");
+    } else if (payload.seo.description.length > 160) {
+      errors.push("seo.description must be at most 160 characters.");
+    }
+
+    if (payload.seo.canonicalUrl !== undefined) {
+      if (
+        typeof payload.seo.canonicalUrl !== "string" ||
+        payload.seo.canonicalUrl.trim().length === 0
+      ) {
+        errors.push("seo.canonicalUrl must be a non-empty string when provided.");
+      } else if (!isValidUrl(payload.seo.canonicalUrl)) {
+        errors.push("seo.canonicalUrl must be a valid http(s) URL.");
+      }
+    }
+
+    if (
+      payload.seo.ogImageAssetId !== undefined &&
+      typeof payload.seo.ogImageAssetId !== "string"
+    ) {
+      errors.push("seo.ogImageAssetId must be a string when provided.");
+    }
   }
 
   if (!Array.isArray(payload.sections)) {
@@ -81,9 +175,7 @@ export function validateGeneratedPageSchema(payload: unknown): ValidationResult<
       }
 
       if (!isAllowedSectionType(section.type)) {
-        errors.push(
-          `sections[${index}].type must be one of: ${ALLOWED_SECTION_TYPES.join(", ")}.`,
-        );
+        errors.push(`sections[${index}].type must be one of: ${ALLOWED_SECTION_TYPES.join(", ")}.`);
       }
 
       if (section.mediaAssetIds !== undefined) {
