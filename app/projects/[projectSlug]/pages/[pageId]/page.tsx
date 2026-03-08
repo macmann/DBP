@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageStatusBadge } from "@/components/dashboard/PageStatusBadge";
+import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { prisma } from "@/lib/db";
 
 function formatDate(value: Date | null) {
@@ -41,6 +42,26 @@ export default async function PageDetailPage({
           versionNumber: true,
           instructionPrompt: true,
           notes: true
+        }
+      },
+      assets: {
+        where: {
+          pageId
+        },
+        orderBy: {
+          sortOrder: "asc"
+        },
+        select: {
+          id: true,
+          projectId: true,
+          pageId: true,
+          type: true,
+          sortOrder: true,
+          fileName: true,
+          mimeType: true,
+          storageUrl: true,
+          metadata: true,
+          createdAt: true
         }
       }
     }
@@ -110,6 +131,23 @@ export default async function PageDetailPage({
             <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700">{page.currentVersion.notes}</p>
           </section>
         ) : null}
+
+        <PageAssetsSection
+          projectId={page.projectId}
+          pageId={page.id}
+          initialAssets={page.assets.map((asset) => ({
+            id: asset.id,
+            projectId: asset.projectId,
+            pageId: asset.pageId,
+            type: asset.type,
+            sortOrder: asset.sortOrder,
+            fileName: asset.fileName,
+            mimeType: asset.mimeType,
+            storageUrl: asset.storageUrl,
+            metadata: (asset.metadata as Record<string, unknown> | null) ?? null,
+            createdAt: asset.createdAt.toISOString()
+          }))}
+        />
 
         <section className="space-y-2">
           <h2 className="text-xl font-semibold">Reference links</h2>
