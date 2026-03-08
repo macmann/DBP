@@ -516,7 +516,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         },
       });
 
-      await tx.page.update({
+      const updatedPage = await tx.page.update({
         where: {
           id: page.id,
         },
@@ -526,6 +526,9 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
           lastError: null,
           content: JSON.stringify(generatedSchema),
           publishedAt: new Date(),
+        },
+        select: {
+          slug: true,
         },
       });
 
@@ -538,12 +541,15 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         },
       });
 
-      return version;
+      return {
+        ...version,
+        slug: updatedPage.slug,
+      };
     });
 
     revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
     revalidatePath(`/projects/${projectSlug}`);
-    revalidatePath(`/demo/${page.slug}`);
+    revalidatePath(`/demo/${savedVersion.slug}`);
 
     return {
       status: "success",
@@ -715,7 +721,7 @@ export async function generateNewVersion(
         },
       });
 
-      await tx.page.update({
+      const updatedPage = await tx.page.update({
         where: {
           id: page.id,
         },
@@ -726,13 +732,20 @@ export async function generateNewVersion(
           content: JSON.stringify(parsed.data),
           publishedAt: new Date(),
         },
+        select: {
+          slug: true,
+        },
       });
 
-      return version;
+      return {
+        ...version,
+        slug: updatedPage.slug,
+      };
     });
 
     revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-    revalidatePath(`/demo/${page.slug}`);
+    revalidatePath(`/projects/${projectSlug}`);
+    revalidatePath(`/demo/${savedVersion.slug}`);
 
     return {
       status: "success",
@@ -764,7 +777,6 @@ export async function rollbackToVersion(
     },
     select: {
       id: true,
-      slug: true,
     },
   });
 
@@ -794,21 +806,27 @@ export async function rollbackToVersion(
     };
   }
 
-  await prisma.page.update({
-    where: {
-      id: page.id,
-    },
-    data: {
-      currentVersionId: version.id,
-      status: PageStatus.published,
-      lastError: null,
-      content: version.generatedSchemaJson ? JSON.stringify(version.generatedSchemaJson) : null,
-      publishedAt: new Date(),
-    },
+  const updatedPage = await prisma.$transaction(async (tx) => {
+    return tx.page.update({
+      where: {
+        id: page.id,
+      },
+      data: {
+        currentVersionId: version.id,
+        status: PageStatus.published,
+        lastError: null,
+        content: version.generatedSchemaJson ? JSON.stringify(version.generatedSchemaJson) : null,
+        publishedAt: new Date(),
+      },
+      select: {
+        slug: true,
+      },
+    });
   });
 
   revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-  revalidatePath(`/demo/${page.slug}`);
+  revalidatePath(`/projects/${projectSlug}`);
+  revalidatePath(`/demo/${updatedPage.slug}`);
 
   return {
     status: "success",
