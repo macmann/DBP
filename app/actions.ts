@@ -67,13 +67,11 @@ export type CreateProjectState = {
   };
 };
 
-
 export type CreatePageState = {
   ok: boolean;
   formError?: string;
   fieldErrors?: PageFieldErrors;
 };
-
 
 export type UpdatePageState = {
   status: "idle" | "success" | "error";
@@ -81,7 +79,6 @@ export type UpdatePageState = {
   message: string;
   fieldErrors?: PageFieldErrors;
 };
-
 
 export type BuildPageResult =
   | {
@@ -416,15 +413,17 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     const parsed = validateGeneratedPageSchema(aiOutput.json);
 
     if (!parsed.success) {
-      const isMissingThemeOrSeo = parsed.errors.some(
-        (error) => error === "theme must be an object." || error === "seo must be an object.",
+      const themeOrSeoErrors = parsed.errors.filter(
+        (error) => error.startsWith("theme") || error.startsWith("seo"),
       );
+      const hasThemeOrSeoValidationFailure = themeOrSeoErrors.length > 0;
       const conciseValidationError = parsed.errors[0] ?? "Schema validation failed.";
       const context = {
-        reason: isMissingThemeOrSeo
-          ? "missing_theme_or_seo"
+        reason: hasThemeOrSeoValidationFailure
+          ? "invalid_theme_or_seo"
           : "schema_validation_failed",
         error: conciseValidationError,
+        themeOrSeoErrors,
         requestId: aiOutput.requestId,
       };
       console.error("buildPage schema validation failed", {
@@ -457,8 +456,8 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
       return {
         status: "error",
-        message: isMissingThemeOrSeo
-          ? "Build failed because generated output is missing required theme or SEO data. Review your prompt and try again."
+        message: hasThemeOrSeoValidationFailure
+          ? `Build failed because generated output has invalid theme/SEO data (${themeOrSeoErrors.join("; ")}). Review your prompt and try again.`
           : "Generated output did not pass schema validation. Review your prompt and assets, then try again.",
       };
     }
@@ -559,7 +558,8 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
     return {
       status: "error",
-      message: "Build failed due to an internal error. Please review your prompt/assets and try again.",
+      message:
+        "Build failed due to an internal error. Please review your prompt/assets and try again.",
     };
   }
 }
