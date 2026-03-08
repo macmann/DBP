@@ -1,5 +1,5 @@
 import type { AssetType } from "@prisma/client";
-import type { AllowedSectionType } from "@/lib/ai/schema";
+import type { AllowedSectionType } from "./schema";
 
 type PromptAsset = {
   id: string;
