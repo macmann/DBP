@@ -12,6 +12,13 @@ import {
   validateGeneratedPageSchema,
 } from "@/lib/ai/schema";
 import { slugify } from "@/lib/utils/slugify";
+import {
+  hasPageFieldErrors,
+  parseReferenceLinks,
+  parseReferenceLinksFromForm,
+  validatePageInput,
+  type PageFieldErrors,
+} from "@/lib/validation/page";
 
 async function ensureUniqueProjectSlug(baseSlug: string) {
   let slug = baseSlug;
@@ -52,27 +59,29 @@ async function ensureUniquePageSlug(projectId: string, baseSlug: string, exclude
   return slug;
 }
 
-function parseReferenceLinks(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-export type UpdatePageState = {
-  status: "idle" | "success" | "error";
-  message: string;
+export type CreateProjectState = {
+  ok: boolean;
+  formError?: string;
   fieldErrors?: {
-    title?: string;
-    slug?: string;
-    referenceLinks?: string;
+    name?: string;
   };
 };
 
-export const initialUpdatePageState: UpdatePageState = {
-  status: "idle",
-  message: "",
+
+export type CreatePageState = {
+  ok: boolean;
+  formError?: string;
+  fieldErrors?: PageFieldErrors;
 };
+
+
+export type UpdatePageState = {
+  status: "idle" | "success" | "error";
+  ok: boolean;
+  message: string;
+  fieldErrors?: PageFieldErrors;
+};
+
 
 export type BuildPageResult =
   | {
@@ -85,111 +94,135 @@ export type BuildPageResult =
   | {
       status: "error";
       message: string;
-      context?: Record<string, unknown>;
     };
 
-function parseReferenceLinksFromForm(formData: FormData) {
-  return formData
-    .getAll("referenceLinks")
-    .map((value) => String(value).trim())
-    .filter(Boolean);
-}
-
-function isValidReferenceUrl(value: string) {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-export async function createProject(formData: FormData) {
+export async function createProject(
+  _previousState: CreateProjectState,
+  formData: FormData,
+): Promise<CreateProjectState> {
   const name = String(formData.get("name") ?? "").trim();
 
   if (!name) {
-    throw new Error("Project name is required");
+    return {
+      ok: false,
+      fieldErrors: {
+        name: "Project name is required.",
+      },
+      formError: "Could not create project.",
+    };
   }
 
-  const baseSlug = slugify(name) || "project";
-  const slug = await ensureUniqueProjectSlug(baseSlug);
+  try {
+    const baseSlug = slugify(name) || "project";
+    const slug = await ensureUniqueProjectSlug(baseSlug);
 
-  const project = await prisma.project.create({
-    data: {
-      name,
-      slug,
-    },
-    select: {
-      slug: true,
-    },
-  });
+    const project = await prisma.project.create({
+      data: {
+        name,
+        slug,
+      },
+      select: {
+        slug: true,
+      },
+    });
 
-  redirect(`/projects/${project.slug}`);
+    redirect(`/projects/${project.slug}`);
+  } catch (error) {
+    console.error("createProject failed", { name, error });
+    return {
+      ok: false,
+      formError: "Something went wrong while creating the project. Please try again.",
+    };
+  }
 }
 
-export async function createPage(projectSlug: string, formData: FormData) {
-  const project = await prisma.project.findUnique({
-    where: { slug: projectSlug },
-    select: { id: true, slug: true },
-  });
-
-  if (!project) {
-    throw new Error("Project not found");
-  }
-
+export async function createPage(
+  projectSlug: string,
+  _previousState: CreatePageState,
+  formData: FormData,
+): Promise<CreatePageState> {
   const title = String(formData.get("title") ?? "").trim();
   const customSlug = String(formData.get("slug") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
-  const referenceLinksInput = String(formData.get("referenceLinks") ?? "");
-
-  if (!title) {
-    throw new Error("Page title is required");
-  }
-
-  const baseSlug = slugify(customSlug || title) || "page";
-  const slug = await ensureUniquePageSlug(project.id, baseSlug);
-  const referenceLinks = parseReferenceLinks(referenceLinksInput);
-
-  const page = await prisma.$transaction(async (tx) => {
-    const createdPage = await tx.page.create({
-      data: {
-        projectId: project.id,
-        title,
-        slug,
-        prompt: prompt || null,
-        referenceLinks,
-        status: PageStatus.draft,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    const createdVersion = await tx.pageVersion.create({
-      data: {
-        pageId: createdPage.id,
-        versionNumber: 1,
-        instructionPrompt: prompt || null,
-        generatedSchemaJson: Prisma.JsonNull,
-        notes: "Initial draft version",
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    return tx.page.update({
-      where: { id: createdPage.id },
-      data: {
-        currentVersionId: createdVersion.id,
-      },
-      select: {
-        id: true,
-      },
-    });
+  const referenceLinks = parseReferenceLinks(String(formData.get("referenceLinks") ?? ""));
+  const validationErrors = validatePageInput({
+    title,
+    slug: customSlug,
+    prompt,
+    referenceLinks,
   });
 
-  redirect(`/projects/${project.slug}/pages/${page.id}`);
+  if (hasPageFieldErrors(validationErrors)) {
+    return {
+      ok: false,
+      fieldErrors: validationErrors,
+      formError: "Could not create page.",
+    };
+  }
+
+  try {
+    const project = await prisma.project.findUnique({
+      where: { slug: projectSlug },
+      select: { id: true, slug: true },
+    });
+
+    if (!project) {
+      return {
+        ok: false,
+        formError: "Project not found.",
+      };
+    }
+
+    const baseSlug = slugify(customSlug || title) || "page";
+    const slug = await ensureUniquePageSlug(project.id, baseSlug);
+
+    const page = await prisma.$transaction(async (tx) => {
+      const createdPage = await tx.page.create({
+        data: {
+          projectId: project.id,
+          title,
+          slug,
+          prompt: prompt || null,
+          referenceLinks,
+          status: PageStatus.draft,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const createdVersion = await tx.pageVersion.create({
+        data: {
+          pageId: createdPage.id,
+          versionNumber: 1,
+          instructionPrompt: prompt || null,
+          generatedSchemaJson: Prisma.JsonNull,
+          notes: "Initial draft version",
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return tx.page.update({
+        where: { id: createdPage.id },
+        data: {
+          currentVersionId: createdVersion.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+    });
+
+    redirect(`/projects/${project.slug}/pages/${page.id}`);
+  } catch (error) {
+    console.error("createPage failed", { projectSlug, title, customSlug, error });
+    return {
+      ok: false,
+      formError: "Something went wrong while creating the page. Please try again.",
+    };
+  }
 }
 
 export async function updatePage(
@@ -206,6 +239,7 @@ export async function updatePage(
   if (!project) {
     return {
       status: "error",
+      ok: false,
       message: "Project not found.",
     };
   }
@@ -224,6 +258,7 @@ export async function updatePage(
   if (!existingPage) {
     return {
       status: "error",
+      ok: false,
       message: "Page not found.",
     };
   }
@@ -232,62 +267,67 @@ export async function updatePage(
   const customSlug = String(formData.get("slug") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
   const referenceLinks = parseReferenceLinksFromForm(formData);
-
-  if (!title) {
-    return {
-      status: "error",
-      message: "Could not save changes.",
-      fieldErrors: {
-        title: "Page title is required.",
-      },
-    };
-  }
-
-  if (referenceLinks.some((link) => !isValidReferenceUrl(link))) {
-    return {
-      status: "error",
-      message: "Could not save changes.",
-      fieldErrors: {
-        referenceLinks: "Reference links must be valid http(s) URLs.",
-      },
-    };
-  }
-
-  const baseSlug = slugify(customSlug || title) || "page";
-  const slug = await ensureUniquePageSlug(project.id, baseSlug, pageId);
-
-  await prisma.$transaction(async (tx) => {
-    await tx.page.update({
-      where: {
-        id: pageId,
-      },
-      data: {
-        title,
-        slug,
-        prompt: prompt || null,
-        referenceLinks,
-      },
-    });
-
-    if (existingPage.currentVersionId) {
-      await tx.pageVersion.update({
-        where: {
-          id: existingPage.currentVersionId,
-        },
-        data: {
-          instructionPrompt: prompt || null,
-        },
-      });
-    }
+  const validationErrors = validatePageInput({
+    title,
+    slug: customSlug,
+    prompt,
+    referenceLinks,
   });
 
-  revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-  revalidatePath(`/projects/${projectSlug}`);
+  if (hasPageFieldErrors(validationErrors)) {
+    return {
+      status: "error",
+      ok: false,
+      message: "Could not save changes.",
+      fieldErrors: validationErrors,
+    };
+  }
 
-  return {
-    status: "success",
-    message: "Page updated successfully.",
-  };
+  try {
+    const baseSlug = slugify(customSlug || title) || "page";
+    const slug = await ensureUniquePageSlug(project.id, baseSlug, pageId);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.page.update({
+        where: {
+          id: pageId,
+        },
+        data: {
+          title,
+          slug,
+          prompt: prompt || null,
+          referenceLinks: referenceLinks.filter(Boolean),
+        },
+      });
+
+      if (existingPage.currentVersionId) {
+        await tx.pageVersion.update({
+          where: {
+            id: existingPage.currentVersionId,
+          },
+          data: {
+            instructionPrompt: prompt || null,
+          },
+        });
+      }
+    });
+
+    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
+    revalidatePath(`/projects/${projectSlug}`);
+
+    return {
+      status: "success",
+      ok: true,
+      message: "Page updated successfully.",
+    };
+  } catch (error) {
+    console.error("updatePage failed", { projectSlug, pageId, error });
+    return {
+      status: "error",
+      ok: false,
+      message: "Could not save changes due to an internal error. Please try again.",
+    };
+  }
 }
 
 export async function buildPage(projectSlug: string, pageId: string): Promise<BuildPageResult> {
@@ -382,6 +422,11 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         error: conciseValidationError,
         requestId: aiOutput.requestId,
       };
+      console.error("buildPage schema validation failed", {
+        projectSlug,
+        pageId,
+        ...context,
+      });
 
       await prisma.$transaction(async (tx) => {
         await tx.page.update({
@@ -406,8 +451,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
       return {
         status: "error",
-        message: "Generated output did not pass schema validation.",
-        context,
+        message: "Generated output did not pass schema validation. Review your prompt and assets, then try again.",
       };
     }
 
@@ -479,6 +523,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       reason: "build_failed",
       error: errorMessage,
     };
+    console.error("buildPage failed", { projectSlug, pageId, ...context, error });
 
     await prisma.$transaction(async (tx) => {
       await tx.page.update({
@@ -503,8 +548,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
     return {
       status: "error",
-      message: "Build failed.",
-      context,
+      message: "Build failed due to an internal error. Please review your prompt/assets and try again.",
     };
   }
 }

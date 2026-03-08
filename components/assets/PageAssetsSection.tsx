@@ -16,6 +16,7 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
   const [removingAssetId, setRemovingAssetId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
 
   function withOrder(items: UploadedAssetDto[]) {
     return items.map((asset, index) => ({ ...asset, sortOrder: index }));
@@ -49,6 +50,7 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
       return;
     }
 
+    const currentAssets = assets;
     const nextAssets = [...assets];
     const [moved] = nextAssets.splice(index, 1);
     nextAssets.splice(targetIndex, 0, moved);
@@ -57,6 +59,7 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
     setAssets(normalizedAssets);
     setErrorMessage(null);
     setStatusMessage("Saving new order...");
+    setIsReordering(true);
 
     try {
       await persistOrder(normalizedAssets);
@@ -64,7 +67,9 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Failed to reorder assets.");
       setStatusMessage(null);
-      setAssets(assets);
+      setAssets(currentAssets);
+    } finally {
+      setIsReordering(false);
     }
   }
 
@@ -97,8 +102,11 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
   return (
     <section className="space-y-4 rounded-xl border border-neutral-200 bg-white p-6">
       <h2 className="text-lg font-semibold">Assets</h2>
-      <div className="space-y-2">
+      <div className="space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
         <h3 className="text-base font-semibold text-neutral-900">Asset uploader area</h3>
+        <p className="text-sm text-neutral-600">
+          Upload brand and page assets here so builds can use them as references.
+        </p>
         <AssetUploader
           projectId={projectId}
           pageId={pageId}
@@ -120,6 +128,12 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
       {statusMessage ? (
         <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
           {statusMessage}
+        </p>
+      ) : null}
+
+      {isReordering ? (
+        <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+          Updating gallery order...
         </p>
       ) : null}
 
