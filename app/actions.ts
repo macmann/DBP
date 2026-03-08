@@ -336,10 +336,26 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     data: {
       projectId: page.project.id,
       pageId: page.id,
-      status: BuildJobStatus.running,
-      startedAt: new Date(),
+      status: BuildJobStatus.queued,
     },
     select: { id: true },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.buildJob.update({
+      where: { id: buildJob.id },
+      data: {
+        status: BuildJobStatus.running,
+        startedAt: new Date(),
+      },
+    });
+
+    await tx.page.update({
+      where: { id: page.id },
+      data: {
+        status: PageStatus.generating,
+      },
+    });
   });
 
   try {
@@ -360,9 +376,10 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     const parsed = validateGeneratedPageSchema(aiOutput.json);
 
     if (!parsed.success) {
+      const conciseValidationError = parsed.errors[0] ?? "Schema validation failed.";
       const context = {
         reason: "schema_validation_failed",
-        errors: parsed.errors,
+        error: conciseValidationError,
         requestId: aiOutput.requestId,
       };
 
@@ -380,7 +397,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
           data: {
             status: BuildJobStatus.failed,
             finishedAt: new Date(),
-            errorMessage: "Generated response did not match expected schema.",
+            errorMessage: conciseValidationError,
           },
         });
       });
@@ -427,9 +444,10 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         },
         data: {
           currentVersionId: version.id,
-          status: PageStatus.draft,
+          status: PageStatus.published,
           lastError: null,
           content: JSON.stringify(parsed.data),
+          publishedAt: new Date(),
         },
       });
 
@@ -456,9 +474,10 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       sectionCount: (parsed.data as GeneratedPageSchema).sections.length,
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const context = {
       reason: "build_failed",
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: errorMessage,
     };
 
     await prisma.$transaction(async (tx) => {
@@ -466,7 +485,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         where: { id: page.id },
         data: {
           status: PageStatus.failed,
-          lastError: JSON.stringify(context),
+          lastError: JSON.stringify({ reason: context.reason, error: errorMessage }),
         },
       });
 
@@ -475,7 +494,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         data: {
           status: BuildJobStatus.failed,
           finishedAt: new Date(),
-          errorMessage: context.error,
+          errorMessage: errorMessage,
         },
       });
     });
