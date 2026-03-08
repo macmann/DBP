@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageRenderer } from "@/components/landing/PageRenderer";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
@@ -10,22 +11,11 @@ type DemoPageProps = {
 
 type AssetLookupMap = Map<string, ResolvedAsset>;
 
-function InvalidSchemaFallback({ slug }: { slug: string }) {
-  return (
-    <main className="mx-auto max-w-4xl space-y-4 px-6 py-12">
-      <h1 className="text-3xl font-bold text-neutral-900">Page preview unavailable</h1>
-      <p className="text-neutral-700">
-        The published page for <span className="font-mono">{slug}</span> has an invalid generated schema.
-      </p>
-      <p className="text-neutral-700">Please rebuild or publish another version from the dashboard.</p>
-    </main>
-  );
-}
+const SITE_DEFAULT_TITLE = "Scaffold";
+const SITE_DEFAULT_DESCRIPTION = "Next.js (App Router) + TypeScript + Tailwind + MDX scaffold";
 
-export default async function DemoPage({ params }: DemoPageProps) {
-  const { slug } = await params;
-
-  const page = await prisma.page.findFirst({
+async function getPublishedDemoPage(slug: string) {
+  return prisma.page.findFirst({
     where: {
       slug,
       status: "published",
@@ -58,6 +48,76 @@ export default async function DemoPage({ params }: DemoPageProps) {
       },
     },
   });
+}
+
+export async function generateMetadata({ params }: DemoPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await getPublishedDemoPage(slug);
+
+  const fallbackTitle = page?.title || SITE_DEFAULT_TITLE;
+  const fallbackDescription = SITE_DEFAULT_DESCRIPTION;
+
+  if (!page) {
+    return {
+      title: fallbackTitle,
+      description: fallbackDescription,
+    };
+  }
+
+  const parsedSchema = validateGeneratedPageSchema(page.currentVersion?.generatedSchemaJson);
+  if (!parsedSchema.success) {
+    return {
+      title: fallbackTitle,
+      description: fallbackDescription,
+    };
+  }
+
+  const schema = parsedSchema.data;
+  const seoTitle = schema.seo.title.trim();
+  const seoDescription = schema.seo.description.trim();
+  const canonicalUrl = schema.seo.canonicalUrl?.trim();
+  const ogImageAssetId = schema.seo.ogImageAssetId?.trim();
+  const ogImageAsset = ogImageAssetId
+    ? page.assets.find((asset) => asset.id === ogImageAssetId)
+    : undefined;
+
+  return {
+    title: seoTitle || fallbackTitle,
+    description: seoDescription || fallbackDescription,
+    alternates: canonicalUrl
+      ? {
+          canonical: canonicalUrl,
+        }
+      : undefined,
+    openGraph: ogImageAsset
+      ? {
+          images: [
+            {
+              url: ogImageAsset.storageUrl,
+              alt: seoTitle || fallbackTitle,
+            },
+          ],
+        }
+      : undefined,
+  };
+}
+
+function InvalidSchemaFallback({ slug }: { slug: string }) {
+  return (
+    <main className="mx-auto max-w-4xl space-y-4 px-6 py-12">
+      <h1 className="text-3xl font-bold text-neutral-900">Page preview unavailable</h1>
+      <p className="text-neutral-700">
+        The published page for <span className="font-mono">{slug}</span> has an invalid generated schema.
+      </p>
+      <p className="text-neutral-700">Please rebuild or publish another version from the dashboard.</p>
+    </main>
+  );
+}
+
+export default async function DemoPage({ params }: DemoPageProps) {
+  const { slug } = await params;
+
+  const page = await getPublishedDemoPage(slug);
 
   if (!page) {
     notFound();
