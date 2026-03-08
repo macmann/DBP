@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -29,83 +29,83 @@ enum BuildJobStatus {
 }
 
 model Project {
-  id          String     @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  slug        String     @unique
+  slug        String   @unique
   description String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  pages       Page[]
-  assets      Asset[]
-  buildJobs   BuildJob[]
+  pages     Page[]
+  assets    Asset[]
+  buildJobs BuildJob[]
 }
 
 model Page {
-  id             String       @id @default(cuid())
+  id             String     @id @default(cuid())
   projectId      String
   title          String
   slug           String
   prompt         String?
   referenceLinks Json?
-  status         PageStatus   @default(draft)
+  status         PageStatus @default(draft)
   content        String?
   lastError      String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
   publishedAt    DateTime?
 
-  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  versions       PageVersion[]
-  assets         Asset[]
-  buildJobs      BuildJob[]
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions  PageVersion[]
+  assets    Asset[]
+  buildJobs BuildJob[]
 
   @@unique([projectId, slug])
 }
 
 model Asset {
-  id          String    @id @default(cuid())
-  projectId   String
-  pageId      String?
-  type        AssetType
-  name        String
-  url         String
-  metadata    Json?
-  createdAt   DateTime  @default(now())
+  id        String    @id @default(cuid())
+  projectId String
+  pageId    String?
+  type      AssetType
+  name      String
+  url       String
+  metadata  Json?
+  createdAt DateTime  @default(now())
 
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  page        Page?     @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page    Page?   @relation(fields: [pageId], references: [id], onDelete: SetNull)
 
   @@index([projectId, type])
 }
 
 model PageVersion {
-  id          String    @id @default(cuid())
-  pageId      String
-  version     Int
-  title       String
-  content     String?
-  changelog   String?
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(cuid())
+  pageId    String
+  version   Int
+  title     String
+  content   String?
+  changelog String?
+  createdAt DateTime @default(now())
 
-  page        Page      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@unique([pageId, version])
 }
 
 model BuildJob {
-  id           String         @id @default(cuid())
-  projectId    String
-  pageId       String?
-  status       BuildJobStatus @default(queued)
-  startedAt    DateTime?
-  completedAt  DateTime?
-  log          String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id          String         @id @default(cuid())
+  projectId   String
+  pageId      String?
+  status      BuildJobStatus @default(queued)
+  startedAt   DateTime?
+  completedAt DateTime?
+  log         String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
-  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  page         Page?          @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page    Page?   @relation(fields: [pageId], references: [id], onDelete: SetNull)
 
   @@index([projectId, status])
 }
