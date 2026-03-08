@@ -50,7 +50,7 @@ http://localhost:3000
 
 ## Database Setup / Migration / Seed
 
-Use these commands after setting `DATABASE_URL` in your `.env` file.
+Use these commands after setting a PostgreSQL `DATABASE_URL` in your `.env` file (for example: `postgresql://postgres:postgres@localhost:5432/dbp_dev?schema=public`).
 
 1. Generate Prisma client:
 
