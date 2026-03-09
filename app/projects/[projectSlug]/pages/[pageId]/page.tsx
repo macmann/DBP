@@ -5,6 +5,7 @@ import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { PageEditorForm } from "@/components/forms/PageEditorForm";
 import { VersionHistoryPanel } from "@/components/forms/VersionHistoryPanel";
 import { prisma } from "@/lib/db";
+import { validateGeneratedPageSchema } from "@/lib/ai/schema";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -55,6 +56,7 @@ export default async function PageDetailPage({
           versionNumber: true,
           createdAt: true,
           instructionPrompt: true,
+          generatedSchemaJson: true,
         },
       },
       assets: {
@@ -159,6 +161,7 @@ export default async function PageDetailPage({
             versionNumber: version.versionNumber,
             createdAt: version.createdAt.toISOString(),
             instructionPrompt: version.instructionPrompt,
+            hasValidSchema: validateGeneratedPageSchema(version.generatedSchemaJson).success,
           }))}
         />
 

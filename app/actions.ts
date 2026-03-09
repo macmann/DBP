@@ -837,6 +837,18 @@ export async function rollbackToVersion(
     };
   }
 
+  const schemaValidation = validateGeneratedPageSchema(version.generatedSchemaJson);
+
+  if (!schemaValidation.success) {
+    const details = schemaValidation.errors.slice(0, 2).join(" ");
+    return {
+      status: "error",
+      message: details
+        ? `Rollback rejected because this version has an invalid schema. ${details}`
+        : "Rollback rejected because this version has an invalid schema.",
+    };
+  }
+
   const updatedPage = await prisma.$transaction(async (tx) => {
     return tx.page.update({
       where: {
@@ -846,7 +858,7 @@ export async function rollbackToVersion(
         currentVersionId: version.id,
         status: PageStatus.published,
         lastError: null,
-        content: version.generatedSchemaJson ? JSON.stringify(version.generatedSchemaJson) : null,
+        content: JSON.stringify(schemaValidation.data),
         publishedAt: new Date(),
       },
       select: {
