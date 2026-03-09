@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { rollbackToVersion } from "@/app/actions";
 
 type VersionHistoryItem = {
@@ -32,6 +33,7 @@ export function VersionHistoryPanel({
   currentVersionId,
   versions,
 }: VersionHistoryPanelProps) {
+  const router = useRouter();
   const [status, setStatus] = useState<string>("Select a version to keep or rollback to.");
   const [isPending, startTransition] = useTransition();
 
@@ -70,6 +72,7 @@ export function VersionHistoryPanel({
 
                         if (result.status === "success") {
                           window.dispatchEvent(new Event("page-preview-updated"));
+                          router.refresh();
                         }
                       });
                     }}
