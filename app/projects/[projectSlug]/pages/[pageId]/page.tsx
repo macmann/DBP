@@ -56,6 +56,7 @@ export default async function PageDetailPage({
           versionNumber: true,
           createdAt: true,
           instructionPrompt: true,
+          notes: true,
           generatedSchemaJson: true,
         },
       },
@@ -161,6 +162,7 @@ export default async function PageDetailPage({
             versionNumber: version.versionNumber,
             createdAt: version.createdAt.toISOString(),
             instructionPrompt: version.instructionPrompt,
+            notes: version.notes,
             hasValidSchema: validateGeneratedPageSchema(version.generatedSchemaJson).success,
           }))}
         />
