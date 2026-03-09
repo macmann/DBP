@@ -67,6 +67,10 @@ export function VersionHistoryPanel({
                         setStatus(`Rolling back to v${version.versionNumber}...`);
                         const result = await rollbackToVersion(projectSlug, pageId, version.id);
                         setStatus(result.message);
+
+                        if (result.status === "success") {
+                          window.dispatchEvent(new Event("page-preview-updated"));
+                        }
                       });
                     }}
                   >
