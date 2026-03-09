@@ -7,6 +7,7 @@ type VersionHistoryItem = {
   id: string;
   versionNumber: number;
   instructionPrompt: string | null;
+  notes: string | null;
   createdAt: string;
   hasValidSchema: boolean;
 };
@@ -75,6 +76,9 @@ export function VersionHistoryPanel({
               </div>
               <p className="mt-2 text-sm text-neutral-700">
                 {version.instructionPrompt?.trim() || "No instruction prompt captured for this version."}
+              </p>
+              <p className="mt-1 text-sm text-neutral-600">
+                {version.notes?.trim() || "No version notes available for this version."}
               </p>
               {!version.hasValidSchema ? (
                 <p className="mt-2 text-xs font-medium text-amber-700">
