@@ -59,6 +59,33 @@ async function ensureUniquePageSlug(projectId: string, baseSlug: string, exclude
   return slug;
 }
 
+
+async function ensureUniquePublicSlug(baseSlug: string, excludePageId?: string) {
+  let publicSlug = baseSlug;
+  let suffix = 1;
+
+  while (
+    await prisma.page.findFirst({
+      where: {
+        publicSlug,
+        ...(excludePageId
+          ? {
+              id: {
+                not: excludePageId,
+              },
+            }
+          : {}),
+      },
+      select: { id: true },
+    })
+  ) {
+    publicSlug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return publicSlug;
+}
+
 export type CreateProjectState = {
   ok: boolean;
   formError?: string;
@@ -197,6 +224,7 @@ export async function createPage(
 
     const baseSlug = slugify(customSlug || title) || "page";
     const slug = await ensureUniquePageSlug(project.id, baseSlug);
+    const publicSlug = await ensureUniquePublicSlug(baseSlug);
 
     const page = await prisma.$transaction(async (tx) => {
       const createdPage = await tx.page.create({
@@ -207,6 +235,7 @@ export async function createPage(
           prompt: prompt || null,
           referenceLinks,
           status: PageStatus.draft,
+          publicSlug,
         },
         select: {
           id: true,
@@ -308,6 +337,7 @@ export async function updatePage(
   try {
     const baseSlug = slugify(customSlug || title) || "page";
     const slug = await ensureUniquePageSlug(project.id, baseSlug, pageId);
+    const publicSlug = await ensureUniquePublicSlug(baseSlug, pageId);
 
     await prisma.$transaction(async (tx) => {
       await tx.page.update({
@@ -319,6 +349,7 @@ export async function updatePage(
           slug,
           prompt: prompt || null,
           referenceLinks: referenceLinks.filter(Boolean),
+          publicSlug,
         },
       });
 
@@ -528,7 +559,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
           publishedAt: new Date(),
         },
         select: {
-          slug: true,
+          publicSlug: true,
         },
       });
 
@@ -543,13 +574,13 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
       return {
         ...version,
-        slug: updatedPage.slug,
+        publicSlug: updatedPage.publicSlug,
       };
     });
 
     revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
     revalidatePath(`/projects/${projectSlug}`);
-    revalidatePath(`/demo/${savedVersion.slug}`);
+    revalidatePath(`/demo/${savedVersion.publicSlug}`);
 
     return {
       status: "success",
@@ -733,19 +764,19 @@ export async function generateNewVersion(
           publishedAt: new Date(),
         },
         select: {
-          slug: true,
+          publicSlug: true,
         },
       });
 
       return {
         ...version,
-        slug: updatedPage.slug,
+        publicSlug: updatedPage.publicSlug,
       };
     });
 
     revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
     revalidatePath(`/projects/${projectSlug}`);
-    revalidatePath(`/demo/${savedVersion.slug}`);
+    revalidatePath(`/demo/${savedVersion.publicSlug}`);
 
     return {
       status: "success",
@@ -819,14 +850,14 @@ export async function rollbackToVersion(
         publishedAt: new Date(),
       },
       select: {
-        slug: true,
+        publicSlug: true,
       },
     });
   });
 
   revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
   revalidatePath(`/projects/${projectSlug}`);
-  revalidatePath(`/demo/${updatedPage.slug}`);
+  revalidatePath(`/demo/${updatedPage.publicSlug}`);
 
   return {
     status: "success",
