@@ -8,6 +8,7 @@ type VersionHistoryItem = {
   versionNumber: number;
   instructionPrompt: string | null;
   createdAt: string;
+  hasValidSchema: boolean;
 };
 
 type VersionHistoryPanelProps = {
@@ -58,7 +59,7 @@ export function VersionHistoryPanel({
                   ) : null}
                   <button
                     type="button"
-                    disabled={isPending || isCurrent}
+                    disabled={isPending || isCurrent || !version.hasValidSchema}
                     className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
                     onClick={() => {
                       startTransition(async () => {
@@ -68,13 +69,18 @@ export function VersionHistoryPanel({
                       });
                     }}
                   >
-                    {isCurrent ? "Active" : "Rollback"}
+                    {isCurrent ? "Active" : version.hasValidSchema ? "Rollback" : "Invalid schema"}
                   </button>
                 </div>
               </div>
               <p className="mt-2 text-sm text-neutral-700">
                 {version.instructionPrompt?.trim() || "No instruction prompt captured for this version."}
               </p>
+              {!version.hasValidSchema ? (
+                <p className="mt-2 text-xs font-medium text-amber-700">
+                  Rollback unavailable: this version schema failed validation.
+                </p>
+              ) : null}
             </li>
           );
         })}
