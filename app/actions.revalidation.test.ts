@@ -18,7 +18,7 @@ describe("page publishing actions revalidation", () => {
 
     assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}\/pages\/\$\{pageId\}`\)/);
     assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
-    assert.match(block, /revalidatePath\(`\/demo\/\$\{savedVersion\.slug\}`\)/);
+    assert.match(block, /revalidatePath\(`\/demo\/\$\{savedVersion\.publicSlug\}`\)/);
   });
 
   it("generateNewVersion revalidates project editor routes and demo route", () => {
@@ -26,7 +26,7 @@ describe("page publishing actions revalidation", () => {
 
     assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}\/pages\/\$\{pageId\}`\)/);
     assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
-    assert.match(block, /revalidatePath\(`\/demo\/\$\{savedVersion\.slug\}`\)/);
+    assert.match(block, /revalidatePath\(`\/demo\/\$\{savedVersion\.publicSlug\}`\)/);
   });
 
   it("rollbackToVersion revalidates project editor routes and demo route", () => {
@@ -34,6 +34,6 @@ describe("page publishing actions revalidation", () => {
 
     assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}\/pages\/\$\{pageId\}`\)/);
     assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
-    assert.match(block, /revalidatePath\(`\/demo\/\$\{updatedPage\.slug\}`\)/);
+    assert.match(block, /revalidatePath\(`\/demo\/\$\{updatedPage\.publicSlug\}`\)/);
   });
 });

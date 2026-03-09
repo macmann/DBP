@@ -47,6 +47,7 @@ model Page {
   currentVersionId String?
   title            String
   slug             String
+  publicSlug       String     @unique
   prompt           String?
   referenceLinks   Json?
   status           PageStatus @default(draft)

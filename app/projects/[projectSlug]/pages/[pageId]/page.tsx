@@ -95,7 +95,10 @@ export default async function PageDetailPage({
       action={{ label: "New Page", href: `/projects/${page.project.slug}/pages/new` }}
     >
       <div className="space-y-6">
-        <p className="text-sm text-neutral-600">/{page.slug}</p>
+        <div className="space-y-1 text-sm text-neutral-600">
+          <p>Editor slug: /{page.slug}</p>
+          <p>Public URL: /demo/{page.publicSlug}</p>
+        </div>
 
         <div className="grid gap-4 rounded-xl border border-neutral-200 bg-white p-6 md:grid-cols-2">
           <div>

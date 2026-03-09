@@ -13,6 +13,7 @@ async function main() {
           {
             title: 'Home',
             slug: 'home',
+            publicSlug: 'home',
             status: PageStatus.published,
             prompt: 'Create a welcoming home page with project overview.',
             referenceLinks: ['https://example.com/home-reference'],
@@ -30,6 +31,7 @@ async function main() {
           {
             title: 'About',
             slug: 'about',
+            publicSlug: 'about',
             status: PageStatus.draft,
             prompt: 'Draft an about page that explains the mission.',
             referenceLinks: ['https://example.com/about-reference'],
