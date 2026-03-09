@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   buildPage,
   generateNewVersion,
@@ -21,6 +22,7 @@ type PageEditorFormProps = {
 };
 
 export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel }: PageEditorFormProps) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     updatePage.bind(null, projectSlug, pageId),
     { status: "idle", ok: true, message: "" } satisfies UpdatePageState,
@@ -164,6 +166,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
                     status: "success",
                     message: `Build succeeded. Saved v${result.versionNumber} with ${result.sectionCount} sections.`,
                   });
+                  router.refresh();
                 } else {
                   setBuildState({
                     status: "error",
@@ -209,6 +212,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
                     message: `Generated v${result.versionNumber} (${result.sectionCount} sections). The latest preview now points to this version.`,
                   });
                   setPreviewState("Generation succeeded. Open preview to review the latest published version.");
+                  router.refresh();
                 } else {
                   setVersionState({
                     status: "error",
