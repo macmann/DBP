@@ -141,6 +141,7 @@ export default async function PageDetailPage({
         <PageEditorForm
           projectSlug={page.project.slug}
           pageId={page.id}
+          previewSlug={page.publicSlug}
           initialModel={{
             details: {
               title: page.title,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import {
   buildPage,
   generateNewVersion,
@@ -16,10 +16,11 @@ import type { PageEditorFormModel } from "@/types/page-editor";
 type PageEditorFormProps = {
   projectSlug: string;
   pageId: string;
+  previewSlug: string;
   initialModel: PageEditorFormModel;
 };
 
-export function PageEditorForm({ projectSlug, pageId, initialModel }: PageEditorFormProps) {
+export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel }: PageEditorFormProps) {
   const [state, formAction, isPending] = useActionState(
     updatePage.bind(null, projectSlug, pageId),
     { status: "idle", ok: true, message: "" } satisfies UpdatePageState,
@@ -41,6 +42,18 @@ export function PageEditorForm({ projectSlug, pageId, initialModel }: PageEditor
     status: "idle",
     message: "Latest preview always reflects the current version after generation or rollback.",
   });
+  const [previewState, setPreviewState] = useState(
+    "Open preview to verify the latest published page in a new tab.",
+  );
+
+  useEffect(() => {
+    const handlePreviewUpdate = () => {
+      setPreviewState("Rollback succeeded. Open preview to verify the latest published version.");
+    };
+
+    window.addEventListener("page-preview-updated", handlePreviewUpdate);
+    return () => window.removeEventListener("page-preview-updated", handlePreviewUpdate);
+  }, []);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -83,6 +96,19 @@ export function PageEditorForm({ projectSlug, pageId, initialModel }: PageEditor
           rowErrors={state.fieldErrors?.referenceLinkRows}
         />
       </FormSection>
+
+      <section className="space-y-3 rounded-xl border border-neutral-200 bg-white p-4">
+        <h3 className="text-base font-semibold text-neutral-900">Preview</h3>
+        <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">{previewState}</p>
+        <a
+          href={`/demo/${previewSlug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          Preview latest published
+        </a>
+      </section>
 
       {state.status === "error" ? (
         <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.message}</p>
@@ -182,6 +208,7 @@ export function PageEditorForm({ projectSlug, pageId, initialModel }: PageEditor
                     status: "success",
                     message: `Generated v${result.versionNumber} (${result.sectionCount} sections). The latest preview now points to this version.`,
                   });
+                  setPreviewState("Generation succeeded. Open preview to review the latest published version.");
                 } else {
                   setVersionState({
                     status: "error",
