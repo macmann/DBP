@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { PRODUCT_NAME } from "@/lib/config/brand";
 
 export default function HomePage() {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-semibold tracking-tight">Next.js App Router + MDX Scaffold</h1>
+      <h1 className="text-3xl font-semibold tracking-tight">{PRODUCT_NAME} Landing Page Builder</h1>
       <p className="text-neutral-700">
-        This repo is set up for Next.js (App Router), TypeScript, Tailwind, and an MDX-driven Insights section.
+        {PRODUCT_NAME} helps you generate, preview, and publish high-converting pages with an AI-assisted workflow.
       </p>
       <div className="flex gap-3">
         <Link
