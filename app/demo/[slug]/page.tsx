@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageRenderer } from "@/components/landing/PageRenderer";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
 import { type GeneratedPageSchema, validateGeneratedPageSchema } from "@/lib/ai/schema";
+import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/config/brand";
 import { prisma } from "@/lib/db";
 
 type DemoPageProps = {
@@ -11,8 +12,8 @@ type DemoPageProps = {
 
 type AssetLookupMap = Map<string, ResolvedAsset>;
 
-const SITE_DEFAULT_TITLE = "Scaffold";
-const SITE_DEFAULT_DESCRIPTION = "Next.js (App Router) + TypeScript + Tailwind + MDX scaffold";
+const SITE_DEFAULT_TITLE = PRODUCT_NAME;
+const SITE_DEFAULT_DESCRIPTION = PRODUCT_DESCRIPTION;
 
 async function getPublishedDemoPage(publicSlug: string) {
   const page = await prisma.page.findFirst({

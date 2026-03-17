@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PRODUCT_NAME } from "@/lib/config/brand";
 import { cn } from "@/lib/utils/cn";
 
 const links = [
@@ -15,7 +16,7 @@ export function Sidebar() {
   return (
     <aside className="w-full border-b border-neutral-200 bg-white md:w-64 md:flex-shrink-0 md:border-b-0 md:border-r">
       <div className="p-4 md:p-6">
-        <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Workspace</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{PRODUCT_NAME} workspace</p>
         <nav className="mt-4 flex gap-2 md:flex-col">
           {links.map((link) => {
             const isActive = link.match(pathname);
