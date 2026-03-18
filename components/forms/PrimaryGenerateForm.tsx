@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { quickGeneratePage, type QuickGenerateState } from "@/app/actions";
 import { FormTextArea } from "@/components/forms/FormTextArea";
 import { FormTextInput } from "@/components/forms/FormTextInput";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 const initialState: QuickGenerateState = {
   status: "idle",
@@ -22,9 +24,9 @@ export function PrimaryGenerateForm() {
   }, [router, state.publicSlug, state.status]);
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-neutral-900">Generate a page</h2>
-      <p className="mt-1 text-sm text-neutral-600">
+    <section className="rounded-2xl border border-border bg-surface-elevated p-6 shadow-sm">
+      <h2 className="text-xl font-semibold text-fg">Generate a page</h2>
+      <p className="mt-1 text-sm text-muted">
         Start with the essentials. Advanced controls stay in the dashboard editor.
       </p>
 
@@ -64,20 +66,16 @@ export function PrimaryGenerateForm() {
         />
 
         {state.status === "error" && state.message ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.message}</p>
+          <Alert variant="danger">{state.message}</Alert>
         ) : null}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <Button type="submit" disabled={isPending}>
             {isPending ? "Generating page..." : "Generate page"}
-          </button>
+          </Button>
           <Link
             href="/dashboard"
-            className="rounded-xl border border-neutral-300 px-4 py-2 text-center text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            className="rounded-xl border border-border px-4 py-2 text-center text-sm font-medium text-fg hover:bg-secondary"
           >
             Edit in dashboard
           </Link>

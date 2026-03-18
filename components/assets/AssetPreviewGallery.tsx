@@ -19,8 +19,8 @@ export function AssetPreviewGallery({
   return (
     <section className="space-y-3">
       <div>
-      <h3 className="text-base font-semibold text-neutral-900">Asset preview gallery</h3>
-      <p className="text-sm text-neutral-600">{assets.length} asset(s) available for build context.</p>
+        <h3 className="text-base font-semibold text-fg">Asset preview gallery</h3>
+        <p className="text-sm text-muted">{assets.length} asset(s) available for build context.</p>
       </div>
       <AssetGrid
         assets={assets}
