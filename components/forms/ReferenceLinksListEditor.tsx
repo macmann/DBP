@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { isValidReferenceUrl } from "@/lib/validation/page";
 import { cn } from "@/lib/utils/cn";
 
@@ -35,15 +38,15 @@ export function ReferenceLinksListEditor({
   return (
     <div className="space-y-3">
       <div className="space-y-1">
-        <p className="text-sm font-medium text-neutral-900">Reference links</p>
-        <p className="text-xs text-neutral-500">Add one or more http(s) links to source material used for this page.</p>
+        <p className="text-sm font-medium text-fg">Reference links</p>
+        <p className="text-xs text-muted">Add one or more http(s) links to source material used for this page.</p>
       </div>
 
       <div className="space-y-2">
         {links.map((link, index) => (
           <div key={`${index}-${link}`} className="space-y-1">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-              <input
+              <Input
                 value={link}
                 disabled={disabled}
                 onChange={(event) => {
@@ -54,41 +57,40 @@ export function ReferenceLinksListEditor({
                 placeholder="https://example.com/reference"
                 aria-invalid={Boolean(mergedErrors[index])}
                 className={cn(
-                  "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none ring-neutral-900/10 placeholder:text-neutral-400 focus:ring disabled:cursor-not-allowed disabled:opacity-60",
-                  mergedErrors[index] ? "border-red-400 focus:ring-red-200" : undefined,
+                  mergedErrors[index] ? "border-danger/60 focus-visible:ring-danger/20" : undefined,
                 )}
               />
               <input type="hidden" name="referenceLinks" value={link.trim()} />
-              <button
+              <Button
                 type="button"
                 disabled={disabled}
+                variant="outline"
                 onClick={() =>
                   setLinks((current) =>
                     current.length === 1 ? [""] : current.filter((_, i) => i !== index),
                   )
                 }
-                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Remove
-              </button>
+              </Button>
             </div>
-            {mergedErrors[index] ? <p className="text-sm text-red-700">Row {index + 1}: {mergedErrors[index]}</p> : null}
+            {mergedErrors[index] ? <p className="text-sm text-danger">Row {index + 1}: {mergedErrors[index]}</p> : null}
           </div>
         ))}
       </div>
 
       <div className="flex items-center gap-3">
-        <button
+        <Button
           type="button"
           disabled={disabled}
+          variant="outline"
           onClick={() => setLinks((current) => [...current, ""])}
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Add link
-        </button>
+        </Button>
       </div>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <Alert variant="danger">{error}</Alert> : null}
     </div>
   );
 }

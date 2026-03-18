@@ -100,45 +100,45 @@ export default async function PageDetailPage({
       action={{ label: "New Page", href: `/projects/${page.project.slug}/pages/new` }}
     >
       <div className="space-y-6">
-        <div className="space-y-1 text-sm text-neutral-600">
+        <div className="space-y-1 text-sm text-muted">
           <p>Editor slug: /{page.slug}</p>
           <p>Canonical public path: {buildCanonicalPublicPath(page.publicSlug)}</p>
         </div>
 
         <PublicUrlActions path={buildCanonicalPublicPath(page.publicSlug)} />
 
-        <div className="grid gap-4 rounded-xl border border-neutral-200 bg-white p-6 md:grid-cols-2">
+        <div className="grid gap-4 rounded-xl border border-border bg-surface-elevated p-6 md:grid-cols-2">
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Status</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Status</p>
             <p className="mt-1">
               <PageStatusBadge status={page.status} />
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Page ID</p>
-            <p className="mt-1 text-sm text-neutral-800">{page.id}</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Page ID</p>
+            <p className="mt-1 text-sm text-fg">{page.id}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Current version</p>
-            <p className="mt-1 text-sm text-neutral-800">
+            <p className="text-xs uppercase tracking-wide text-muted">Current version</p>
+            <p className="mt-1 text-sm text-fg">
               {page.currentVersion ? `v${page.currentVersion.versionNumber}` : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Current version ID</p>
-            <p className="mt-1 text-sm text-neutral-800">{page.currentVersionId ?? "—"}</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Current version ID</p>
+            <p className="mt-1 text-sm text-fg">{page.currentVersionId ?? "—"}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Created</p>
-            <p className="mt-1 text-sm text-neutral-800">{formatDate(page.createdAt)}</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Created</p>
+            <p className="mt-1 text-sm text-fg">{formatDate(page.createdAt)}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Updated</p>
-            <p className="mt-1 text-sm text-neutral-800">{formatDate(page.updatedAt)}</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Updated</p>
+            <p className="mt-1 text-sm text-fg">{formatDate(page.updatedAt)}</p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Published</p>
-            <p className="mt-1 text-sm text-neutral-800">{formatDate(page.publishedAt)}</p>
+            <p className="text-xs uppercase tracking-wide text-muted">Published</p>
+            <p className="mt-1 text-sm text-fg">{formatDate(page.publishedAt)}</p>
           </div>
         </div>
 
@@ -173,9 +173,9 @@ export default async function PageDetailPage({
         />
 
         {page.currentVersion?.notes ? (
-          <section className="space-y-2 rounded-xl border border-neutral-200 bg-white p-6">
+          <section className="space-y-2 rounded-xl border border-border bg-surface-elevated p-6">
             <h2 className="text-lg font-semibold">Version notes</h2>
-            <p className="text-sm text-neutral-700">{page.currentVersion.notes}</p>
+            <p className="text-sm text-muted">{page.currentVersion.notes}</p>
           </section>
         ) : null}
 
