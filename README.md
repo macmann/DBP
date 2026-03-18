@@ -85,6 +85,7 @@ npx prisma studio
 | `DATABASE_URL` | Yes | `postgresql://postgres:postgres@localhost:5432/dbp_dev?schema=public` | PostgreSQL connection string |
 | `NEXTAUTH_SECRET` | Yes | `replace-with-long-random-secret` | Session/auth secret |
 | `OPENAI_API_KEY` | No (for now) | `sk-...` | Reserved for future AI generation |
+| `NEXT_PUBLIC_ENABLE_PROJECT_PUBLIC_PATHS` | No | `true` | Enables optional `/p/{project}/{slug}` compatibility paths (canonical remains `/demo/{slug}`) |
 
 ## Implemented Routes (Session 1 MVP)
 
@@ -92,6 +93,30 @@ npx prisma studio
 - `/projects/[projectSlug]`
 - `/projects/[projectSlug]/pages/new`
 - `/projects/[projectSlug]/pages/[pageId]`
+- `/demo/[publicSlug]` (**canonical public publishing route**)
+
+## Publishing Model
+
+DBP publishes each page to a globally unique `publicSlug` and serves it from:
+
+- **Canonical URL:** `/demo/{publicSlug}`
+
+Notes:
+- `publicSlug` values are constrained to lowercase letters, numbers, and single hyphens for predictable URLs.
+- Reserved words are blocked and auto-adjusted to prevent route conflicts (e.g. `demo`, `projects`, `api`).
+- Collisions are resolved deterministically with numeric suffixes.
+
+### Optional future-ready project-scoped paths
+
+DBP can optionally accept project-scoped public paths in the future:
+
+- `/p/{project}/{slug}`
+
+This is disabled by default and controlled by:
+
+- `NEXT_PUBLIC_ENABLE_PROJECT_PUBLIC_PATHS=true`
+
+Even when enabled, `/demo/{publicSlug}` remains the canonical public URL.
 
 ## Current Status
 

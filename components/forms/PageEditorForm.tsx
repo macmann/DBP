@@ -12,6 +12,8 @@ import { FormSection } from "@/components/forms/FormSection";
 import { FormTextArea } from "@/components/forms/FormTextArea";
 import { FormTextInput } from "@/components/forms/FormTextInput";
 import { ReferenceLinksListEditor } from "@/components/forms/ReferenceLinksListEditor";
+import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
+import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 import { cn } from "@/lib/utils/cn";
 import type { PageEditorFormModel } from "@/types/page-editor";
 
@@ -134,14 +136,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
       <section className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
         <h3 className="text-base font-semibold text-neutral-900">Preview</h3>
         <StatusSurface status={previewState.status} message={previewState.message} />
-        <a
-          href={`/demo/${previewSlug}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-full items-center justify-center rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 sm:w-auto"
-        >
-          Preview latest published
-        </a>
+        <PublicUrlActions path={buildCanonicalPublicPath(previewSlug)} compact />
       </section>
 
       {state.status === "error" ? <StatusSurface status="error" message={state.message} /> : null}

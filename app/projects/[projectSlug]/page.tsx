@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageStatusBadge } from "@/components/dashboard/PageStatusBadge";
+import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
+import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 import { prisma } from "@/lib/db";
 
 export default async function ProjectPage({ params }: { params: Promise<{ projectSlug: string }> }) {
@@ -48,19 +50,25 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           <ul className="space-y-3">
             {project.pages.map((page) => (
               <li key={page.id}>
-                <Link
-                  href={`/projects/${project.slug}/pages/${page.id}`}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-300 hover:bg-neutral-50"
-                >
-                  <div>
-                    <p className="font-medium text-neutral-900">{page.title}</p>
-                    <p className="mt-1 text-sm text-neutral-600">/{page.slug}</p>
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {page.currentVersion ? `v${page.currentVersion.versionNumber}` : "No current version"}
-                    </p>
+                <div className="rounded-xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-300">
+                  <div className="flex items-center justify-between gap-4">
+                    <Link href={`/projects/${project.slug}/pages/${page.id}`} className="min-w-0">
+                      <p className="font-medium text-neutral-900">{page.title}</p>
+                      <p className="mt-1 text-sm text-neutral-600">/{page.slug}</p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        {page.currentVersion ? `v${page.currentVersion.versionNumber}` : "No current version"}
+                      </p>
+                    </Link>
+                    <PageStatusBadge status={page.status} />
                   </div>
-                  <PageStatusBadge status={page.status} />
-                </Link>
+                  <div className="mt-3 border-t border-neutral-100 pt-3">
+                    <PublicUrlActions
+                      compact
+                      label="Public URL"
+                      path={buildCanonicalPublicPath(page.publicSlug)}
+                    />
+                  </div>
+                </div>
               </li>
             ))}
           </ul>

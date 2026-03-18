@@ -4,8 +4,10 @@ import { PageStatusBadge } from "@/components/dashboard/PageStatusBadge";
 import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { PageEditorForm } from "@/components/forms/PageEditorForm";
 import { VersionHistoryPanel } from "@/components/forms/VersionHistoryPanel";
+import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
 import { prisma } from "@/lib/db";
 import { validateGeneratedPageSchema } from "@/lib/ai/schema";
+import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -100,8 +102,10 @@ export default async function PageDetailPage({
       <div className="space-y-6">
         <div className="space-y-1 text-sm text-neutral-600">
           <p>Editor slug: /{page.slug}</p>
-          <p>Public URL: /demo/{page.publicSlug}</p>
+          <p>Canonical public path: {buildCanonicalPublicPath(page.publicSlug)}</p>
         </div>
+
+        <PublicUrlActions path={buildCanonicalPublicPath(page.publicSlug)} />
 
         <div className="grid gap-4 rounded-xl border border-neutral-200 bg-white p-6 md:grid-cols-2">
           <div>
