@@ -26,16 +26,16 @@ export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <aside className="border-b border-neutral-200 bg-white md:border-b-0 md:border-r">
+    <aside className="border-b border-border bg-surface-elevated md:border-b-0 md:border-r">
       <div className="p-4 md:p-6">
         <div className="flex items-center justify-between gap-3 md:block">
           <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">{PRODUCT_NAME} workspace</p>
-            <p className="text-sm font-medium text-neutral-900">Navigation</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{PRODUCT_NAME} workspace</p>
+            <p className="text-sm font-medium text-fg">Navigation</p>
           </div>
           <button
             type="button"
-            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 md:hidden"
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg md:hidden"
             onClick={() => setIsOpen((current) => !current)}
             aria-expanded={isOpen}
             aria-controls="dashboard-nav"
@@ -56,12 +56,12 @@ export function Sidebar() {
                 className={cn(
                   "rounded-xl border px-3 py-2.5 text-sm transition",
                   isActive
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-transparent text-neutral-700 hover:border-neutral-200 hover:bg-neutral-50",
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-transparent text-fg hover:border-border hover:bg-secondary",
                 )}
               >
                 <p className="font-medium">{link.label}</p>
-                <p className={cn("mt-0.5 text-xs", isActive ? "text-neutral-200" : "text-neutral-500")}>{link.description}</p>
+                <p className={cn("mt-0.5 text-xs", isActive ? "text-primary-foreground/80" : "text-muted")}>{link.description}</p>
               </Link>
             );
           })}

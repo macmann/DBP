@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AssetPreviewGallery } from "@/components/assets/AssetPreviewGallery";
 import { AssetUploader } from "@/components/assets/AssetUploader";
+import { Alert } from "@/components/ui/alert";
 import type { UploadedAssetDto } from "@/types/asset-upload";
 
 type PageAssetsSectionProps = {
@@ -100,11 +101,11 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
   }
 
   return (
-    <section className="space-y-4 rounded-xl border border-neutral-200 bg-white p-6">
+    <section className="space-y-4 rounded-xl border border-border bg-surface-elevated p-6">
       <h2 className="text-lg font-semibold">Assets</h2>
-      <div className="space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-        <h3 className="text-base font-semibold text-neutral-900">Asset uploader area</h3>
-        <p className="text-sm text-neutral-600">
+      <div className="space-y-2 rounded-lg border border-border bg-surface p-3">
+        <h3 className="text-base font-semibold text-fg">Asset uploader area</h3>
+        <p className="text-sm text-muted">
           Upload brand and page assets here so builds can use them as references.
         </p>
         <AssetUploader
@@ -121,25 +122,19 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
       </div>
 
       {errorMessage ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {errorMessage}
-        </p>
+        <Alert variant="danger">{errorMessage}</Alert>
       ) : null}
       {statusMessage ? (
-        <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
-          {statusMessage}
-        </p>
+        <Alert variant="info">{statusMessage}</Alert>
       ) : null}
 
       {isReordering ? (
-        <p className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
-          Updating gallery order...
-        </p>
+        <Alert variant="info">Updating gallery order...</Alert>
       ) : null}
 
       {assets.length === 0 ? (
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-5 text-sm text-neutral-600">
-          <p className="font-medium text-neutral-800">No assets uploaded yet.</p>
+        <div className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">
+          <p className="font-medium text-fg">No assets uploaded yet.</p>
           <p className="mt-1">
             Choose a type, then drag files into the drop zone or use the picker to add your first
             asset.
