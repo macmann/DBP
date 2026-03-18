@@ -13,6 +13,11 @@ import {
 } from "@/lib/ai/schema";
 import { slugify } from "@/lib/utils/slugify";
 import {
+  PUBLIC_SLUG_CONSTRAINTS,
+  RESERVED_PUBLIC_SLUGS,
+  getPublicPathsToRevalidate,
+} from "@/lib/config/publishing";
+import {
   hasPageFieldErrors,
   parseReferenceLinks,
   parseReferenceLinksFromForm,
@@ -60,11 +65,40 @@ async function ensureUniquePageSlug(projectId: string, baseSlug: string, exclude
 }
 
 
+function normalizePublicSlug(baseSlug: string) {
+  const normalized = baseSlug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  const fallbackSlug = normalized || "page";
+
+  if (!PUBLIC_SLUG_CONSTRAINTS.pattern.test(fallbackSlug)) {
+    throw new Error("Public slug must contain only lowercase letters, numbers, and single hyphens.");
+  }
+
+  if (fallbackSlug.length < PUBLIC_SLUG_CONSTRAINTS.minLength) {
+    throw new Error(`Public slug must be at least ${PUBLIC_SLUG_CONSTRAINTS.minLength} characters.`);
+  }
+
+  if (fallbackSlug.length > PUBLIC_SLUG_CONSTRAINTS.maxLength) {
+    return fallbackSlug.slice(0, PUBLIC_SLUG_CONSTRAINTS.maxLength).replace(/-+$/g, "");
+  }
+
+  return fallbackSlug;
+}
+
 async function ensureUniquePublicSlug(baseSlug: string, excludePageId?: string) {
-  let publicSlug = baseSlug;
+  const normalizedBaseSlug = normalizePublicSlug(baseSlug);
+  const startingSlug = RESERVED_PUBLIC_SLUGS.has(normalizedBaseSlug)
+    ? `${normalizedBaseSlug}-page`
+    : normalizedBaseSlug;
+  let publicSlug = startingSlug;
   let suffix = 1;
 
   while (
+    RESERVED_PUBLIC_SLUGS.has(publicSlug) ||
     await prisma.page.findFirst({
       where: {
         publicSlug,
@@ -79,11 +113,31 @@ async function ensureUniquePublicSlug(baseSlug: string, excludePageId?: string) 
       select: { id: true },
     })
   ) {
-    publicSlug = `${baseSlug}-${suffix}`;
     suffix += 1;
+    const suffixText = `-${suffix}`;
+    const maxBaseLength = PUBLIC_SLUG_CONSTRAINTS.maxLength - suffixText.length;
+    const trimmedBase = startingSlug.slice(0, maxBaseLength).replace(/-+$/g, "") || "page";
+    publicSlug = `${trimmedBase}${suffixText}`;
   }
 
   return publicSlug;
+}
+
+function revalidateProjectAndPublicPaths(input: {
+  projectSlug: string;
+  pageId: string;
+  currentPublicSlug: string;
+  previousPublicSlug?: string | null;
+}) {
+  revalidatePath(`/projects/${input.projectSlug}/pages/${input.pageId}`);
+  revalidatePath(`/projects/${input.projectSlug}`);
+  for (const path of getPublicPathsToRevalidate({
+    projectSlug: input.projectSlug,
+    currentPublicSlug: input.currentPublicSlug,
+    previousPublicSlug: input.previousPublicSlug,
+  })) {
+    revalidatePath(path);
+  }
 }
 
 export type CreateProjectState = {
@@ -347,6 +401,7 @@ export async function updatePage(
     select: {
       id: true,
       currentVersionId: true,
+      publicSlug: true,
     },
   });
 
@@ -409,8 +464,12 @@ export async function updatePage(
       }
     });
 
-    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-    revalidatePath(`/projects/${projectSlug}`);
+    revalidateProjectAndPublicPaths({
+      projectSlug,
+      pageId,
+      currentPublicSlug: publicSlug,
+      previousPublicSlug: existingPage.publicSlug,
+    });
 
     return {
       status: "success",
@@ -552,8 +611,11 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         });
       });
 
-      revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-      revalidatePath(`/projects/${projectSlug}`);
+      revalidateProjectAndPublicPaths({
+        projectSlug,
+        pageId,
+        currentPublicSlug: page.publicSlug,
+      });
 
       return {
         status: "error",
@@ -624,9 +686,11 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       };
     });
 
-    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-    revalidatePath(`/projects/${projectSlug}`);
-    revalidatePath(`/demo/${savedVersion.publicSlug}`);
+    revalidateProjectAndPublicPaths({
+      projectSlug,
+      pageId,
+      currentPublicSlug: savedVersion.publicSlug,
+    });
 
     return {
       status: "success",
@@ -662,8 +726,11 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       });
     });
 
-    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-    revalidatePath(`/projects/${projectSlug}`);
+    revalidateProjectAndPublicPaths({
+      projectSlug,
+      pageId,
+      currentPublicSlug: page.publicSlug,
+    });
 
     return {
       status: "error",
@@ -952,9 +1019,11 @@ export async function generateNewVersion(
       };
     });
 
-    revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-    revalidatePath(`/projects/${projectSlug}`);
-    revalidatePath(`/demo/${savedVersion.publicSlug}`);
+    revalidateProjectAndPublicPaths({
+      projectSlug,
+      pageId,
+      currentPublicSlug: savedVersion.publicSlug,
+    });
 
     return {
       status: "success",
@@ -1045,9 +1114,11 @@ export async function rollbackToVersion(
     });
   });
 
-  revalidatePath(`/projects/${projectSlug}/pages/${pageId}`);
-  revalidatePath(`/projects/${projectSlug}`);
-  revalidatePath(`/demo/${updatedPage.publicSlug}`);
+  revalidateProjectAndPublicPaths({
+    projectSlug,
+    pageId,
+    currentPublicSlug: updatedPage.publicSlug,
+  });
 
   return {
     status: "success",

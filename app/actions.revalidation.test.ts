@@ -13,27 +13,32 @@ function getFunctionBlock(source: string, functionName: string): string {
 }
 
 describe("page publishing actions revalidation", () => {
-  it("buildPage revalidates project editor routes and demo route", () => {
+  it("buildPage revalidates project editor routes and public demo paths", () => {
     const block = getFunctionBlock(actionsSource, "buildPage");
 
-    assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}\/pages\/\$\{pageId\}`\)/);
-    assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
-    assert.match(block, /revalidatePath\(`\/demo\/\$\{savedVersion\.publicSlug\}`\)/);
+    assert.match(block, /revalidateProjectAndPublicPaths\(\{/);
+    assert.match(block, /currentPublicSlug: savedVersion\.publicSlug/);
   });
 
-  it("generateNewVersion revalidates project editor routes and demo route", () => {
+  it("generateNewVersion revalidates project editor routes and public demo paths", () => {
     const block = getFunctionBlock(actionsSource, "generateNewVersion");
 
-    assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}\/pages\/\$\{pageId\}`\)/);
-    assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
-    assert.match(block, /revalidatePath\(`\/demo\/\$\{savedVersion\.publicSlug\}`\)/);
+    assert.match(block, /revalidateProjectAndPublicPaths\(\{/);
+    assert.match(block, /currentPublicSlug: savedVersion\.publicSlug/);
   });
 
-  it("rollbackToVersion revalidates project editor routes and demo route", () => {
+  it("updatePage revalidates both old and new public slugs", () => {
+    const block = getFunctionBlock(actionsSource, "updatePage");
+
+    assert.match(block, /revalidateProjectAndPublicPaths\(\{/);
+    assert.match(block, /previousPublicSlug: existingPage\.publicSlug/);
+    assert.match(block, /currentPublicSlug: publicSlug/);
+  });
+
+  it("rollbackToVersion revalidates project editor routes and public demo paths", () => {
     const block = getFunctionBlock(actionsSource, "rollbackToVersion");
 
-    assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}\/pages\/\$\{pageId\}`\)/);
-    assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
-    assert.match(block, /revalidatePath\(`\/demo\/\$\{updatedPage\.publicSlug\}`\)/);
+    assert.match(block, /revalidateProjectAndPublicPaths\(\{/);
+    assert.match(block, /currentPublicSlug: updatedPage\.publicSlug/);
   });
 });

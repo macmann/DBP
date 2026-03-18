@@ -5,7 +5,7 @@ import { PageRenderer } from "@/components/landing/PageRenderer";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
 import { type GeneratedPageSchema, validateGeneratedPageSchema } from "@/lib/ai/schema";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/config/brand";
-import { prisma } from "@/lib/db";
+import { getPublishedDemoPage } from "@/lib/public-pages";
 
 type DemoPageProps = {
   params: Promise<{ slug: string }>;
@@ -16,53 +16,9 @@ type AssetLookupMap = Map<string, ResolvedAsset>;
 const SITE_DEFAULT_TITLE = PRODUCT_NAME;
 const SITE_DEFAULT_DESCRIPTION = PRODUCT_DESCRIPTION;
 
-async function getPublishedDemoPage(publicSlug: string) {
-  const page = await prisma.page.findFirst({
-    where: {
-      publicSlug,
-      status: "published",
-    },
-    select: {
-      id: true,
-      publicSlug: true,
-      title: true,
-      currentVersion: {
-        select: {
-          generatedSchemaJson: true,
-        },
-      },
-    },
-  });
-
-  if (!page) {
-    return null;
-  }
-
-  const assets = await prisma.asset.findMany({
-    where: {
-      pageId: page.id,
-    },
-    orderBy: {
-      sortOrder: "asc",
-    },
-    select: {
-      id: true,
-      storageUrl: true,
-      metadata: true,
-      fileName: true,
-      mimeType: true,
-    },
-  });
-
-  return {
-    ...page,
-    assets,
-  };
-}
-
 export async function generateMetadata({ params }: DemoPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const page = await getPublishedDemoPage(slug);
+  const page = await getPublishedDemoPage({ publicSlug: slug });
 
   const fallbackTitle = page?.title || SITE_DEFAULT_TITLE;
   const fallbackDescription = SITE_DEFAULT_DESCRIPTION;
@@ -128,7 +84,7 @@ function InvalidSchemaFallback({ publicSlug }: { publicSlug: string }) {
 export default async function DemoPage({ params }: DemoPageProps) {
   const { slug } = await params;
 
-  const page = await getPublishedDemoPage(slug);
+  const page = await getPublishedDemoPage({ publicSlug: slug });
 
   if (!page) {
     notFound();
