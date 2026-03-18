@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Container } from "@/components/layout/Container";
 import { PageRenderer } from "@/components/landing/PageRenderer";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
 import { type GeneratedPageSchema, validateGeneratedPageSchema } from "@/lib/ai/schema";
@@ -113,13 +114,13 @@ export async function generateMetadata({ params }: DemoPageProps): Promise<Metad
 
 function InvalidSchemaFallback({ publicSlug }: { publicSlug: string }) {
   return (
-    <main className="mx-auto max-w-4xl space-y-4 px-6 py-12">
-      <h1 className="text-3xl font-bold text-neutral-900">Page preview unavailable</h1>
-      <p className="text-neutral-700">
+    <Container width="content" className="space-y-4 py-12">
+      <h1 className="text-3xl font-bold text-fg">Page preview unavailable</h1>
+      <p className="text-muted">
         The published page for <span className="font-mono">{publicSlug}</span> has an invalid generated schema.
       </p>
-      <p className="text-neutral-700">Please rebuild or publish another version from the dashboard.</p>
-    </main>
+      <p className="text-muted">Please rebuild or publish another version from the dashboard.</p>
+    </Container>
   );
 }
 
@@ -158,12 +159,12 @@ export default async function DemoPage({ params }: DemoPageProps) {
   const resolveAsset: AssetResolver = (assetId) => assetLookup.get(assetId) ?? null;
 
   return (
-    <main className="mx-auto max-w-5xl space-y-8 px-6 py-12">
+    <Container className="space-y-8 py-12">
       <header className="space-y-2">
-        <h1 className="text-4xl font-bold text-neutral-900">{schema.pageTitle || page.title}</h1>
-        {schema.summary ? <p className="text-lg text-neutral-700">{schema.summary}</p> : null}
+        <h1 className="text-4xl font-bold text-fg">{schema.pageTitle || page.title}</h1>
+        {schema.summary ? <p className="text-lg text-muted">{schema.summary}</p> : null}
       </header>
       <PageRenderer page={schema} resolveAsset={resolveAsset} />
-    </main>
+    </Container>
   );
 }
