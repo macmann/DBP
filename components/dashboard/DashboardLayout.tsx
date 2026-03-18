@@ -21,11 +21,11 @@ type DashboardLayoutProps = {
 
 export function DashboardLayout({ title, breadcrumbs, action, children }: DashboardLayoutProps) {
   return (
-    <div className="flex min-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 md:flex-row">
+    <div className="min-h-[calc(100vh-6rem)] rounded-2xl border border-neutral-200 bg-gradient-to-b from-white to-neutral-50 shadow-sm md:grid md:grid-cols-[17rem_minmax(0,1fr)]">
       <Sidebar />
-      <div className="flex min-h-full flex-1 flex-col">
+      <div className="flex min-h-full min-w-0 flex-1 flex-col">
         <Topbar title={title} breadcrumbs={breadcrumbs} action={action} />
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+        <main className="flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils/cn";
 
 type FormTextInputProps = {
   id: string;
@@ -8,6 +9,8 @@ type FormTextInputProps = {
   defaultValue?: string;
   required?: boolean;
   error?: string;
+  helperText?: string;
+  disabled?: boolean;
 };
 
 export function FormTextInput({
@@ -18,11 +21,16 @@ export function FormTextInput({
   defaultValue,
   required,
   error,
+  helperText,
+  disabled,
 }: FormTextInputProps) {
+  const helperId = `${id}-helper`;
+  const errorId = `${id}-error`;
+
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="block text-sm font-medium text-fg">
-        {label}
+        {label} {required ? <span className="text-danger">*</span> : null}
       </label>
       <Input
         id={id}
@@ -30,11 +38,18 @@ export function FormTextInput({
         required={required}
         placeholder={placeholder}
         defaultValue={defaultValue}
+        disabled={disabled}
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={error ? errorId : helperText ? helperId : undefined}
+        className={cn(error ? "border-danger/60 focus-visible:ring-danger/20" : undefined)}
       />
+      {helperText ? (
+        <p id={helperId} className="text-xs text-muted">
+          {helperText}
+        </p>
+      ) : null}
       {error ? (
-        <p id={`${id}-error`} className="text-sm text-danger">
+        <p id={errorId} className="text-sm text-danger">
           {error}
         </p>
       ) : null}
