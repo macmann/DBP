@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 type PublicUrlActionsProps = {
   label?: string;
@@ -32,24 +33,20 @@ export function PublicUrlActions({ label = "Public URL", path, compact = false }
   };
 
   return (
-    <div className={compact ? "space-y-2" : "space-y-3 rounded-xl border border-neutral-200 bg-white p-4"}>
-      <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="break-all rounded-md bg-neutral-50 px-3 py-2 font-mono text-sm text-neutral-800">
+    <div className={compact ? "space-y-2" : "space-y-3 rounded-xl border border-border bg-surface-elevated p-4"}>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className="break-all rounded-md bg-surface px-3 py-2 font-mono text-sm text-fg">
         {absoluteUrl}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
-          onClick={copyPublicUrl}
-        >
+        <Button type="button" size="sm" variant="outline" onClick={copyPublicUrl}>
           {copied ? "Copied" : "Copy URL"}
-        </button>
+        </Button>
         <a
           href={path}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-secondary"
         >
           Open in new tab
         </a>
