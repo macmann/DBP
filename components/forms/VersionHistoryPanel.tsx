@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { rollbackToVersion } from "@/app/actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type VersionHistoryItem = {
   id: string;
@@ -38,9 +40,9 @@ export function VersionHistoryPanel({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <section className="space-y-3 rounded-xl border border-neutral-200 bg-white p-6">
-      <h2 className="text-lg font-semibold text-neutral-900">Version history</h2>
-      <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700">
+    <section className="space-y-3 rounded-xl border border-border bg-surface-elevated p-6">
+      <h2 className="text-lg font-semibold text-fg">Version history</h2>
+      <p className="rounded-lg border border-border bg-surface p-3 text-sm text-muted">
         {status}
       </p>
       <ul className="space-y-3">
@@ -48,22 +50,23 @@ export function VersionHistoryPanel({
           const isCurrent = version.id === currentVersionId;
 
           return (
-            <li key={version.id} className="rounded-lg border border-neutral-200 p-4">
+            <li key={version.id} className="rounded-lg border border-border bg-surface p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">v{version.versionNumber}</p>
-                  <p className="text-xs text-neutral-500">{formatDate(version.createdAt)}</p>
+                  <p className="text-sm font-semibold text-fg">v{version.versionNumber}</p>
+                  <p className="text-xs text-muted">{formatDate(version.createdAt)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {isCurrent ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
+                    <Badge variant="success" className="px-2 py-1">
                       Current
-                    </span>
+                    </Badge>
                   ) : null}
-                  <button
+                  <Button
                     type="button"
                     disabled={isPending || isCurrent || !version.hasValidSchema}
-                    className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-60"
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       startTransition(async () => {
                         setStatus(`Rolling back to v${version.versionNumber}...`);
@@ -78,17 +81,17 @@ export function VersionHistoryPanel({
                     }}
                   >
                     {isCurrent ? "Active" : version.hasValidSchema ? "Rollback" : "Invalid schema"}
-                  </button>
+                  </Button>
                 </div>
               </div>
-              <p className="mt-2 text-sm text-neutral-700">
+              <p className="mt-2 text-sm text-fg">
                 {version.instructionPrompt?.trim() || "No instruction prompt captured for this version."}
               </p>
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-1 text-sm text-muted">
                 {version.notes?.trim() || "No version notes available for this version."}
               </p>
               {!version.hasValidSchema ? (
-                <p className="mt-2 text-xs font-medium text-amber-700">
+                <p className="mt-2 text-xs font-medium text-warning">
                   Rollback unavailable: this version schema failed validation.
                 </p>
               ) : null}

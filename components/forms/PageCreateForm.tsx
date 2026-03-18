@@ -6,6 +6,8 @@ import { type CreatePageState } from "@/app/actions";
 import { FormTextArea } from "@/components/forms/FormTextArea";
 import { FormTextInput } from "@/components/forms/FormTextInput";
 import { ReferenceLinksListEditor } from "@/components/forms/ReferenceLinksListEditor";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 type PageCreateFormProps = {
   projectSlug: string;
@@ -16,7 +18,7 @@ export function PageCreateForm({ projectSlug, action }: PageCreateFormProps) {
   const [state, formAction, isPending] = useActionState(action, { ok: true } satisfies CreatePageState);
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm md:p-6" aria-busy={isPending}>
+    <form action={formAction} className="space-y-4 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6" aria-busy={isPending}>
       <FormTextInput
         id="title"
         name="title"
@@ -57,18 +59,14 @@ export function PageCreateForm({ projectSlug, action }: PageCreateFormProps) {
       />
 
       {state.formError ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{state.formError}</p>
+        <Alert variant="danger">{state.formError}</Alert>
       ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" disabled={isPending}>
           {isPending ? "Creating page..." : "Create page"}
-        </button>
-        <Link href={`/projects/${projectSlug}`} className="text-sm text-neutral-600 hover:text-neutral-900">
+        </Button>
+        <Link href={`/projects/${projectSlug}`} className="text-sm text-muted hover:text-fg">
           Cancel
         </Link>
       </div>

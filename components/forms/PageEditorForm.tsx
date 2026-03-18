@@ -13,6 +13,7 @@ import { FormTextArea } from "@/components/forms/FormTextArea";
 import { FormTextInput } from "@/components/forms/FormTextInput";
 import { ReferenceLinksListEditor } from "@/components/forms/ReferenceLinksListEditor";
 import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
+import { Button } from "@/components/ui/button";
 import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 import { cn } from "@/lib/utils/cn";
 import type { PageEditorFormModel } from "@/types/page-editor";
@@ -27,10 +28,10 @@ type PageEditorFormProps = {
 type SurfaceStatus = "idle" | "success" | "error" | "running";
 
 const statusStyles: Record<SurfaceStatus, string> = {
-  idle: "border-neutral-200 bg-neutral-50 text-neutral-700",
-  running: "border-blue-200 bg-blue-50 text-blue-700",
-  error: "border-red-200 bg-red-50 text-red-700",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  idle: "border-border bg-surface text-muted",
+  running: "border-info/30 bg-info/10 text-info",
+  error: "border-danger/30 bg-danger/10 text-danger",
+  success: "border-success/30 bg-success/10 text-success",
 };
 
 const statusIcons: Record<SurfaceStatus, string> = {
@@ -133,8 +134,8 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
         />
       </FormSection>
 
-      <section className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
-        <h3 className="text-base font-semibold text-neutral-900">Preview</h3>
+      <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
+        <h3 className="text-base font-semibold text-fg">Preview</h3>
         <StatusSurface status={previewState.status} message={previewState.message} />
         <PublicUrlActions path={buildCanonicalPublicPath(previewSlug)} compact />
       </section>
@@ -142,22 +143,18 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
       {state.status === "error" ? <StatusSurface status="error" message={state.message} /> : null}
       {state.status === "success" ? <StatusSurface status="success" message={state.message} /> : null}
 
-      <section className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
-        <h3 className="text-base font-semibold text-neutral-900">Build action</h3>
+      <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
+        <h3 className="text-base font-semibold text-fg">Build action</h3>
         <StatusSurface status={buildState.status} message={buildState.message} />
 
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <Button type="submit" disabled={isPending}>
             {isPending ? "Saving changes..." : "Save changes"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={isBuildPending}
-            className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+            variant="outline"
             onClick={() => {
               startBuildTransition(async () => {
                 setBuildState({ status: "running", message: "Building page now. This can take a moment..." });
@@ -179,12 +176,12 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
             }}
           >
             {isBuildPending ? "Building..." : "Build page"}
-          </button>
+          </Button>
         </div>
       </section>
 
-      <section className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm md:p-6">
-        <h3 className="text-base font-semibold text-neutral-900">Iterative update</h3>
+      <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
+        <h3 className="text-base font-semibold text-fg">Iterative update</h3>
         <StatusSurface status={versionState.status} message={versionState.message} />
         <FormTextArea
           id="iterativeInstruction"
@@ -198,10 +195,11 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
           disabled={isVersionPending}
         />
         <div>
-          <button
+          <Button
             type="button"
             disabled={isVersionPending}
-            className="w-full rounded-xl border border-blue-300 bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+            className="w-full sm:w-auto"
+            variant="secondary"
             onClick={() => {
               startVersionTransition(async () => {
                 setVersionState({ status: "running", message: "Generating a new version from your instructions..." });
@@ -228,7 +226,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
             }}
           >
             {isVersionPending ? "Generating version..." : "Generate new version"}
-          </button>
+          </Button>
         </div>
       </section>
     </form>
