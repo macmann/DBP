@@ -117,7 +117,8 @@ function InvalidSchemaFallback({ publicSlug }: { publicSlug: string }) {
     <Container width="content" className="space-y-4 py-12">
       <h1 className="text-3xl font-bold text-fg">Page preview unavailable</h1>
       <p className="text-muted">
-        The published page for <span className="font-mono">{publicSlug}</span> has an invalid generated schema.
+        The published page for <span className="font-mono">{publicSlug}</span> has an invalid
+        generated schema.
       </p>
       <p className="text-muted">Please rebuild or publish another version from the dashboard.</p>
     </Container>
@@ -159,10 +160,14 @@ export default async function DemoPage({ params }: DemoPageProps) {
   const resolveAsset: AssetResolver = (assetId) => assetLookup.get(assetId) ?? null;
 
   return (
-    <Container className="space-y-8 py-12">
-      <header className="space-y-2">
-        <h1 className="text-4xl font-bold text-fg">{schema.pageTitle || page.title}</h1>
-        {schema.summary ? <p className="text-lg text-muted">{schema.summary}</p> : null}
+    <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
+      <header className="mx-auto max-w-3xl space-y-4 text-center">
+        <h1 className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl lg:text-5xl">
+          {schema.pageTitle || page.title}
+        </h1>
+        {schema.summary ? (
+          <p className="text-pretty text-base leading-7 text-muted sm:text-lg">{schema.summary}</p>
+        ) : null}
       </header>
       <PageRenderer page={schema} resolveAsset={resolveAsset} />
     </Container>

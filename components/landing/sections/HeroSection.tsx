@@ -1,29 +1,60 @@
-import { getBody, getCta, getHeading, resolveMediaAssets, type SectionRenderProps } from "@/components/landing/types";
+import {
+  getBody,
+  getCta,
+  getHeading,
+  resolveMediaAssets,
+  type SectionRenderProps,
+} from "@/components/landing/types";
+import {
+  EmptyState,
+  MediaFrame,
+  SectionHeader,
+  SectionShell,
+} from "@/components/landing/sections/shared";
 
 export function HeroSection({ section, resolveAsset }: SectionRenderProps) {
   const heading = getHeading(section);
   const body = getBody(section);
   const cta = getCta(section);
-  const heroImage = resolveMediaAssets(section, resolveAsset).find((asset) => asset.mimeType.startsWith("image/"));
+  const heroImage = resolveMediaAssets(section, resolveAsset).find((asset) =>
+    asset.mimeType.startsWith("image/"),
+  );
 
-  if (!heading && !body) {
-    return <div className="rounded-xl border border-dashed border-neutral-300 p-6 text-sm text-neutral-600">Hero content unavailable.</div>;
+  if (!heading && !body && !cta && !heroImage) {
+    return <EmptyState message="Hero content unavailable." />;
   }
 
   return (
-    <section className="grid gap-6 rounded-2xl bg-neutral-900 px-6 py-12 text-white sm:px-8 lg:grid-cols-2 lg:items-center lg:px-12">
-      <div className="space-y-4">
-        {heading ? <h2 className="text-3xl font-bold leading-tight sm:text-4xl">{heading}</h2> : null}
-        {body ? <p className="text-base text-neutral-200 sm:text-lg">{body}</p> : null}
-        {cta ? (
-          <a href={cta.href} className="inline-flex rounded-md bg-white px-5 py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-100">
-            {cta.label}
-          </a>
-        ) : null}
+    <SectionShell tone="inverted" className="relative">
+      <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+        <div className="space-y-6">
+          <SectionHeader
+            heading={heading ?? "Build trust with a clear value proposition"}
+            body={body}
+            headingClassName="sm:text-4xl"
+            bodyClassName="text-neutral-200"
+          />
+          {cta ? (
+            <a
+              href={cta.href}
+              className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
+            >
+              {cta.label}
+            </a>
+          ) : (
+            <p className="text-sm text-neutral-300">
+              Add a call-to-action to improve conversion focus.
+            </p>
+          )}
+        </div>
+        <MediaFrame
+          src={heroImage?.storageUrl}
+          alt={heroImage?.fileName}
+          fallbackLabel="Add a hero image for stronger visual hierarchy."
+          className="border-white/10 bg-neutral-900"
+          aspectClassName="aspect-[4/3]"
+        />
       </div>
-      {heroImage ? (
-        <img src={heroImage.storageUrl} alt={heroImage.fileName} className="h-64 w-full rounded-xl object-cover sm:h-72 lg:h-80" />
-      ) : null}
-    </section>
+    </SectionShell>
   );
 }

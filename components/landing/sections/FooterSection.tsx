@@ -1,13 +1,19 @@
 import { getBody, getHeading, type SectionRenderProps } from "@/components/landing/types";
+import { SectionHeader, SectionShell } from "@/components/landing/sections/shared";
 
 export function FooterSection({ section }: SectionRenderProps) {
   const heading = getHeading(section);
   const body = getBody(section);
 
   return (
-    <footer className="rounded-2xl border border-neutral-200 bg-white px-6 py-8 text-center sm:px-8">
-      {heading ? <h2 className="text-lg font-semibold text-neutral-900">{heading}</h2> : null}
-      {body ? <p className="mt-2 text-sm text-neutral-600">{body}</p> : <p className="text-sm text-neutral-500">Footer content unavailable.</p>}
-    </footer>
+    <SectionShell className="py-8 text-center">
+      <SectionHeader
+        heading={heading ?? "Thanks for visiting"}
+        body={body ?? "Update this footer with legal text, links, or your company address."}
+        align="center"
+        headingClassName="text-lg text-neutral-900 sm:text-xl"
+        bodyClassName="mx-auto text-neutral-600"
+      />
+    </SectionShell>
   );
 }
