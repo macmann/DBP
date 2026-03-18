@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import type { UploadedAssetDto } from "@/types/asset-upload";
 
 const IMAGE_MIME_PREFIX = "image/";
@@ -46,15 +48,15 @@ export function AssetPreviewCard({
   const isImage = asset.mimeType.startsWith(IMAGE_MIME_PREFIX);
 
   return (
-    <article className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+    <Card>
+      <div className="overflow-hidden rounded-lg border border-border bg-surface">
         {isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={asset.storageUrl} alt={asset.fileName} className="h-40 w-full object-cover" />
         ) : (
-          <div className="flex h-40 flex-col items-center justify-center px-4 text-center text-xs text-neutral-600">
+          <div className="flex h-40 flex-col items-center justify-center px-4 text-center text-xs text-muted">
             <p>File preview unavailable.</p>
-            <a href={asset.storageUrl} target="_blank" rel="noreferrer" className="mt-2 text-neutral-900 underline">
+            <a href={asset.storageUrl} target="_blank" rel="noreferrer" className="mt-2 text-fg underline">
               Open file
             </a>
           </div>
@@ -62,39 +64,24 @@ export function AssetPreviewCard({
       </div>
 
       <div className="mt-3 space-y-1">
-        <p className="truncate text-sm font-medium text-neutral-900" title={asset.fileName}>
+        <p className="truncate text-sm font-medium text-fg" title={asset.fileName}>
           {asset.fileName}
         </p>
-        <p className="text-xs uppercase tracking-wide text-neutral-500">{asset.type}</p>
-        <p className="text-xs text-neutral-600">{formatBytes(sizeBytes)}</p>
+        <p className="text-xs uppercase tracking-wide text-muted">{asset.type}</p>
+        <p className="text-xs text-muted">{formatBytes(sizeBytes)}</p>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => onMoveUp(asset.id)}
-          disabled={!canMoveUp}
-          className="rounded-lg border border-neutral-300 px-2 py-1 text-xs text-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        <Button onClick={() => onMoveUp(asset.id)} disabled={!canMoveUp} variant="outline" size="sm">
           Move up
-        </button>
-        <button
-          type="button"
-          onClick={() => onMoveDown(asset.id)}
-          disabled={!canMoveDown}
-          className="rounded-lg border border-neutral-300 px-2 py-1 text-xs text-neutral-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        </Button>
+        <Button onClick={() => onMoveDown(asset.id)} disabled={!canMoveDown} variant="outline" size="sm">
           Move down
-        </button>
-        <button
-          type="button"
-          onClick={() => onRemove(asset.id)}
-          disabled={isRemoving}
-          className="rounded-lg border border-red-300 px-2 py-1 text-xs text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        </Button>
+        <Button onClick={() => onRemove(asset.id)} disabled={isRemoving} variant="danger" size="sm">
           {isRemoving ? "Removing…" : "Remove"}
-        </button>
+        </Button>
       </div>
-    </article>
+    </Card>
   );
 }
