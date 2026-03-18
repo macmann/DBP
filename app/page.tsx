@@ -12,16 +12,16 @@ export default function HomePage() {
       </p>
       <PrimaryGenerateForm />
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
+        <Link href="/projects">
+          <Button>See generated demos</Button>
+        </Link>
+        <Link href="/projects/new">
+          <Button variant="outline">Create project</Button>
+        </Link>
         <Link href="/dashboard">
-          <Button>Open Dashboard</Button>
+          <Button variant="outline">View templates</Button>
         </Link>
-        <Link href="/insights">
-          <Button variant="outline">View Insights</Button>
-        </Link>
-        <a href="https://nextjs.org/docs" target="_blank" rel="noreferrer">
-          <Button variant="outline">Next.js Docs</Button>
-        </a>
       </div>
     </div>
   );
