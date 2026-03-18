@@ -151,6 +151,97 @@ describe("validateGeneratedPageSchema", () => {
     assert.ok(result.errors.includes("seo.canonicalUrl must be a valid http(s) URL."));
   });
 
+  it("fails when payload is not an object", () => {
+    const result = validateGeneratedPageSchema("not-an-object");
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("Output must be a JSON object."));
+  });
+
+  it("fails when SEO contains unsupported keys", () => {
+    const payload = {
+      ...validFixture,
+      seo: {
+        ...validFixture.seo,
+        robots: "index,follow",
+      },
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("seo contains unsupported keys."));
+  });
+
+  it("fails when SEO title and description exceed max lengths", () => {
+    const payload = {
+      ...validFixture,
+      seo: {
+        ...validFixture.seo,
+        title: "T".repeat(71),
+        description: "D".repeat(161),
+      },
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("seo.title must be at most 70 characters."));
+    assert.ok(result.errors.includes("seo.description must be at most 160 characters."));
+  });
+
+  it("fails when section mediaAssetIds contains non-string values", () => {
+    const payload = {
+      ...validFixture,
+      sections: [
+        {
+          ...validFixture.sections[0],
+          mediaAssetIds: ["asset-1", 123],
+        },
+      ],
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("sections[0].mediaAssetIds must be an array of strings."));
+  });
+
+  it("fails when CTA label is blank", () => {
+    const payload = {
+      ...validFixture,
+      sections: [
+        {
+          ...validFixture.sections[0],
+          cta: {
+            label: "   ",
+            href: "/signup",
+          },
+        },
+      ],
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("sections[0].cta.label must be a non-empty string."));
+  });
+
   it("fails when a section type is invalid", () => {
     const payload = {
       ...validFixture,
