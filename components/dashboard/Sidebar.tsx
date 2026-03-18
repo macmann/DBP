@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { PRODUCT_NAME } from "@/lib/config/brand";
 import { cn } from "@/lib/utils/cn";
 
@@ -33,15 +34,16 @@ export function Sidebar() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{PRODUCT_NAME} workspace</p>
             <p className="text-sm font-medium text-fg">Navigation</p>
           </div>
-          <button
-            type="button"
-            className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg md:hidden"
+          <Button
+            variant="outline"
+            size="sm"
+            className="md:hidden"
             onClick={() => setIsOpen((current) => !current)}
             aria-expanded={isOpen}
             aria-controls="dashboard-nav"
           >
             {isOpen ? "Close" : "Menu"}
-          </button>
+          </Button>
         </div>
 
         <nav id="dashboard-nav" className={cn("mt-4 hidden gap-2 md:flex md:flex-col", isOpen && "flex flex-col")}>
