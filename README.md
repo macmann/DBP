@@ -17,10 +17,12 @@ DBP already supports AI-assisted page generation in the build flow:
 ## Happy path
 
 1. **Create a prompt**
+
    - Open the dashboard and create a project + page.
    - Add a clear prompt (goal, audience, offer) and optional reference links/assets.
 
 2. **Build**
+
    - Click **Build page** in the page editor.
    - DBP generates content, validates it, and saves a new page version.
 
@@ -123,15 +125,15 @@ npx prisma studio
 
 ## Environment variables
 
-| Variable | Required | Example | Purpose |
-| --- | --- | --- | --- |
-| `NODE_ENV` | Yes | `development` | App runtime mode |
-| `NEXT_PUBLIC_APP_URL` | Yes | `http://localhost:3000` | Public base URL used by the frontend |
-| `DATABASE_URL` | Yes | `postgresql://postgres:postgres@localhost:5432/dbp_dev?schema=public` | PostgreSQL connection string |
-| `NEXTAUTH_SECRET` | Yes | `replace-with-long-random-secret` | Session/auth secret |
-| `OPENAI_API_KEY` | Yes (for AI build) | `sk-...` | Used by build actions that generate page schema |
-| `OPENAI_MODEL` | No | `gpt-4.1-mini` | Optional override for generation model |
-| `NEXT_PUBLIC_ENABLE_PROJECT_PUBLIC_PATHS` | No | `true` | Enables optional `/p/{project}/{slug}` compatibility paths (canonical remains `/demo/{slug}`) |
+| Variable                                  | Required           | Example                                                               | Purpose                                                                                       |
+| ----------------------------------------- | ------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                                | Yes                | `development`                                                         | App runtime mode                                                                              |
+| `NEXT_PUBLIC_APP_URL`                     | Yes                | `http://localhost:3000`                                               | Public base URL used by the frontend                                                          |
+| `DATABASE_URL`                            | Yes                | `postgresql://postgres:postgres@localhost:5432/dbp_dev?schema=public` | PostgreSQL connection string                                                                  |
+| `NEXTAUTH_SECRET`                         | Yes                | `replace-with-long-random-secret`                                     | Session/auth secret                                                                           |
+| `OPENAI_API_KEY`                          | Yes (for AI build) | `sk-...`                                                              | Used by build actions that generate page schema                                               |
+| `OPENAI_MODEL`                            | No                 | `gpt-4.1-mini`                                                        | Optional override for generation model                                                        |
+| `NEXT_PUBLIC_ENABLE_PROJECT_PUBLIC_PATHS` | No                 | `true`                                                                | Enables optional `/p/{project}/{slug}` compatibility paths (canonical remains `/demo/{slug}`) |
 
 ## Branding and naming guidance
 
@@ -172,6 +174,10 @@ To keep DBP consistent, contributors should follow these UI standards:
 - Generated pages should remain readable and scannable on mobile and desktop.
 - Keep section hierarchy clear (headline → supporting copy → CTA).
 - Avoid shipping placeholder/demo-only copy when publishing real demos.
+
+## QA sign-off checklist
+
+Use `docs/qa-checklist.md` as the release QA gate for generation outcomes, URL publishing flow, responsive/accessibility checks, visual reviews, and final done criteria.
 
 ## Contribution checklist
 
