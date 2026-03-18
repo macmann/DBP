@@ -17,15 +17,16 @@ type PageRendererProps = {
 
 function MalformedSectionPlaceholder({ sectionId }: { sectionId: string }) {
   return (
-    <section className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-      Section <span className="font-mono">{sectionId}</span> could not be rendered due to malformed content.
+    <section className="rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-5 py-6 text-sm text-amber-800">
+      Section <span className="font-mono">{sectionId}</span> could not be rendered due to malformed
+      content.
     </section>
   );
 }
 
 function UnknownSectionPlaceholder({ type }: { type: string }) {
   return (
-    <section className="rounded-xl border border-dashed border-neutral-300 p-4 text-sm text-neutral-600">
+    <section className="rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-6 text-sm text-neutral-600">
       Unsupported section type: <span className="font-mono">{type}</span>
     </section>
   );
@@ -64,9 +65,11 @@ function renderSection(section: GeneratedSection, resolveAsset: AssetResolver) {
 
 export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 sm:space-y-10 lg:space-y-12">
       {page.sections.map((section) => (
-        <div key={section.id}>{renderSection(section, resolveAsset)}</div>
+        <div key={section.id} className="scroll-mt-24">
+          {renderSection(section, resolveAsset)}
+        </div>
       ))}
     </div>
   );

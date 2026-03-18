@@ -15,6 +15,19 @@ export type SectionRenderProps = {
   resolveAsset: AssetResolver;
 };
 
+function isSafeHref(value: string): boolean {
+  if (value.startsWith("/")) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function getHeading(section: GeneratedSection): string | null {
   return typeof section.heading === "string" && section.heading.trim().length > 0
     ? section.heading
@@ -37,7 +50,7 @@ export function getCta(section: GeneratedSection): { label: string; href: string
   const label = section.cta.label.trim();
   const href = section.cta.href.trim();
 
-  if (!label || !href) {
+  if (!label || !href || !isSafeHref(href)) {
     return null;
   }
 
