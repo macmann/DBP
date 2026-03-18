@@ -117,8 +117,52 @@ export type BuildPageResult =
     }
   | {
       status: "error";
+      code: "invalid_prompt" | "missing_api_key" | "generation_failure";
       message: string;
     };
+
+export type QuickGenerateState = {
+  status: "idle" | "error" | "success";
+  message?: string;
+  fieldErrors?: {
+    projectName?: string;
+    pageName?: string;
+    prompt?: string;
+  };
+  publicSlug?: string;
+  projectSlug?: string;
+  pageId?: string;
+};
+
+function mapBuildFailure(errorMessage: string): {
+  code: "invalid_prompt" | "missing_api_key" | "generation_failure";
+  message: string;
+} {
+  if (errorMessage.includes("OPENAI_API_KEY is not configured")) {
+    return {
+      code: "missing_api_key",
+      message:
+        "Missing API key. Configure OPENAI_API_KEY before generating pages.",
+    };
+  }
+
+  if (
+    errorMessage.includes("OpenAI request failed (400)") ||
+    errorMessage.includes("OpenAI request failed (422)") ||
+    errorMessage.includes("schema validation")
+  ) {
+    return {
+      code: "invalid_prompt",
+      message:
+        "Your prompt could not be processed. Try a clearer request with specific goals, audience, and offer details.",
+    };
+  }
+
+  return {
+    code: "generation_failure",
+    message: "Generation failed. Please try again in a moment.",
+  };
+}
 
 export type GenerateNewVersionResult =
   | {
@@ -421,6 +465,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
   if (!page) {
     return {
       status: "error",
+      code: "generation_failure",
       message: "Page not found.",
     };
   }
@@ -512,6 +557,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
       return {
         status: "error",
+        code: "invalid_prompt",
         message: hasThemeOrSeoValidationFailure
           ? `Build failed because generated output has invalid theme/SEO data (${themeOrSeoErrors.join("; ")}). Review your prompt and try again.`
           : "Generated output did not pass schema validation. Review your prompt and assets, then try again.",
@@ -621,8 +667,140 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
     return {
       status: "error",
-      message:
-        "Build failed due to an internal error. Please review your prompt/assets and try again.",
+      ...mapBuildFailure(errorMessage),
+    };
+  }
+}
+
+export async function quickGeneratePage(
+  _previousState: QuickGenerateState,
+  formData: FormData,
+): Promise<QuickGenerateState> {
+  const projectName = String(formData.get("projectName") ?? "").trim();
+  const pageName = String(formData.get("pageName") ?? "").trim();
+  const prompt = String(formData.get("prompt") ?? "").trim();
+
+  const fieldErrors: QuickGenerateState["fieldErrors"] = {};
+
+  if (!projectName) {
+    fieldErrors.projectName = "Project name is required.";
+  }
+
+  if (!pageName) {
+    fieldErrors.pageName = "Page name is required.";
+  }
+
+  if (!prompt) {
+    fieldErrors.prompt = "Prompt is required.";
+  }
+
+  if (prompt.length > 6000) {
+    fieldErrors.prompt = "Prompt must be 6000 characters or fewer.";
+  }
+
+  if (Object.values(fieldErrors).some(Boolean)) {
+    return {
+      status: "error",
+      message: "Please fix the highlighted fields and try again.",
+      fieldErrors,
+    };
+  }
+
+  try {
+    const existingProject = await prisma.project.findFirst({
+      where: {
+        name: {
+          equals: projectName,
+          mode: "insensitive",
+        },
+      },
+      select: {
+        id: true,
+        slug: true,
+      },
+    });
+
+    const project =
+      existingProject ??
+      (await prisma.project.create({
+        data: {
+          name: projectName,
+          slug: await ensureUniqueProjectSlug(slugify(projectName) || "project"),
+        },
+        select: {
+          id: true,
+          slug: true,
+        },
+      }));
+
+    const baseSlug = slugify(pageName) || "page";
+    const pageSlug = await ensureUniquePageSlug(project.id, baseSlug);
+    const publicSlug = await ensureUniquePublicSlug(baseSlug);
+
+    const page = await prisma.$transaction(async (tx) => {
+      const createdPage = await tx.page.create({
+        data: {
+          projectId: project.id,
+          title: pageName,
+          slug: pageSlug,
+          prompt,
+          referenceLinks: [],
+          status: PageStatus.draft,
+          publicSlug,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const version = await tx.pageVersion.create({
+        data: {
+          pageId: createdPage.id,
+          versionNumber: 1,
+          instructionPrompt: prompt,
+          generatedSchemaJson: Prisma.JsonNull,
+          notes: "Initial quick-start version",
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return tx.page.update({
+        where: {
+          id: createdPage.id,
+        },
+        data: {
+          currentVersionId: version.id,
+        },
+        select: {
+          id: true,
+          publicSlug: true,
+        },
+      });
+    });
+
+    const buildResult = await buildPage(project.slug, page.id);
+
+    if (buildResult.status === "error") {
+      return {
+        status: "error",
+        message: buildResult.message,
+      };
+    }
+
+    return {
+      status: "success",
+      message: "Page generated successfully.",
+      publicSlug: page.publicSlug,
+      projectSlug: project.slug,
+      pageId: page.id,
+    };
+  } catch (error) {
+    console.error("quickGeneratePage failed", { projectName, pageName, error });
+    return {
+      status: "error",
+      message: "Generation failed. Please try again.",
     };
   }
 }
