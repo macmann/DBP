@@ -3,6 +3,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Container } from "@/components/layout/Container";
+import { Section } from "@/components/layout/Section";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/config/brand";
 
 export const metadata: Metadata = {
@@ -25,9 +26,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-neutral-900">
+      <body>
         <Header />
-        <Container className="py-10">{children}</Container>
+        <Section>
+          <Container>{children}</Container>
+        </Section>
         <Footer />
       </body>
     </html>

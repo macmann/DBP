@@ -1,36 +1,26 @@
 import Link from "next/link";
 import { PRODUCT_NAME } from "@/lib/config/brand";
 import { PrimaryGenerateForm } from "@/components/forms/PrimaryGenerateForm";
+import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-semibold tracking-tight">{PRODUCT_NAME} Landing Page Builder</h1>
-      <p className="text-neutral-700">
+      <p className="text-muted">
         {PRODUCT_NAME} helps you generate, preview, and publish high-converting pages with an AI-assisted workflow.
       </p>
       <PrimaryGenerateForm />
 
       <div className="flex gap-3">
-        <Link
-          href="/dashboard"
-          className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
-        >
-          Open Dashboard
+        <Link href="/dashboard">
+          <Button>Open Dashboard</Button>
         </Link>
-        <Link
-          href="/insights"
-          className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
-        >
-          View Insights
+        <Link href="/insights">
+          <Button variant="outline">View Insights</Button>
         </Link>
-        <a
-          href="https://nextjs.org/docs"
-          className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Next.js Docs
+        <a href="https://nextjs.org/docs" target="_blank" rel="noreferrer">
+          <Button variant="outline">Next.js Docs</Button>
         </a>
       </div>
     </div>

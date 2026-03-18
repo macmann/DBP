@@ -1,3 +1,5 @@
+import { Input } from "@/components/ui/input";
+
 type FormTextInputProps = {
   id: string;
   name: string;
@@ -19,10 +21,10 @@ export function FormTextInput({
 }: FormTextInputProps) {
   return (
     <div className="space-y-2">
-      <label htmlFor={id} className="block text-sm font-medium text-neutral-900">
+      <label htmlFor={id} className="block text-sm font-medium text-fg">
         {label}
       </label>
-      <input
+      <Input
         id={id}
         name={name}
         required={required}
@@ -30,10 +32,9 @@ export function FormTextInput({
         defaultValue={defaultValue}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none ring-neutral-900/10 placeholder:text-neutral-400 focus:ring"
       />
       {error ? (
-        <p id={`${id}-error`} className="text-sm text-red-700">
+        <p id={`${id}-error`} className="text-sm text-danger">
           {error}
         </p>
       ) : null}
