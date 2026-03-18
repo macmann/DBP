@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/db";
 
 export default async function ProjectsPage() {
@@ -24,32 +26,32 @@ export default async function ProjectsPage() {
         action={{ label: "New project", href: "/projects/new" }}
       >
         <div className="space-y-6">
-          <p className="text-sm text-neutral-600 md:text-base">Browse all pages across projects and jump into the editor quickly.</p>
+          <p className="text-sm text-muted md:text-base">Browse all pages across projects and jump into the editor quickly.</p>
 
           {pages.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center">
-              <p className="text-base font-medium text-neutral-900">No pages yet</p>
-              <p className="mt-2 text-sm text-neutral-600">Create a project first, then add your first page from that project.</p>
+            <Card className="border-dashed p-8 text-center">
+              <p className="text-base font-medium text-fg">No pages yet</p>
+              <p className="mt-2 text-sm text-muted">Create a project first, then add your first page from that project.</p>
               <Link
                 href="/projects/new"
-                className="mt-4 inline-flex rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+                className="mt-4 inline-flex rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
               >
                 Create a project
               </Link>
-            </div>
+            </Card>
           ) : (
             <ul className="space-y-3">
               {pages.map((page) => (
                 <li key={page.id}>
                   <Link
                     href={`/projects/${page.project.slug}/pages/${page.id}`}
-                    className="block rounded-2xl border border-neutral-200 bg-white p-4 transition hover:border-neutral-300 hover:bg-neutral-50"
+                    className="block rounded-2xl border border-border bg-surface-elevated p-4 transition hover:bg-secondary"
                   >
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                      <p className="font-medium text-neutral-900">{page.title}</p>
-                      <p className="text-xs text-neutral-500">/{page.slug}</p>
+                      <p className="font-medium text-fg">{page.title}</p>
+                      <p className="text-xs text-muted">/{page.slug}</p>
                     </div>
-                    <p className="mt-1 text-sm text-neutral-600">Project: {page.project.name}</p>
+                    <p className="mt-1 text-sm text-muted">Project: {page.project.name}</p>
                   </Link>
                 </li>
               ))}
@@ -61,13 +63,13 @@ export default async function ProjectsPage() {
   } catch {
     return (
       <DashboardLayout title="All pages" breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Pages" }]}>
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+        <Alert variant="danger" className="rounded-2xl p-6">
           <p className="font-medium">Could not load pages.</p>
           <p className="mt-1">Try refreshing. If this persists, create a new project and re-open this view.</p>
-          <Link href="/projects/new" className="mt-4 inline-block text-red-800 underline">
+          <Link href="/projects/new" className="mt-4 inline-block underline">
             Create a project
           </Link>
-        </div>
+        </Alert>
       </DashboardLayout>
     );
   }
