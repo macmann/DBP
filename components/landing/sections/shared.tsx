@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { type ReactNode } from "react";
 
 type SectionShellProps = {
@@ -88,11 +89,13 @@ export function MediaFrame({
       className={`relative ${aspectClassName} w-full overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 ${className}`.trim()}
     >
       {hasSource ? (
-        <img
+        <Image
           src={src}
           alt={alt && alt.trim().length > 0 ? alt : "Section media"}
-          loading="lazy"
-          className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"} ${imageClassName}`.trim()}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 80vw, 960px"
+          unoptimized
+          className={`${fit === "contain" ? "object-contain" : "object-cover"} ${imageClassName}`.trim()}
         />
       ) : (
         <div className="flex h-full items-center justify-center px-4 text-center text-sm text-neutral-500">
