@@ -56,6 +56,31 @@ export type GeneratedPageSchema = {
   sections: GeneratedSection[];
 };
 
+function looksLikeDomain(value: string): boolean {
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+([/?#].*)?$/i.test(value);
+}
+
+function normalizeCtaHref(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("/") || isValidUrl(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("www.") || looksLikeDomain(trimmed)) {
+    return `https://${trimmed}`;
+  }
+
+  if (!trimmed.includes(" ") && !trimmed.includes("://")) {
+    return `/${trimmed.replace(/^\/+/, "")}`;
+  }
+
+  return trimmed;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -75,6 +100,48 @@ function isValidUrl(value: string): boolean {
 
 function hasOnlyAllowedKeys(record: Record<string, unknown>, allowedKeys: string[]): boolean {
   return Object.keys(record).every((key) => allowedKeys.includes(key));
+}
+
+export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
+  if (!isRecord(payload)) {
+    return payload;
+  }
+
+  const sanitized: Record<string, unknown> = {
+    ...payload,
+  };
+
+  if (isRecord(payload.seo)) {
+    const seo = { ...payload.seo };
+    if (typeof seo.title === "string") {
+      seo.title = seo.title.trim().slice(0, 70);
+    }
+    if (typeof seo.description === "string") {
+      seo.description = seo.description.trim().slice(0, 160);
+    }
+    if (typeof seo.canonicalUrl === "string") {
+      seo.canonicalUrl = seo.canonicalUrl.trim();
+    }
+    sanitized.seo = seo;
+  }
+
+  if (Array.isArray(payload.sections)) {
+    sanitized.sections = payload.sections.map((section) => {
+      if (!isRecord(section)) {
+        return section;
+      }
+      const nextSection: Record<string, unknown> = { ...section };
+      if (isRecord(section.cta) && typeof section.cta.href === "string") {
+        nextSection.cta = {
+          ...section.cta,
+          href: normalizeCtaHref(section.cta.href),
+        };
+      }
+      return nextSection;
+    });
+  }
+
+  return sanitized;
 }
 
 export function validateGeneratedPageSchema(

@@ -1,4 +1,4 @@
-import { validateGeneratedPageSchema } from "@/lib/ai/schema";
+import { sanitizeGeneratedPageSchema, validateGeneratedPageSchema } from "@/lib/ai/schema";
 
 type OpenAIPromptInput = {
   systemPrompt: string;
@@ -82,7 +82,8 @@ export async function callOpenAIForPageSchema(input: OpenAIPromptInput) {
     throw new Error("OpenAI returned non-JSON output.");
   }
 
-  const strictValidation = validateGeneratedPageSchema(parsedJson);
+  const sanitizedJson = sanitizeGeneratedPageSchema(parsedJson);
+  const strictValidation = validateGeneratedPageSchema(sanitizedJson);
 
   if (!strictValidation.success) {
     throw new Error(
@@ -91,7 +92,7 @@ export async function callOpenAIForPageSchema(input: OpenAIPromptInput) {
   }
 
   return {
-    json: parsedJson,
+    json: sanitizedJson,
     requestId: payload.id ?? null,
   };
 }
