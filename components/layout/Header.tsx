@@ -17,11 +17,6 @@ export function Header() {
           />
           <span className="text-lg font-bold tracking-tight sm:text-xl">{PRODUCT_NAME}</span>
         </Link>
-        <nav className="ml-auto flex items-center gap-4 text-sm">
-          <Link className="text-muted hover:text-fg" href="/insights">
-            Insights
-          </Link>
-        </nav>
       </Container>
     </header>
   );
