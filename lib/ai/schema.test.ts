@@ -1,7 +1,11 @@
 import { describe, it } from "node:test";
 import * as assert from "node:assert/strict";
 
-import { ALLOWED_SECTION_TYPES, validateGeneratedPageSchema } from "./schema";
+import {
+  ALLOWED_SECTION_TYPES,
+  sanitizeGeneratedPageSchema,
+  validateGeneratedPageSchema,
+} from "./schema";
 import { buildPageGenerationPrompts } from "./promptBuilder";
 
 const validFixture = {
@@ -265,6 +269,39 @@ describe("validateGeneratedPageSchema", () => {
       ),
     );
   });
+
+  it("sanitizes common model formatting issues", () => {
+    const payload = {
+      ...validFixture,
+      seo: {
+        ...validFixture.seo,
+        title: `  ${"T".repeat(90)}  `,
+        description: ` ${"D".repeat(180)} `,
+      },
+      sections: [
+        {
+          ...validFixture.sections[0],
+          cta: {
+            label: "Start free",
+            href: "www.example.com/pricing",
+          },
+        },
+        {
+          ...validFixture.sections[0],
+          id: "cta-2",
+          cta: {
+            label: "Contact",
+            href: "contact",
+          },
+        },
+      ],
+    };
+
+    const sanitized = sanitizeGeneratedPageSchema(payload);
+    const result = validateGeneratedPageSchema(sanitized);
+
+    assert.equal(result.success, true);
+  });
 });
 
 describe("buildPageGenerationPrompts", () => {
@@ -280,6 +317,12 @@ describe("buildPageGenerationPrompts", () => {
     assert.match(
       prompt.systemPrompt,
       /theme, seo, and sections are required and must be valid objects\/array\./,
+    );
+    assert.match(prompt.systemPrompt, /seo.title must be 70 characters or fewer\./);
+    assert.match(prompt.systemPrompt, /seo.description must be 160 characters or fewer\./);
+    assert.match(
+      prompt.systemPrompt,
+      /Every sections\[\]\.cta\.href must be either an absolute http\(s\) URL or a root-relative path that starts with '\/'\./,
     );
     assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, sections/);
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);

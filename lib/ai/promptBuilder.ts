@@ -24,6 +24,9 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "Output JSON only (no markdown, no prose, no explanations).",
     "Return exactly one JSON object with only these top-level keys: pageTitle, summary (optional), theme, seo, sections.",
     "theme, seo, and sections are required and must be valid objects/array.",
+    "seo.title must be 70 characters or fewer.",
+    "seo.description must be 160 characters or fewer.",
+    "Every sections[].cta.href must be either an absolute http(s) URL or a root-relative path that starts with '/'.",
     "Use only section types from the allowed list.",
     "Any media references (section mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
   ].join("\n");
