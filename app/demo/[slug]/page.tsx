@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/Container";
 import { PageRenderer } from "@/components/landing/PageRenderer";
@@ -114,10 +115,25 @@ export default async function DemoPage({ params }: DemoPageProps) {
 
   const schema: GeneratedPageSchema = parsedSchema.data;
   const resolveAsset: AssetResolver = (assetId) => assetLookup.get(assetId) ?? null;
+  const logoAsset = page.assets.find(
+    (asset) => asset.type === "logo" && asset.mimeType.startsWith("image/"),
+  );
 
   return (
     <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
-      <header className="mx-auto max-w-3xl space-y-4 text-center">
+      <header className="relative mx-auto max-w-3xl space-y-4 pt-12 text-center sm:pt-0">
+        {logoAsset ? (
+          <div className="absolute right-0 top-0 h-12 w-28 sm:h-14 sm:w-32">
+            <Image
+              src={logoAsset.storageUrl}
+              alt={logoAsset.fileName || "Brand logo"}
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 112px, 128px"
+              className="object-contain object-right"
+            />
+          </div>
+        ) : null}
         <h1 className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl lg:text-5xl">
           {schema.pageTitle || page.title}
         </h1>
