@@ -123,6 +123,40 @@ npm run db:seed
 npx prisma studio
 ```
 
+## Render deployment
+
+DBP is now set up for Render using `render.yaml` at the repo root.
+
+### Render commands
+
+Use these commands in Render (already configured in `render.yaml`):
+
+- **Build Command**
+
+```bash
+npm ci && npm run build:render
+```
+
+- **Start Command**
+
+```bash
+npm run start:render
+```
+
+`build:render` runs Prisma client generation + production migrations + Next.js build:
+
+```bash
+prisma generate && prisma migrate deploy && next build
+```
+
+`start:render` runs migrations again at boot (safe/idempotent) before starting the server:
+
+```bash
+prisma migrate deploy && next start
+```
+
+> Why migrations in both? Render can build and run in separate phases. Running `prisma migrate deploy` at start ensures schema is up-to-date on runtime boot as well.
+
 ## Environment variables
 
 | Variable                                  | Required           | Example                                                               | Purpose                                                                                       |

@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: dbp
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build:render
+    startCommand: npm run start:render
+    autoDeploy: true
+    healthCheckPath: /dashboard
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: NEXTAUTH_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: NEXT_PUBLIC_ENABLE_PROJECT_PUBLIC_PATHS
+        value: "false"
