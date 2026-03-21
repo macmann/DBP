@@ -29,6 +29,8 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "Every sections[].cta.href must be either an absolute http(s) URL or a root-relative path that starts with '/'.",
     "Use only section types from the allowed list.",
     "Any media references (section mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
+    "If uploaded image/logo assets are provided, assign relevant section.mediaAssetIds for visual sections (hero, imageText, gallery, logoStrip, testimonial).",
+    "Pick assets by semantic fit from fileName/type/metadata so the demo renders real images instead of fallback placeholders.",
   ].join("\n");
 
   const userPrompt = [

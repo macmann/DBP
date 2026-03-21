@@ -324,6 +324,14 @@ describe("buildPageGenerationPrompts", () => {
       prompt.systemPrompt,
       /Every sections\[\]\.cta\.href must be either an absolute http\(s\) URL or a root-relative path that starts with '\/'\./,
     );
+    assert.match(
+      prompt.systemPrompt,
+      /assign relevant section\.mediaAssetIds for visual sections \(hero, imageText, gallery, logoStrip, testimonial\)\./,
+    );
+    assert.match(
+      prompt.systemPrompt,
+      /demo renders real images instead of fallback placeholders\./,
+    );
     assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, sections/);
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
     assert.match(prompt.userPrompt, /Allowed sections:\nhero, features, cta/);
