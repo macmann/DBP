@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { SiteHeaderGate } from "@/components/layout/SiteHeaderGate";
+import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Container } from "@/components/layout/Container";
 import { Section } from "@/components/layout/Section";
@@ -27,7 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <SiteHeaderGate />
+        <Suspense fallback={<Header />}>
+          <SiteHeaderGate />
+        </Suspense>
         <Section>
           <Container>{children}</Container>
         </Section>
