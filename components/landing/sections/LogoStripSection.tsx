@@ -10,6 +10,10 @@ export function LogoStripSection({ section, resolveAsset }: SectionRenderProps) 
     return <EmptyState message="No logos available." />;
   }
 
+  if (logos.length === 1) {
+    return null;
+  }
+
   return (
     <SectionShell className="py-8">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
