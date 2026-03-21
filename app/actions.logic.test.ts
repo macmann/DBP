@@ -27,6 +27,15 @@ describe("action logic: public slug creation", () => {
     assert.match(block, /publicSlug,/);
   });
 
+  it("quickGeneratePage returns a migration hint when Project table is missing", () => {
+    const block = getFunctionBlock(actionsSource, "quickGeneratePage");
+
+    assert.match(block, /error\.code === "P2021"/);
+    assert.match(block, /error\.meta\?\.table === "public\.Project"/);
+    assert.match(block, /Database is not initialized yet/);
+    assert.match(block, /npm run db:migrate:deploy/);
+  });
+
   it("updatePage recalculates unique public slug with page exclusion", () => {
     const block = getFunctionBlock(actionsSource, "updatePage");
 
