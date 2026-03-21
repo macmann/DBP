@@ -36,6 +36,15 @@ describe("action logic: public slug creation", () => {
     assert.match(block, /npm run db:migrate:deploy/);
   });
 
+  it("quickGeneratePage returns a connectivity hint when database is unreachable", () => {
+    const block = getFunctionBlock(actionsSource, "quickGeneratePage");
+
+    assert.match(block, /error\.code === "P1001"/);
+    assert.match(block, /PrismaClientInitializationError/);
+    assert.match(block, /Cannot connect to the database right now/);
+    assert.match(block, /DATABASE_URL/);
+  });
+
   it("updatePage recalculates unique public slug with page exclusion", () => {
     const block = getFunctionBlock(actionsSource, "updatePage");
 
