@@ -155,6 +155,23 @@ export default async function PageDetailPage({
           </div>
         </div>
 
+        <PageAssetsSection
+          projectId={page.projectId}
+          pageId={page.id}
+          initialAssets={page.assets.map((asset) => ({
+            id: asset.id,
+            projectId: asset.projectId,
+            pageId: asset.pageId,
+            type: asset.type,
+            sortOrder: asset.sortOrder,
+            fileName: asset.fileName,
+            mimeType: asset.mimeType,
+            storageUrl: asset.storageUrl,
+            metadata: (asset.metadata as Record<string, unknown> | null) ?? null,
+            createdAt: asset.createdAt.toISOString(),
+          }))}
+        />
+
         <PageEditorForm
           projectSlug={page.project.slug}
           pageId={page.id}
@@ -172,6 +189,13 @@ export default async function PageDetailPage({
           }}
         />
 
+        {page.currentVersion?.notes ? (
+          <section className="space-y-2 rounded-xl border border-border bg-surface-elevated p-6">
+            <h2 className="text-lg font-semibold">Version notes</h2>
+            <p className="text-sm text-muted">{page.currentVersion.notes}</p>
+          </section>
+        ) : null}
+
         <VersionHistoryPanel
           projectSlug={page.project.slug}
           pageId={page.id}
@@ -183,30 +207,6 @@ export default async function PageDetailPage({
             instructionPrompt: version.instructionPrompt,
             notes: version.notes,
             hasValidSchema: validateGeneratedPageSchema(version.generatedSchemaJson).success,
-          }))}
-        />
-
-        {page.currentVersion?.notes ? (
-          <section className="space-y-2 rounded-xl border border-border bg-surface-elevated p-6">
-            <h2 className="text-lg font-semibold">Version notes</h2>
-            <p className="text-sm text-muted">{page.currentVersion.notes}</p>
-          </section>
-        ) : null}
-
-        <PageAssetsSection
-          projectId={page.projectId}
-          pageId={page.id}
-          initialAssets={page.assets.map((asset) => ({
-            id: asset.id,
-            projectId: asset.projectId,
-            pageId: asset.pageId,
-            type: asset.type,
-            sortOrder: asset.sortOrder,
-            fileName: asset.fileName,
-            mimeType: asset.mimeType,
-            storageUrl: asset.storageUrl,
-            metadata: (asset.metadata as Record<string, unknown> | null) ?? null,
-            createdAt: asset.createdAt.toISOString(),
           }))}
         />
       </div>

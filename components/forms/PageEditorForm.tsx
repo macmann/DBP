@@ -176,43 +176,6 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
       {state.status === "success" ? <StatusSurface status="success" message={state.message} /> : null}
 
       <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
-        <h3 className="text-base font-semibold text-fg">Build action</h3>
-        <StatusSurface status={buildState.status} message={buildState.message} />
-
-        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving changes..." : "Save changes"}
-          </Button>
-          <Button
-            type="button"
-            disabled={isBuildPending}
-            variant="outline"
-            onClick={() => {
-              startBuildTransition(async () => {
-                setBuildState({ status: "running", message: "Building page now. This can take a moment..." });
-                const result = await buildPage(projectSlug, pageId);
-
-                if (result.status === "success") {
-                  setBuildState({
-                    status: "success",
-                    message: `Build succeeded. Saved v${result.versionNumber} with ${result.sectionCount} sections.`,
-                  });
-                  router.refresh();
-                } else {
-                  setBuildState({
-                    status: "error",
-                    message: result.message,
-                  });
-                }
-              });
-            }}
-          >
-            {isBuildPending ? "Building..." : "Build page"}
-          </Button>
-        </div>
-      </section>
-
-      <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
         <h3 className="text-base font-semibold text-fg">Iterative update</h3>
         <StatusSurface status={versionState.status} message={versionState.message} />
         <FormTextArea
@@ -258,6 +221,43 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
             }}
           >
             {isVersionPending ? "Generating version..." : "Generate new version"}
+          </Button>
+        </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
+        <h3 className="text-base font-semibold text-fg">Build action</h3>
+        <StatusSurface status={buildState.status} message={buildState.message} />
+
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Saving changes..." : "Save changes"}
+          </Button>
+          <Button
+            type="button"
+            disabled={isBuildPending}
+            variant="outline"
+            onClick={() => {
+              startBuildTransition(async () => {
+                setBuildState({ status: "running", message: "Building page now. This can take a moment..." });
+                const result = await buildPage(projectSlug, pageId);
+
+                if (result.status === "success") {
+                  setBuildState({
+                    status: "success",
+                    message: `Build succeeded. Saved v${result.versionNumber} with ${result.sectionCount} sections.`,
+                  });
+                  router.refresh();
+                } else {
+                  setBuildState({
+                    status: "error",
+                    message: result.message,
+                  });
+                }
+              });
+            }}
+          >
+            {isBuildPending ? "Building..." : "Build page"}
           </Button>
         </div>
       </section>
