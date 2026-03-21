@@ -296,6 +296,41 @@ export async function deletePage(projectSlug: string, pageId: string): Promise<{
   }
 }
 
+export async function deleteProject(projectSlug: string): Promise<{
+  status: "success" | "error";
+  message: string;
+}> {
+  try {
+    const deletedProject = await prisma.project.deleteMany({
+      where: {
+        slug: projectSlug,
+      },
+    });
+
+    if (deletedProject.count === 0) {
+      return {
+        status: "error",
+        message: "Project not found.",
+      };
+    }
+
+    revalidatePath("/dashboard");
+    revalidatePath("/projects");
+    revalidatePath(`/projects/${projectSlug}`);
+
+    return {
+      status: "success",
+      message: "Project deleted.",
+    };
+  } catch (error) {
+    console.error("deleteProject failed", { projectSlug, error });
+    return {
+      status: "error",
+      message: "Could not delete this project right now.",
+    };
+  }
+}
+
 export async function createProject(
   _previousState: CreateProjectState,
   formData: FormData,
