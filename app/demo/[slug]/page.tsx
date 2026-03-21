@@ -121,16 +121,16 @@ export default async function DemoPage({ params }: DemoPageProps) {
 
   return (
     <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
-      <header className="relative mx-auto max-w-3xl space-y-4 pt-12 text-center sm:pt-0">
+      <header className="mx-auto max-w-3xl space-y-4 text-center">
         {logoAsset ? (
-          <div className="absolute right-0 top-0 h-12 w-28 sm:h-14 sm:w-32">
+          <div className="relative mx-auto h-12 w-28 sm:h-14 sm:w-32">
             <Image
               src={logoAsset.storageUrl}
               alt={logoAsset.fileName || "Brand logo"}
               fill
               unoptimized
               sizes="(max-width: 640px) 112px, 128px"
-              className="object-contain object-right"
+              className="object-contain"
             />
           </div>
         ) : null}
