@@ -6,6 +6,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { BuildJobStatus, PageStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { callOpenAIForPageSchema } from "@/lib/ai/openaiClient";
+import { applyAssetFallbacks } from "@/lib/ai/applyAssetFallbacks";
 import { buildPageGenerationPrompts } from "@/lib/ai/promptBuilder";
 import {
   ALLOWED_SECTION_TYPES,
@@ -686,7 +687,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       };
     }
 
-    const generatedSchema: GeneratedPageSchema = parsed.data;
+    const generatedSchema: GeneratedPageSchema = applyAssetFallbacks(parsed.data, page.assets);
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({
@@ -1054,6 +1055,8 @@ export async function generateNewVersion(
       };
     }
 
+    const revisedSchema: GeneratedPageSchema = applyAssetFallbacks(parsed.data, page.assets);
+
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({
         where: {
@@ -1072,7 +1075,7 @@ export async function generateNewVersion(
           pageId: page.id,
           versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
           instructionPrompt: normalizedInstruction,
-          generatedSchemaJson: parsed.data as unknown as Prisma.InputJsonValue,
+          generatedSchemaJson: revisedSchema as unknown as Prisma.InputJsonValue,
           notes: "Generated via iterative update.",
         },
         select: {
@@ -1089,7 +1092,7 @@ export async function generateNewVersion(
           currentVersionId: version.id,
           status: PageStatus.published,
           lastError: null,
-          content: JSON.stringify(parsed.data),
+          content: JSON.stringify(revisedSchema),
           publishedAt: new Date(),
         },
         select: {
@@ -1114,7 +1117,7 @@ export async function generateNewVersion(
       message: `Created v${savedVersion.versionNumber} from iterative instructions.`,
       versionId: savedVersion.id,
       versionNumber: savedVersion.versionNumber,
-      sectionCount: parsed.data.sections.length,
+      sectionCount: revisedSchema.sections.length,
     };
   } catch (error) {
     console.error("generateNewVersion failed", { projectSlug, pageId, error });
