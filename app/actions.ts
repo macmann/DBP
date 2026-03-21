@@ -348,11 +348,13 @@ export async function createPage(
   const title = String(formData.get("title") ?? "").trim();
   const customSlug = String(formData.get("slug") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
+  const widgetEmbedHtml = String(formData.get("widgetEmbedHtml") ?? "").trim();
   const referenceLinks = parseReferenceLinks(String(formData.get("referenceLinks") ?? ""));
   const validationErrors = validatePageInput({
     title,
     slug: customSlug,
     prompt,
+    widgetEmbedHtml,
     referenceLinks,
   });
 
@@ -388,6 +390,7 @@ export async function createPage(
           title,
           slug,
           prompt: prompt || null,
+          widgetEmbedHtml: widgetEmbedHtml || null,
           referenceLinks,
           status: PageStatus.draft,
           publicSlug,
@@ -477,11 +480,13 @@ export async function updatePage(
   const title = String(formData.get("title") ?? "").trim();
   const customSlug = String(formData.get("slug") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
+  const widgetEmbedHtml = String(formData.get("widgetEmbedHtml") ?? "").trim();
   const referenceLinks = parseReferenceLinksFromForm(formData);
   const validationErrors = validatePageInput({
     title,
     slug: customSlug,
     prompt,
+    widgetEmbedHtml,
     referenceLinks,
   });
 
@@ -508,6 +513,7 @@ export async function updatePage(
           title,
           slug,
           prompt: prompt || null,
+          widgetEmbedHtml: widgetEmbedHtml || null,
           referenceLinks: referenceLinks.filter(Boolean),
           publicSlug,
         },

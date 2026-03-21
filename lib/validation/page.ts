@@ -2,6 +2,7 @@ export const PAGE_VALIDATION_LIMITS = {
   titleMaxLength: 120,
   slugMaxLength: 80,
   promptMaxLength: 6000,
+  widgetEmbedHtmlMaxLength: 5000,
   maxReferenceLinks: 20,
 } as const;
 
@@ -9,6 +10,7 @@ export type PageFieldErrors = {
   title?: string;
   slug?: string;
   prompt?: string;
+  widgetEmbedHtml?: string;
   referenceLinks?: string;
   referenceLinkRows?: Record<number, string>;
 };
@@ -41,6 +43,7 @@ export function validatePageInput(input: {
   title: string;
   slug: string;
   prompt: string;
+  widgetEmbedHtml: string;
   referenceLinks: string[];
 }): PageFieldErrors {
   const errors: PageFieldErrors = {};
@@ -57,6 +60,11 @@ export function validatePageInput(input: {
 
   if (input.prompt.length > PAGE_VALIDATION_LIMITS.promptMaxLength) {
     errors.prompt = `Prompt must be ${PAGE_VALIDATION_LIMITS.promptMaxLength} characters or fewer.`;
+  }
+
+  if (input.widgetEmbedHtml.length > PAGE_VALIDATION_LIMITS.widgetEmbedHtmlMaxLength) {
+    errors.widgetEmbedHtml =
+      `Widget embed HTML must be ${PAGE_VALIDATION_LIMITS.widgetEmbedHtmlMaxLength} characters or fewer.`;
   }
 
   if (input.referenceLinks.length > PAGE_VALIDATION_LIMITS.maxReferenceLinks) {

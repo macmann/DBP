@@ -51,6 +51,17 @@ export function PageCreateForm({ projectSlug, action }: PageCreateFormProps) {
         disabled={isPending}
       />
 
+      <FormTextArea
+        id="widgetEmbedHtml"
+        name="widgetEmbedHtml"
+        label="Widget embed HTML (optional)"
+        rows={4}
+        placeholder='<script src="https://demo.atenxion.ai/api/atenxion-widget-script?agentchainId=..."></script>'
+        helperText="Paste widget script/embed HTML. It will be saved and injected on the public page."
+        error={state.fieldErrors?.widgetEmbedHtml}
+        disabled={isPending}
+      />
+
       <ReferenceLinksListEditor
         initialLinks={[""]}
         error={state.fieldErrors?.referenceLinks}

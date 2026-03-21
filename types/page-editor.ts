@@ -4,5 +4,6 @@ export type PageEditorFormModel = {
     slug: string;
   };
   prompt: string;
+  widgetEmbedHtml: string;
   referenceLinks: string[];
 };
