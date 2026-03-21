@@ -5,16 +5,16 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-function tryResolveLocalPath(storageUrl: string) {
-  const localDir = process.env.ASSET_STORAGE_LOCAL_DIR;
+const DEFAULT_ASSET_STORAGE_LOCAL_DIR = "public/uploads/assets";
 
-  if (!localDir) {
-    return null;
-  }
+function tryResolveLocalPath(storageUrl: string) {
+  const localDir = process.env.ASSET_STORAGE_LOCAL_DIR ?? DEFAULT_ASSET_STORAGE_LOCAL_DIR;
 
   try {
-    const url = new URL(storageUrl);
-    const fileName = path.basename(url.pathname);
+    const filePathName = storageUrl.startsWith("http://") || storageUrl.startsWith("https://")
+      ? new URL(storageUrl).pathname
+      : storageUrl;
+    const fileName = path.basename(filePathName);
     return path.resolve(process.cwd(), localDir, fileName);
   } catch {
     return null;
