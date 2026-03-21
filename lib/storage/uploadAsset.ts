@@ -20,16 +20,12 @@ type LocalStorageConfig = {
   publicBaseUrl: string;
 };
 
-function getLocalStorageConfig(): LocalStorageConfig {
-  const localDir = process.env.ASSET_STORAGE_LOCAL_DIR;
-  const publicBaseUrl = process.env.ASSET_PUBLIC_BASE_URL;
+const DEFAULT_ASSET_STORAGE_LOCAL_DIR = "public/uploads/assets";
+const DEFAULT_ASSET_PUBLIC_BASE_URL = "/uploads/assets/";
 
-  if (!localDir || !publicBaseUrl) {
-    console.error(
-      "Missing storage configuration. Expected ASSET_STORAGE_LOCAL_DIR and ASSET_PUBLIC_BASE_URL."
-    );
-    throw new StorageConfigurationError("Asset storage is not configured.");
-  }
+function getLocalStorageConfig(): LocalStorageConfig {
+  const localDir = process.env.ASSET_STORAGE_LOCAL_DIR ?? DEFAULT_ASSET_STORAGE_LOCAL_DIR;
+  const publicBaseUrl = process.env.ASSET_PUBLIC_BASE_URL ?? DEFAULT_ASSET_PUBLIC_BASE_URL;
 
   return { localDir, publicBaseUrl };
 }
@@ -56,7 +52,10 @@ export async function uploadAsset(file: File): Promise<UploadAssetResult> {
   const fileBuffer = Buffer.from(await file.arrayBuffer());
   await writeFile(targetPath, fileBuffer);
 
-  const storageUrl = new URL(safeFileName, publicBaseUrl.endsWith("/") ? publicBaseUrl : `${publicBaseUrl}/`).toString();
+  const normalizedPublicBaseUrl = publicBaseUrl.endsWith("/") ? publicBaseUrl : `${publicBaseUrl}/`;
+  const storageUrl = /^https?:\/\//i.test(normalizedPublicBaseUrl)
+    ? new URL(safeFileName, normalizedPublicBaseUrl).toString()
+    : `${normalizedPublicBaseUrl.startsWith("/") ? normalizedPublicBaseUrl : `/${normalizedPublicBaseUrl}`}${safeFileName}`;
 
   return {
     storageUrl,
