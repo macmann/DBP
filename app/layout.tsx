@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Header } from "@/components/layout/Header";
+import { SiteHeaderGate } from "@/components/layout/SiteHeaderGate";
 import { Footer } from "@/components/layout/Footer";
 import { Container } from "@/components/layout/Container";
 import { Section } from "@/components/layout/Section";
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Header />
+        <SiteHeaderGate />
         <Section>
           <Container>{children}</Container>
         </Section>
