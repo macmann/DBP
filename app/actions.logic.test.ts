@@ -94,3 +94,12 @@ describe("action logic: build failure validation paths", () => {
     assert.match(block, /PageStatus\.failed/);
   });
 });
+
+describe("action logic: page deletion", () => {
+  it("deletePage allows deleting pages in published and failed states", () => {
+    const block = getFunctionBlock(actionsSource, "deletePage");
+
+    assert.match(block, /await prisma\.page\.delete\(\{/);
+    assert.doesNotMatch(block, /PageStatus\./);
+  });
+});

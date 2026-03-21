@@ -243,6 +243,57 @@ export type RollbackVersionResult =
       message: string;
     };
 
+export async function deletePage(projectSlug: string, pageId: string): Promise<{
+  status: "success" | "error";
+  message: string;
+}> {
+  try {
+    const page = await prisma.page.findFirst({
+      where: {
+        id: pageId,
+        project: {
+          slug: projectSlug,
+        },
+      },
+      select: {
+        publicSlug: true,
+      },
+    });
+
+    if (!page) {
+      return {
+        status: "error",
+        message: "Page not found.",
+      };
+    }
+
+    await prisma.page.delete({
+      where: {
+        id: pageId,
+      },
+    });
+
+    revalidatePath(`/projects/${projectSlug}`);
+    for (const path of getPublicPathsToRevalidate({
+      projectSlug,
+      currentPublicSlug: page.publicSlug,
+    })) {
+      revalidatePath(path);
+    }
+
+    return {
+      status: "success",
+      message: "Page deleted.",
+    };
+  } catch (error) {
+    console.error("deletePage failed", { projectSlug, pageId, error });
+    return {
+      status: "error",
+      message: "Could not delete this page right now.",
+    };
+  }
+}
+
 export async function createProject(
   _previousState: CreateProjectState,
   formData: FormData,
