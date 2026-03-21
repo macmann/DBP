@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   buildPage,
+  deletePage,
   generateNewVersion,
   updatePage,
   type UpdatePageState,
@@ -60,6 +61,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
   );
   const [isBuildPending, startBuildTransition] = useTransition();
   const [isVersionPending, startVersionTransition] = useTransition();
+  const [isDeletePending, startDeleteTransition] = useTransition();
   const [iterativeInstruction, setIterativeInstruction] = useState("");
   const [buildState, setBuildState] = useState<{ status: SurfaceStatus; message: string }>({
     status: "idle",
@@ -87,7 +89,11 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
   }, []);
 
   return (
-    <form action={formAction} className="space-y-5" aria-busy={isPending || isBuildPending || isVersionPending}>
+    <form
+      action={formAction}
+      className="space-y-5"
+      aria-busy={isPending || isBuildPending || isVersionPending || isDeletePending}
+    >
       <FormSection title="Page details" description="Update the name and URL slug for this page.">
         <div className="grid gap-4 md:grid-cols-2">
           <FormTextInput
@@ -228,6 +234,44 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
             {isVersionPending ? "Generating version..." : "Generate new version"}
           </Button>
         </div>
+      </section>
+
+      <section className="space-y-3 rounded-2xl border border-danger/40 bg-danger/5 p-5 shadow-sm md:p-6">
+        <h3 className="text-base font-semibold text-fg">Danger zone</h3>
+        <p className="text-sm text-muted">
+          Delete this page permanently, including published and failed versions.
+        </p>
+        <Button
+          type="button"
+          variant="danger"
+          disabled={isDeletePending}
+          onClick={() => {
+            const confirmed = window.confirm(
+              "Delete this page permanently? This removes all versions and cannot be undone.",
+            );
+
+            if (!confirmed) {
+              return;
+            }
+
+            startDeleteTransition(async () => {
+              const result = await deletePage(projectSlug, pageId);
+
+              if (result.status === "error") {
+                setVersionState({
+                  status: "error",
+                  message: result.message,
+                });
+                return;
+              }
+
+              router.push(`/projects/${projectSlug}`);
+              router.refresh();
+            });
+          }}
+        >
+          {isDeletePending ? "Deleting page..." : "Delete page"}
+        </Button>
       </section>
     </form>
   );
