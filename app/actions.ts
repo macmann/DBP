@@ -865,6 +865,19 @@ export async function quickGeneratePage(
     };
   } catch (error) {
     console.error("quickGeneratePage failed", { projectName, pageName, error });
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2021" &&
+      error.meta?.table === "public.Project"
+    ) {
+      return {
+        status: "error",
+        message:
+          "Database is not initialized yet. Run `npm run db:migrate:deploy` (or `npm run db:migrate` in development) and try again.",
+      };
+    }
+
     return {
       status: "error",
       message: "Generation failed. Please try again.",
