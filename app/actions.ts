@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { BuildJobStatus, PageStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { callOpenAIForPageSchema } from "@/lib/ai/openaiClient";
@@ -226,6 +225,16 @@ function mapBuildFailure(errorMessage: string): {
   };
 }
 
+function isNextRedirectError(error: unknown): error is { digest: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof error.digest === "string" &&
+    error.digest.startsWith("NEXT_REDIRECT")
+  );
+}
+
 export type GenerateNewVersionResult =
   | {
       status: "success";
@@ -369,7 +378,7 @@ export async function createProject(
 
     redirect(`/projects/${project.slug}`);
   } catch (error) {
-    if (isRedirectError(error)) {
+    if (isNextRedirectError(error)) {
       throw error;
     }
 
@@ -467,7 +476,7 @@ export async function createPage(
 
     redirect(`/projects/${project.slug}/pages/${page.id}`);
   } catch (error) {
-    if (isRedirectError(error)) {
+    if (isNextRedirectError(error)) {
       throw error;
     }
 
