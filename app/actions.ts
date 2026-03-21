@@ -864,8 +864,6 @@ export async function quickGeneratePage(
       pageId: page.id,
     };
   } catch (error) {
-    console.error("quickGeneratePage failed", { projectName, pageName, error });
-
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2021" &&
@@ -877,6 +875,19 @@ export async function quickGeneratePage(
           "Database is not initialized yet. Run `npm run db:migrate:deploy` (or `npm run db:migrate` in development) and try again.",
       };
     }
+
+    if (
+      (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P1001") ||
+      error instanceof Prisma.PrismaClientInitializationError
+    ) {
+      return {
+        status: "error",
+        message:
+          "Cannot connect to the database right now. Check that `DATABASE_URL` is correct and the database server is reachable, then try again.",
+      };
+    }
+
+    console.error("quickGeneratePage failed", { projectName, pageName, error });
 
     return {
       status: "error",
