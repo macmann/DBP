@@ -48,4 +48,12 @@ describe("page publishing actions revalidation", () => {
     assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
     assert.match(block, /currentPublicSlug: page\.publicSlug/);
   });
+
+  it("deleteProject revalidates dashboard and project listing routes", () => {
+    const block = getFunctionBlock(actionsSource, "deleteProject");
+
+    assert.match(block, /revalidatePath\("\/dashboard"\)/);
+    assert.match(block, /revalidatePath\("\/projects"\)/);
+    assert.match(block, /revalidatePath\(`\/projects\/\$\{projectSlug\}`\)/);
+  });
 });

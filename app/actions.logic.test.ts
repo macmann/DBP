@@ -102,4 +102,11 @@ describe("action logic: page deletion", () => {
     assert.match(block, /await prisma\.page\.delete\(\{/);
     assert.doesNotMatch(block, /PageStatus\./);
   });
+
+  it("deleteProject removes a project by slug", () => {
+    const block = getFunctionBlock(actionsSource, "deleteProject");
+
+    assert.match(block, /await prisma\.project\.deleteMany\(\{/);
+    assert.match(block, /slug: projectSlug/);
+  });
 });
