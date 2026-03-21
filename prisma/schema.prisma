@@ -50,6 +50,7 @@ model Page {
   publicSlug       String     @unique
   prompt           String?
   referenceLinks   Json?
+  widgetEmbedHtml  String?
   status           PageStatus @default(draft)
   content          String?
   lastError        String?

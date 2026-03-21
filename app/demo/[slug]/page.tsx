@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layout/Container";
 import { PageRenderer } from "@/components/landing/PageRenderer";
+import { WidgetEmbed } from "@/components/landing/WidgetEmbed";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
 import { type GeneratedPageSchema, validateGeneratedPageSchema } from "@/lib/ai/schema";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/config/brand";
@@ -142,6 +143,7 @@ export default async function DemoPage({ params }: DemoPageProps) {
         ) : null}
       </header>
       <PageRenderer page={schema} resolveAsset={resolveAsset} />
+      {page.widgetEmbedHtml ? <WidgetEmbed html={page.widgetEmbedHtml} /> : null}
     </Container>
   );
 }

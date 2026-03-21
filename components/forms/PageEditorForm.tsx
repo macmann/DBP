@@ -131,6 +131,20 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
         />
       </FormSection>
 
+      <FormSection title="Widget embed" description="Paste external widget HTML/script to render on the public page.">
+        <FormTextArea
+          id="widgetEmbedHtml"
+          name="widgetEmbedHtml"
+          label="Widget embed HTML (optional)"
+          rows={5}
+          defaultValue={initialModel.widgetEmbedHtml}
+          placeholder='<script src="https://demo.atenxion.ai/api/atenxion-widget-script?agentchainId=..."></script>'
+          helperText="Example: Atenxion widget script. Leave blank to remove the widget."
+          error={state.fieldErrors?.widgetEmbedHtml}
+          disabled={isPending}
+        />
+      </FormSection>
+
       <FormSection title="Reference links">
         <ReferenceLinksListEditor
           initialLinks={initialModel.referenceLinks}

@@ -34,7 +34,20 @@ export default async function PageDetailPage({
         slug: projectSlug,
       },
     },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      projectId: true,
+      status: true,
+      currentVersionId: true,
+      publicSlug: true,
+      createdAt: true,
+      updatedAt: true,
+      publishedAt: true,
+      prompt: true,
+      referenceLinks: true,
+      widgetEmbedHtml: true,
       project: {
         select: {
           slug: true,
@@ -152,6 +165,7 @@ export default async function PageDetailPage({
               slug: page.slug,
             },
             prompt: page.currentVersion?.instructionPrompt ?? page.prompt ?? "",
+            widgetEmbedHtml: page.widgetEmbedHtml ?? "",
             referenceLinks: Array.isArray(page.referenceLinks)
               ? page.referenceLinks.filter((link): link is string => typeof link === "string")
               : [],

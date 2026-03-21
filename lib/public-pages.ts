@@ -17,6 +17,7 @@ export async function getPublishedDemoPage(input: { publicSlug: string; projectS
       id: true,
       publicSlug: true,
       title: true,
+      widgetEmbedHtml: true,
       currentVersion: {
         select: {
           generatedSchemaJson: true,
