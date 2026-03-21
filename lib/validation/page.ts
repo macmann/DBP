@@ -10,6 +10,7 @@ export type PageFieldErrors = {
   title?: string;
   slug?: string;
   prompt?: string;
+  stylePreset?: string;
   widgetEmbedHtml?: string;
   referenceLinks?: string;
   referenceLinkRows?: Record<number, string>;

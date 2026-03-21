@@ -398,6 +398,7 @@ export async function createPage(
   const title = String(formData.get("title") ?? "").trim();
   const customSlug = String(formData.get("slug") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
+  const stylePresetRaw = String(formData.get("stylePreset") ?? "").trim();
   const widgetEmbedHtml = String(formData.get("widgetEmbedHtml") ?? "").trim();
   const referenceLinks = parseReferenceLinks(String(formData.get("referenceLinks") ?? ""));
   const validationErrors = validatePageInput({
@@ -412,6 +413,26 @@ export async function createPage(
     return {
       ok: false,
       fieldErrors: validationErrors,
+      formError: "Could not create page.",
+    };
+  }
+
+  if (!stylePresetRaw) {
+    return {
+      ok: false,
+      fieldErrors: {
+        stylePreset: "Please choose a style before generating.",
+      },
+      formError: "Could not create page.",
+    };
+  }
+
+  if (!isStylePresetKey(stylePresetRaw)) {
+    return {
+      ok: false,
+      fieldErrors: {
+        stylePreset: "Selected style is invalid. Please choose one of the available styles.",
+      },
       formError: "Could not create page.",
     };
   }
@@ -432,6 +453,9 @@ export async function createPage(
     const baseSlug = slugify(customSlug || title) || "page";
     const slug = await ensureUniquePageSlug(project.id, baseSlug);
     const publicSlug = await ensureUniquePublicSlug(baseSlug);
+    const stylePreset = stylePresetRaw as StylePresetKey;
+    const styleInstruction = getStylePresetInstruction(stylePreset);
+    const promptWithStyle = `${prompt}\n\nDesign style requirement:\n${styleInstruction}`;
 
     const page = await prisma.$transaction(async (tx) => {
       const createdPage = await tx.page.create({
@@ -439,7 +463,7 @@ export async function createPage(
           projectId: project.id,
           title,
           slug,
-          prompt: prompt || null,
+          prompt: promptWithStyle,
           widgetEmbedHtml: widgetEmbedHtml || null,
           referenceLinks,
           status: PageStatus.draft,
@@ -454,7 +478,7 @@ export async function createPage(
         data: {
           pageId: createdPage.id,
           versionNumber: 1,
-          instructionPrompt: prompt || null,
+          instructionPrompt: promptWithStyle,
           generatedSchemaJson: Prisma.JsonNull,
           notes: "Initial draft version",
         },
