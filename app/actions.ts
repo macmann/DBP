@@ -13,6 +13,11 @@ import {
   type GeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "@/lib/ai/schema";
+import {
+  getStylePresetInstruction,
+  isStylePresetKey,
+  type StylePresetKey,
+} from "@/lib/ai/stylePresets";
 import { slugify } from "@/lib/utils/slugify";
 import {
   PUBLIC_SLUG_CONSTRAINTS,
@@ -184,6 +189,7 @@ export type QuickGenerateState = {
     projectName?: string;
     pageName?: string;
     prompt?: string;
+    stylePreset?: string;
   };
   publicSlug?: string;
   projectSlug?: string;
@@ -848,6 +854,7 @@ export async function quickGeneratePage(
   const projectName = String(formData.get("projectName") ?? "").trim();
   const pageName = String(formData.get("pageName") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
+  const stylePresetRaw = String(formData.get("stylePreset") ?? "").trim();
 
   const fieldErrors: QuickGenerateState["fieldErrors"] = {};
 
@@ -867,6 +874,12 @@ export async function quickGeneratePage(
     fieldErrors.prompt = "Prompt must be 6000 characters or fewer.";
   }
 
+  if (!stylePresetRaw) {
+    fieldErrors.stylePreset = "Please choose a style before generating.";
+  } else if (!isStylePresetKey(stylePresetRaw)) {
+    fieldErrors.stylePreset = "Selected style is invalid. Please choose one of the available styles.";
+  }
+
   if (Object.values(fieldErrors).some(Boolean)) {
     return {
       status: "error",
@@ -876,6 +889,10 @@ export async function quickGeneratePage(
   }
 
   try {
+    const stylePreset = stylePresetRaw as StylePresetKey;
+    const styleInstruction = getStylePresetInstruction(stylePreset);
+    const promptWithStyle = `${prompt}\n\nDesign style requirement:\n${styleInstruction}`;
+
     const existingProject = await prisma.project.findFirst({
       where: {
         name: {
@@ -912,7 +929,7 @@ export async function quickGeneratePage(
           projectId: project.id,
           title: pageName,
           slug: pageSlug,
-          prompt,
+          prompt: promptWithStyle,
           referenceLinks: [],
           status: PageStatus.draft,
           publicSlug,
