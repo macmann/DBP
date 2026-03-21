@@ -43,6 +43,7 @@ export async function getPublishedDemoPage(input: { publicSlug: string; projectS
     },
     select: {
       id: true,
+      type: true,
       storageUrl: true,
       metadata: true,
       fileName: true,
