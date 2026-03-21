@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { BuildJobStatus, PageStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { callOpenAIForPageSchema } from "@/lib/ai/openaiClient";
@@ -326,6 +327,10 @@ export async function createProject(
 
     redirect(`/projects/${project.slug}`);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     console.error("createProject failed", { name, error });
     return {
       ok: false,
@@ -417,6 +422,10 @@ export async function createPage(
 
     redirect(`/projects/${project.slug}/pages/${page.id}`);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     console.error("createPage failed", { projectSlug, title, customSlug, error });
     return {
       ok: false,
