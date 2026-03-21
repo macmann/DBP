@@ -75,6 +75,9 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
     status: "idle",
     message: "Open preview to verify the latest published page in a new tab.",
   });
+  const [hideDbpHeader, setHideDbpHeader] = useState(false);
+
+  const previewPath = `${buildCanonicalPublicPath(previewSlug)}${hideDbpHeader ? "?hideDbpHeader=1" : ""}`;
 
   useEffect(() => {
     const handlePreviewUpdate = () => {
@@ -157,7 +160,16 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
       <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
         <h3 className="text-base font-semibold text-fg">Preview</h3>
         <StatusSurface status={previewState.status} message={previewState.message} />
-        <PublicUrlActions path={buildCanonicalPublicPath(previewSlug)} compact />
+        <label className="flex items-center gap-2 text-sm text-fg">
+          <input
+            type="checkbox"
+            checked={hideDbpHeader}
+            onChange={(event) => setHideDbpHeader(event.target.checked)}
+            className="h-4 w-4 rounded border-border"
+          />
+          Hide Atenxion DBP top header bar for a realistic demo view
+        </label>
+        <PublicUrlActions path={previewPath} compact />
       </section>
 
       {state.status === "error" ? <StatusSurface status="error" message={state.message} /> : null}
