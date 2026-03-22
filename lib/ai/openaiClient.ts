@@ -1,4 +1,5 @@
 import { sanitizeGeneratedPageSchema, validateGeneratedPageSchema } from "@/lib/ai/schema";
+import { sanitizeGeneratedPageBlockSafety } from "@/lib/ai/blockSafety";
 
 type OpenAIPromptInput = {
   systemPrompt: string;
@@ -83,7 +84,16 @@ export async function callOpenAIForPageSchema(input: OpenAIPromptInput) {
   }
 
   const sanitizedJson = sanitizeGeneratedPageSchema(parsedJson);
-  const strictValidation = validateGeneratedPageSchema(sanitizedJson);
+  const baselineValidation = validateGeneratedPageSchema(sanitizedJson);
+
+  if (!baselineValidation.success) {
+    throw new Error(
+      `OpenAI JSON failed schema validation: ${baselineValidation.errors.join(" | ")}`,
+    );
+  }
+
+  const blockSafeJson = sanitizeGeneratedPageBlockSafety(baselineValidation.data);
+  const strictValidation = validateGeneratedPageSchema(blockSafeJson);
 
   if (!strictValidation.success) {
     throw new Error(
@@ -92,7 +102,7 @@ export async function callOpenAIForPageSchema(input: OpenAIPromptInput) {
   }
 
   return {
-    json: sanitizedJson,
+    json: blockSafeJson,
     requestId: payload.id ?? null,
   };
 }
