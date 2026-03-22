@@ -2,6 +2,7 @@ import {
   getBody,
   getHeading,
   getItems,
+  getLayoutVariant,
   getString,
   type SectionRenderProps,
 } from "@/components/landing/types";
@@ -10,9 +11,16 @@ import { EmptyState, SectionHeader, SectionShell } from "@/components/landing/se
 export function FeaturesSection({ section }: SectionRenderProps) {
   const heading = getHeading(section);
   const body = getBody(section);
+  const layoutVariant = getLayoutVariant(section);
   const items = getItems(section).filter(
     (item) => getString(item, "title") || getString(item, "description"),
   );
+  const gridClassName =
+    layoutVariant === "cards-2"
+      ? "md:grid-cols-2"
+      : layoutVariant === "cards-4"
+        ? "md:grid-cols-2 xl:grid-cols-4"
+        : "md:grid-cols-2 xl:grid-cols-3";
 
   return (
     <SectionShell>
@@ -22,7 +30,7 @@ export function FeaturesSection({ section }: SectionRenderProps) {
           body={body}
         />
         {items.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className={`grid gap-4 ${gridClassName}`}>
             {items.map((item, index) => (
               <article
                 key={`${section.id}-feature-${index}`}
