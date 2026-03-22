@@ -26,6 +26,8 @@ export async function POST(request: Request) {
     const pageIdRaw = String(formData.get("pageId") ?? "").trim();
     const pageId = pageIdRaw || null;
     const type = String(formData.get("type") ?? "").trim();
+    const slotKeyRaw = String(formData.get("slotKey") ?? "").trim();
+    const slotKey = slotKeyRaw.length > 0 ? slotKeyRaw.slice(0, 64) : null;
     const file = formData.get("file");
 
     if (!projectId) {
@@ -71,6 +73,7 @@ export async function POST(request: Request) {
     const uploaded = await uploadAsset(file);
     const metadata = {
       sizeBytes: file.size,
+      ...(slotKey ? { slotKey } : {}),
       ...(dimensions
         ? {
             width: dimensions.width,

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AssetPreviewGallery } from "@/components/assets/AssetPreviewGallery";
-import { AssetUploader } from "@/components/assets/AssetUploader";
 import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import type { UploadedAssetDto } from "@/types/asset-upload";
 
 type PageAssetsSectionProps = {
@@ -11,16 +11,89 @@ type PageAssetsSectionProps = {
   pageId: string;
   initialAssets: UploadedAssetDto[];
   isGenerationReady: boolean;
+  requiredImageSlots: number;
+  requiresLogo: boolean;
 };
 
-const IMAGE_SLOT_COUNT = 4;
+type UploadSlot = {
+  key: string;
+  title: string;
+  description: string;
+  type: "logo" | "image";
+};
 
-export function PageAssetsSection({ projectId, pageId, initialAssets, isGenerationReady }: PageAssetsSectionProps) {
+function readSlotKey(asset: UploadedAssetDto): string | null {
+  const metadata = (asset.metadata ?? {}) as Record<string, unknown>;
+  return typeof metadata.slotKey === "string" ? metadata.slotKey : null;
+}
+
+export function PageAssetsSection({
+  projectId,
+  pageId,
+  initialAssets,
+  isGenerationReady,
+  requiredImageSlots,
+  requiresLogo,
+}: PageAssetsSectionProps) {
   const [assets, setAssets] = useState<UploadedAssetDto[]>(initialAssets);
   const [removingAssetId, setRemovingAssetId] = useState<string | null>(null);
+  const [uploadingSlotKey, setUploadingSlotKey] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isReordering, setIsReordering] = useState(false);
+  const fileInputsRef = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const uploadSlots = useMemo<UploadSlot[]>(() => {
+    const slots: UploadSlot[] = [];
+
+    if (requiresLogo) {
+      slots.push({
+        key: "logo",
+        title: "Logo",
+        description: "Upload the primary brand logo.",
+        type: "logo",
+      });
+    }
+
+    for (let index = 0; index < requiredImageSlots; index += 1) {
+      slots.push({
+        key: `image-${index + 1}`,
+        title: `Image ${index + 1}`,
+        description: `Upload content image ${index + 1}.`,
+        type: "image",
+      });
+    }
+
+    return slots;
+  }, [requiredImageSlots, requiresLogo]);
+
+  const assetsBySlot = useMemo(() => {
+    const slotMap = new Map<string, UploadedAssetDto>();
+
+    for (const asset of assets) {
+      const slotKey = readSlotKey(asset);
+      if (slotKey && !slotMap.has(slotKey)) {
+        slotMap.set(slotKey, asset);
+      }
+    }
+
+    if (requiresLogo && !slotMap.has("logo")) {
+      const fallbackLogo = assets.find((asset) => asset.type === "logo");
+      if (fallbackLogo) {
+        slotMap.set("logo", fallbackLogo);
+      }
+    }
+
+    const fallbackImages = assets.filter((asset) => asset.type === "image");
+    for (let index = 0; index < requiredImageSlots; index += 1) {
+      const slotKey = `image-${index + 1}`;
+      if (!slotMap.has(slotKey) && fallbackImages[index]) {
+        slotMap.set(slotKey, fallbackImages[index]);
+      }
+    }
+
+    return slotMap;
+  }, [assets, requiredImageSlots, requiresLogo]);
 
   function withOrder(items: UploadedAssetDto[]) {
     return items.map((asset, index) => ({ ...asset, sortOrder: index }));
@@ -103,6 +176,55 @@ export function PageAssetsSection({ projectId, pageId, initialAssets, isGenerati
     }
   }
 
+  async function handleSlotUpload(slot: UploadSlot, file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    if (assetsBySlot.has(slot.key)) {
+      setErrorMessage(`${slot.title} already has an upload. Remove it first.`);
+      return;
+    }
+
+    setUploadingSlotKey(slot.key);
+    setErrorMessage(null);
+    setStatusMessage(`Uploading ${file.name} to ${slot.title}...`);
+
+    try {
+      const payload = new FormData();
+      payload.set("projectId", projectId);
+      payload.set("pageId", pageId);
+      payload.set("type", slot.type);
+      payload.set("slotKey", slot.key);
+      payload.set("file", file);
+
+      const response = await fetch("/api/assets/upload", {
+        method: "POST",
+        body: payload,
+      });
+
+      const data = (await response.json()) as
+        | { ok: true; asset: UploadedAssetDto }
+        | { ok: false; error: { message: string } };
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.ok ? "Upload failed." : data.error.message);
+      }
+
+      setAssets((current) => withOrder([...current, { ...data.asset, sortOrder: current.length }]));
+      setStatusMessage(`Added ${file.name} to ${slot.title}.`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Upload failed. Please try again.");
+      setStatusMessage(null);
+    } finally {
+      setUploadingSlotKey(null);
+      const input = fileInputsRef.current[slot.key];
+      if (input) {
+        input.value = "";
+      }
+    }
+  }
+
   return (
     <section className="space-y-4 rounded-xl border border-border bg-surface-elevated p-6">
       <h2 className="text-lg font-semibold">Assets</h2>
@@ -110,7 +232,7 @@ export function PageAssetsSection({ projectId, pageId, initialAssets, isGenerati
         <h3 className="text-base font-semibold text-fg">Image upload session</h3>
         {isGenerationReady ? (
           <p className="text-sm text-muted">
-            Upload files by slot (logo, image 1, image 2, etc.). Uploads appear immediately in the asset gallery and are available to future generations.
+            Upload per required slot. Each slot accepts only one file until deleted.
           </p>
         ) : (
           <Alert variant="info">
@@ -120,60 +242,80 @@ export function PageAssetsSection({ projectId, pageId, initialAssets, isGenerati
 
         {isGenerationReady ? (
           <div className="space-y-3">
-            <AssetUploader
-              projectId={projectId}
-              pageId={pageId}
-              title="Logo"
-              description="Upload the primary brand logo."
-              fixedType="logo"
-              allowMultiple={false}
-              onUploaded={(asset) => {
-                setAssets((current) =>
-                  withOrder([...current, { ...asset, sortOrder: current.length }]),
+            {uploadSlots.length === 0 ? (
+              <Alert variant="info">No image slots were detected from the current generated layout yet.</Alert>
+            ) : (
+              uploadSlots.map((slot) => {
+                const existingAsset = assetsBySlot.get(slot.key) ?? null;
+                const isUploading = uploadingSlotKey === slot.key;
+
+                return (
+                  <div
+                    key={slot.key}
+                    className="grid gap-3 rounded-xl border border-border bg-surface-elevated p-3 md:grid-cols-[1fr_auto] md:items-center"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-fg">{slot.title}</p>
+                      <p className="text-xs text-muted">{slot.description}</p>
+                      {existingAsset ? (
+                        <div className="space-y-1 text-xs text-muted">
+                          <a href={existingAsset.storageUrl} target="_blank" rel="noreferrer" className="underline">
+                            {existingAsset.fileName}
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted">No file uploaded.</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      <input
+                        ref={(node) => {
+                          fileInputsRef.current[slot.key] = node;
+                        }}
+                        type="file"
+                        className="hidden"
+                        onChange={(event) => void handleSlotUpload(slot, event.target.files?.[0] ?? null)}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => fileInputsRef.current[slot.key]?.click()}
+                        disabled={Boolean(existingAsset) || isUploading}
+                      >
+                        {isUploading ? "Uploading…" : "Upload"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={!existingAsset || removingAssetId === existingAsset?.id}
+                        onClick={() => {
+                          if (existingAsset) {
+                            void handleRemove(existingAsset.id);
+                          }
+                        }}
+                      >
+                        {removingAssetId === existingAsset?.id ? "Removing…" : "Delete"}
+                      </Button>
+                    </div>
+                  </div>
                 );
-                setErrorMessage(null);
-                setStatusMessage(`Added ${asset.fileName} to logo slot.`);
-              }}
-            />
-            {Array.from({ length: IMAGE_SLOT_COUNT }).map((_, index) => (
-              <AssetUploader
-                key={`image-slot-${index + 1}`}
-                projectId={projectId}
-                pageId={pageId}
-                title={`Image ${index + 1}`}
-                description={`Upload content image ${index + 1}.`}
-                fixedType="image"
-                allowMultiple={false}
-                onUploaded={(asset) => {
-                  setAssets((current) =>
-                    withOrder([...current, { ...asset, sortOrder: current.length }]),
-                  );
-                  setErrorMessage(null);
-                  setStatusMessage(`Added ${asset.fileName} to image ${index + 1} slot.`);
-                }}
-              />
-            ))}
+              })
+            )}
           </div>
         ) : null}
       </div>
 
-      {errorMessage ? (
-        <Alert variant="danger">{errorMessage}</Alert>
-      ) : null}
-      {statusMessage ? (
-        <Alert variant="info">{statusMessage}</Alert>
-      ) : null}
+      {errorMessage ? <Alert variant="danger">{errorMessage}</Alert> : null}
+      {statusMessage ? <Alert variant="info">{statusMessage}</Alert> : null}
 
-      {isReordering ? (
-        <Alert variant="info">Updating gallery order...</Alert>
-      ) : null}
+      {isReordering ? <Alert variant="info">Updating gallery order...</Alert> : null}
 
       {assets.length === 0 ? (
         <div className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">
           <p className="font-medium text-fg">No assets uploaded yet.</p>
-          <p className="mt-1">
-            Generate a page first to unlock slot-based uploads (logo, image 1, image 2, and more).
-          </p>
+          <p className="mt-1">Generate a page first to unlock slot-based uploads.</p>
         </div>
       ) : (
         <AssetPreviewGallery
