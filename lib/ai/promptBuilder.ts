@@ -28,6 +28,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "seo.description must be 160 characters or fewer.",
     "Every blocks[].props.cta.href must be either an absolute http(s) URL or a root-relative path that starts with '/'.",
     "Use only block types from the allowed list.",
+    "Each blocks[] entry must include type and props. variant is optional.",
     "Any media references (blocks[].props.mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
     "If uploaded image/logo assets are provided, assign relevant blocks[].props.mediaAssetIds for visual blocks (hero, imageText, gallery, logoStrip, testimonial).",
     "Pick assets by semantic fit from fileName/type/metadata so the demo renders real images instead of fallback placeholders.",
@@ -42,7 +43,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
 
   const userPrompt = [
     `Page prompt:\n${input.pagePrompt || "(none provided)"}`,
-    `Allowed sections:\n${input.allowedSections.join(", ")}`,
+    `Allowed block types:\n${input.allowedSections.join(", ")}`,
     `Tone and branding hints:\n${input.toneBrandingHints.join("\n") || "(none provided)"}`,
     `Reference links:\n${input.referenceLinks.length > 0 ? input.referenceLinks.join("\n") : "(none provided)"}`,
     `Uploaded assets:\n${
@@ -82,8 +83,8 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     '  "blocks": [',
     "    {",
     '      "id": "string // stable block id",',
-    '      "type": "allowedType // must be from Allowed sections",',
-    '      "variant?": "string // optional layout/style variant token for renderer",',
+    '      "type": "allowedType // required, must be from Allowed block types",',
+    '      "variant?": "string // optional layout/style variant token",',
     '      "props": "object // block-specific payload (headings, body, items, cta, mediaAssetIds, etc.)"',
     "    }",
     "  ],",
@@ -94,7 +95,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "  }",
     "}",
     "Do not output any text before or after the JSON object.",
-    "Use only the keys above and only allowed section types.",
+    "Use only the keys above and only allowed block types.",
     "Ensure every layout ID exists in blocks[].id and preserve block ID uniqueness.",
     "Important: layout must be instruction-driven from the Page prompt, not template-driven.",
   ].join("\n\n");

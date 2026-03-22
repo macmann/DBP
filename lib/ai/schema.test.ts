@@ -489,7 +489,7 @@ describe("validateGeneratedPageSchema", () => {
 });
 
 describe("buildPageGenerationPrompts", () => {
-  it("mentions required keys and allowed section types", () => {
+  it("mentions required keys and block/layout contract requirements", () => {
     const prompt = buildPageGenerationPrompts({
       pagePrompt: "Create a landing page",
       referenceLinks: [],
@@ -508,6 +508,10 @@ describe("buildPageGenerationPrompts", () => {
     assert.match(
       prompt.systemPrompt,
       /Every blocks\[\]\.props\.cta\.href must be either an absolute http\(s\) URL or a root-relative path that starts with '\/'\./,
+    );
+    assert.match(
+      prompt.systemPrompt,
+      /Each blocks\[\] entry must include type and props\. variant is optional\./,
     );
     assert.match(
       prompt.systemPrompt,
@@ -538,7 +542,14 @@ describe("buildPageGenerationPrompts", () => {
       prompt.userPrompt,
       /"blocks": \[\n\n    \{\n\n      "id": "string \/\/ stable block id"/,
     );
-    assert.match(prompt.userPrompt, /"variant\?": "string \/\/ optional layout\/style variant token for renderer"/);
+    assert.match(
+      prompt.userPrompt,
+      /"type": "allowedType \/\/ required, must be from Allowed block types"/,
+    );
+    assert.match(
+      prompt.userPrompt,
+      /"variant\?": "string \/\/ optional layout\/style variant token"/,
+    );
     assert.match(prompt.userPrompt, /"props": "object \/\/ block-specific payload/);
     assert.match(prompt.userPrompt, /"layout": \{/);
     assert.match(prompt.userPrompt, /"top": "string\[\] \/\/ block ids placed above main content"/);
@@ -548,7 +559,8 @@ describe("buildPageGenerationPrompts", () => {
       prompt.userPrompt,
       /Ensure every layout ID exists in blocks\[\]\.id and preserve block ID uniqueness\./,
     );
+    assert.match(prompt.userPrompt, /Use only the keys above and only allowed block types\./);
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
-    assert.match(prompt.userPrompt, /Allowed sections:\nhero, features, cta/);
+    assert.match(prompt.userPrompt, /Allowed block types:\nhero, features, cta/);
   });
 });
