@@ -6,7 +6,7 @@ import { VersionHistoryPanel } from "@/components/forms/VersionHistoryPanel";
 import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
 import { detectStylePresetFromPrompt, stripStyleInstructionFromPrompt } from "@/lib/ai/stylePresets";
 import { prisma } from "@/lib/db";
-import { validateGeneratedPageSchema } from "@/lib/ai/schema";
+import { inspectGeneratedSchema, normalizeSchemaForDisplay } from "@/lib/ai/schemaInspection";
 import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 
 function formatDate(value: Date | null) {
@@ -23,19 +23,26 @@ function formatDate(value: Date | null) {
 
 
 function deriveRequiredAssetSlots(schemaPayload: unknown): { requiresLogo: boolean; requiredImageSlots: number } {
-  const validated = validateGeneratedPageSchema(schemaPayload);
-  if (!validated.success) {
+  const normalized = normalizeSchemaForDisplay(schemaPayload);
+  if (!normalized) {
     return { requiresLogo: false, requiredImageSlots: 0 };
   }
 
-  const requiresLogo = validated.data.sections.some((section) => section.type === "logoStrip");
-  const requiredImageSlots = validated.data.sections.reduce((count, section) => {
-    if (section.type === "hero" || section.type === "imageText") {
+  const blocks = normalized.blocks ?? normalized.sections;
+  const requiresLogo = blocks.some((block) => block.type === "logoStrip");
+  const requiredImageSlots = blocks.reduce((count, block) => {
+    if (block.type === "hero" || block.type === "imageText") {
       return count + 1;
     }
 
-    if (section.type === "gallery") {
-      return count + Math.max(1, section.mediaAssetIds?.length ?? 0);
+    const mediaAssetIds = Array.isArray(block.props?.mediaAssetIds)
+      ? block.props.mediaAssetIds.filter((value): value is string => typeof value === "string")
+      : Array.isArray(block.mediaAssetIds)
+        ? block.mediaAssetIds.filter((value): value is string => typeof value === "string")
+        : [];
+
+    if (block.type === "gallery") {
+      return count + Math.max(1, mediaAssetIds.length);
     }
 
     return count;
@@ -127,6 +134,9 @@ export default async function PageDetailPage({
   }
 
   const requiredAssetSlots = deriveRequiredAssetSlots(page.currentVersion?.generatedSchemaJson);
+  const currentVersionInspection = page.currentVersion
+    ? inspectGeneratedSchema(page.currentVersion.generatedSchemaJson)
+    : null;
 
   return (
     <DashboardLayout
@@ -201,6 +211,7 @@ export default async function PageDetailPage({
           isGenerationReady={Boolean(page.currentVersionId)}
           requiresLogo={requiredAssetSlots.requiresLogo}
           requiredImageSlots={requiredAssetSlots.requiredImageSlots}
+          currentVersionInspection={currentVersionInspection}
           initialModel={{
             details: {
               title: page.title,
@@ -230,14 +241,20 @@ export default async function PageDetailPage({
           projectSlug={page.project.slug}
           pageId={page.id}
           currentVersionId={page.currentVersionId}
-          versions={page.versions.map((version) => ({
-            id: version.id,
-            versionNumber: version.versionNumber,
-            createdAt: version.createdAt.toISOString(),
-            instructionPrompt: version.instructionPrompt,
-            notes: version.notes,
-            hasValidSchema: validateGeneratedPageSchema(version.generatedSchemaJson).success,
-          }))}
+          versions={page.versions.map((version) => {
+            const inspection = inspectGeneratedSchema(version.generatedSchemaJson);
+
+            return {
+              id: version.id,
+              versionNumber: version.versionNumber,
+              createdAt: version.createdAt.toISOString(),
+              instructionPrompt: version.instructionPrompt,
+              notes: version.notes,
+              schemaValidity: inspection.isValid ? ("valid" as const) : ("invalid" as const),
+              unknownBlockTypes: inspection.unknownBlockTypes,
+              blockCount: inspection.blockCount,
+            };
+          })}
         />
       </div>
     </DashboardLayout>

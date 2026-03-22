@@ -15,6 +15,7 @@ import { FormTextInput } from "@/components/forms/FormTextInput";
 import { ReferenceLinksListEditor } from "@/components/forms/ReferenceLinksListEditor";
 import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
+import { BlockInspectorPanel } from "@/components/forms/BlockInspectorPanel";
 import { STYLE_PRESETS, type StylePresetKey } from "@/lib/ai/stylePresets";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 import { cn } from "@/lib/utils/cn";
 import type { UploadedAssetDto } from "@/types/asset-upload";
 import type { PageEditorFormModel } from "@/types/page-editor";
+import type { SchemaInspectionResult } from "@/lib/ai/schemaInspection";
 
 type PageEditorFormProps = {
   projectId: string;
@@ -33,6 +35,7 @@ type PageEditorFormProps = {
   isGenerationReady: boolean;
   requiredImageSlots: number;
   requiresLogo: boolean;
+  currentVersionInspection: SchemaInspectionResult | null;
 };
 
 type SurfaceStatus = "idle" | "success" | "error" | "running";
@@ -72,6 +75,7 @@ export function PageEditorForm({
   isGenerationReady,
   requiredImageSlots,
   requiresLogo,
+  currentVersionInspection,
 }: PageEditorFormProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -260,6 +264,8 @@ export function PageEditorForm({
         <PublicUrlActions path={previewPath} compact />
       </section>
 
+      <BlockInspectorPanel inspection={currentVersionInspection} />
+
       {state.status === "error" ? <StatusSurface status="error" message={state.message} /> : null}
       {state.status === "success" ? <StatusSurface status="success" message={state.message} /> : null}
 
@@ -305,7 +311,7 @@ export function PageEditorForm({
                     setIterativeInstruction("");
                     setVersionState({
                       status: "success",
-                      message: `Generated v${result.versionNumber} (${result.sectionCount} sections). The latest preview now points to this version.`,
+                      message: `Generated v${result.versionNumber} (${result.sectionCount} blocks). The latest preview now points to this version.`,
                     });
                     setPreviewState({
                       status: "success",
@@ -356,7 +362,7 @@ export function PageEditorForm({
                 if (result.status === "success") {
                   setBuildState({
                     status: "success",
-                    message: `Build succeeded. Saved v${result.versionNumber} with ${result.sectionCount} sections.`,
+                    message: `Build succeeded. Saved v${result.versionNumber} with ${result.sectionCount} blocks.`,
                   });
                   router.refresh();
                 } else {
