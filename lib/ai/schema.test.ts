@@ -315,7 +315,7 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal(result.success, true);
   });
 
-  it("accepts dynamic blocks in layout regions when ids/types are present", () => {
+  it("accepts dynamic blocks in layout regions when block IDs are referenced", () => {
     const payload = {
       ...validFixture,
       blocks: [
@@ -329,9 +329,9 @@ describe("validateGeneratedPageSchema", () => {
         },
       ],
       layout: {
-        top: [{ id: "shell-page-header", type: "pageHeader" }],
+        top: ["shell-page-header"],
         main: ["hero-1", "custom-social-proof"],
-        bottom: [{ id: "shell-build-meta", type: "buildMeta" }],
+        bottom: ["shell-build-meta"],
       },
     };
 
@@ -339,13 +339,13 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal(result.success, true);
   });
 
-  it("accepts layout regions with block references and inline blocks", () => {
+  it("accepts layout regions with block ID references", () => {
     const payload = {
       ...validFixture,
       layout: {
-        top: [{ id: "shell-page-header", type: "pageHeader" }],
+        top: ["shell-page-header"],
         main: ["hero-1"],
-        bottom: [{ id: "shell-build-meta", type: "buildMeta" }],
+        bottom: ["shell-build-meta"],
       },
     };
 
@@ -358,8 +358,8 @@ describe("validateGeneratedPageSchema", () => {
       ...validFixture,
       layout: {
         top: [""],
-        main: [{ id: "", type: "hero" }],
-        bottom: [{ id: "shell-build-meta" }],
+        main: [""],
+        bottom: ["hero/main"],
       },
     };
 
@@ -369,8 +369,12 @@ describe("validateGeneratedPageSchema", () => {
       throw new Error("Expected validation failure");
     }
     assert.ok(result.errors.includes("layout.top[0] must be a non-empty string reference."));
-    assert.ok(result.errors.includes("layout.main[0].id must be a non-empty string."));
-    assert.ok(result.errors.includes("layout.bottom[0].type must be a non-empty string."));
+    assert.ok(result.errors.includes("layout.main[0] must be a non-empty string reference."));
+    assert.ok(
+      result.errors.includes(
+        "layout.bottom[0] must be URL-safe (letters, numbers, '-' or '_').",
+      ),
+    );
   });
 
   it("sanitizes common model formatting issues", () => {

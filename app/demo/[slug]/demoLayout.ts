@@ -1,4 +1,4 @@
-import type { GeneratedBlock, GeneratedLayoutEntry, GeneratedPageLayout, GeneratedPageSchema } from "@/lib/ai/schema";
+import type { GeneratedBlock, GeneratedPageLayout, GeneratedPageSchema } from "@/lib/ai/schema";
 
 const SHELL_PAGE_HEADER_ID = "shell-page-header";
 const SHELL_WIDGET_EMBED_ID = "shell-widget-embed";
@@ -16,46 +16,12 @@ export type DemoRenderSchemaOptions = {
   };
 };
 
-function isGeneratedBlock(entry: GeneratedLayoutEntry): entry is GeneratedBlock {
-  return typeof entry === "object" && entry !== null;
-}
-
-function normalizeLayoutEntries(
-  entries: GeneratedLayoutEntry[] | undefined,
-  knownBlocks: Map<string, GeneratedBlock>,
-): string[] {
+function normalizeLayoutEntries(entries: string[] | undefined): string[] {
   if (!Array.isArray(entries)) {
     return [];
   }
 
-  const ids: string[] = [];
-
-  for (const entry of entries) {
-    if (typeof entry === "string") {
-      const id = entry.trim();
-      if (id.length > 0) {
-        ids.push(id);
-      }
-      continue;
-    }
-
-    if (!isGeneratedBlock(entry)) {
-      continue;
-    }
-
-    const id = typeof entry.id === "string" ? entry.id.trim() : "";
-    const type = typeof entry.type === "string" ? entry.type.trim() : "";
-    if (id.length === 0 || type.length === 0) {
-      continue;
-    }
-
-    if (!knownBlocks.has(id)) {
-      knownBlocks.set(id, entry);
-    }
-    ids.push(id);
-  }
-
-  return ids;
+  return entries.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
 }
 
 function inferLegacyLayout(blocks: GeneratedBlock[]): GeneratedPageLayout {
@@ -85,9 +51,9 @@ export function buildDemoRenderSchema(
 
   const normalizedLayout = schema.layout
     ? {
-        top: normalizeLayoutEntries(schema.layout.top, blockMap),
-        main: normalizeLayoutEntries(schema.layout.main, blockMap),
-        bottom: normalizeLayoutEntries(schema.layout.bottom, blockMap),
+        top: normalizeLayoutEntries(schema.layout.top),
+        main: normalizeLayoutEntries(schema.layout.main),
+        bottom: normalizeLayoutEntries(schema.layout.bottom),
       }
     : inferLegacyLayout(contentBlocks);
 

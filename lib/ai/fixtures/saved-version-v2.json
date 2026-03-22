@@ -25,18 +25,8 @@
     }
   ],
   "layout": {
-    "top": [
-      {
-        "id": "shell-page-header",
-        "type": "pageHeader"
-      }
-    ],
+    "top": ["shell-page-header"],
     "main": ["hero-modern"],
-    "bottom": [
-      {
-        "id": "shell-build-meta",
-        "type": "buildMeta"
-      }
-    ]
+    "bottom": ["shell-build-meta"]
   }
 }
