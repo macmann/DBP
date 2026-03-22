@@ -1,35 +1,29 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { Container } from "@/components/layout/Container";
+import { registerBlock } from "@/components/landing/blockRegistry";
 import { PageRenderer } from "@/components/landing/PageRenderer";
 import { WidgetEmbed } from "@/components/landing/WidgetEmbed";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
-import type { GeneratedBlock, GeneratedPageSchema, GeneratedPageLayout } from "@/lib/ai/schema";
+import type { GeneratedBlock, GeneratedPageSchema } from "@/lib/ai/schema";
 import { validateGeneratedPageSchema } from "@/lib/ai/schema";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/config/brand";
 import { getPublishedDemoPage } from "@/lib/public-pages";
+import { buildDemoRenderSchema } from "./demoLayout";
 
 type DemoPageProps = {
   params: Promise<{ slug: string }>;
 };
 
 type AssetLookupMap = Map<string, ResolvedAsset>;
-type DemoLayoutEntry = string | GeneratedBlock;
-type DemoLayoutRegion = "top" | "main" | "bottom";
 type DemoPublishedPage = NonNullable<Awaited<ReturnType<typeof getPublishedDemoPage>>>;
-
-type DemoLayoutContext = {
-  page: DemoPublishedPage;
-  schema: GeneratedPageSchema;
-  logoAsset: DemoPublishedPage["assets"][number] | undefined;
-  resolveAsset: AssetResolver;
-  currentVersionLabel: string;
-};
 
 const SITE_DEFAULT_TITLE = PRODUCT_NAME;
 const SITE_DEFAULT_DESCRIPTION = PRODUCT_DESCRIPTION;
+
+let demoShellBlocksRegistered = false;
 
 export async function generateMetadata({ params }: DemoPageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -96,44 +90,31 @@ function InvalidSchemaFallback({ publicSlug }: { publicSlug: string }) {
   );
 }
 
-function normalizeLayout(schema: GeneratedPageSchema): GeneratedPageLayout {
-  if (schema.layout) {
-    return schema.layout;
-  }
 
-  const contentBlockIds = (schema.blocks ?? schema.sections)
-    .map((block) => block.id)
-    .filter((id): id is string => typeof id === "string" && id.trim().length > 0);
-
-  return {
-    top: [{ id: "shell-page-header", type: "pageHeader" }],
-    main: contentBlockIds,
-    bottom: [{ id: "shell-widget-embed", type: "widgetEmbed" }, { id: "shell-build-meta", type: "buildMeta" }],
-  };
-}
-
-function PageHeaderBlock({
-  schema,
-  pageTitleFallback,
-  logoAsset,
-}: {
-  schema: GeneratedPageSchema;
-  pageTitleFallback: string;
-  logoAsset: DemoLayoutContext["logoAsset"];
-}) {
+function PageHeaderBlock({ block }: { block: GeneratedBlock }) {
+  const props = block.props && typeof block.props === "object" ? block.props : {};
   const normalizedHeaderAlignment =
-    schema.pageHeaderAlignment?.trim().toLowerCase() === "center" ? "center" : "left";
+    typeof props.alignment === "string" && props.alignment.trim().toLowerCase() === "center"
+      ? "center"
+      : "left";
   const isPageHeaderCentered = normalizedHeaderAlignment === "center";
+  const logoAssetUrl = typeof props.logoAssetUrl === "string" ? props.logoAssetUrl : "";
+  const logoAssetFileName =
+    typeof props.logoAssetFileName === "string" && props.logoAssetFileName.trim().length > 0
+      ? props.logoAssetFileName
+      : "Brand logo";
+  const pageTitle = typeof props.pageTitle === "string" ? props.pageTitle : SITE_DEFAULT_TITLE;
+  const summary = typeof props.summary === "string" ? props.summary : "";
 
   return (
     <header
       className={`max-w-3xl space-y-4 ${isPageHeaderCentered ? "mx-auto text-center" : "text-left"}`}
     >
-      {logoAsset ? (
+      {logoAssetUrl ? (
         <div className={`relative h-12 w-28 sm:h-14 sm:w-32 ${isPageHeaderCentered ? "mx-auto" : ""}`}>
           <Image
-            src={logoAsset.storageUrl}
-            alt={logoAsset.fileName || "Brand logo"}
+            src={logoAssetUrl}
+            alt={logoAssetFileName}
             fill
             unoptimized
             sizes="(max-width: 640px) 112px, 128px"
@@ -142,16 +123,25 @@ function PageHeaderBlock({
         </div>
       ) : null}
       <h1 className="text-balance text-3xl font-semibold tracking-tight text-[var(--dbp-ink)] sm:text-4xl lg:text-5xl">
-        {schema.pageTitle || pageTitleFallback}
+        {pageTitle}
       </h1>
-      {schema.summary ? (
-        <p className="text-pretty text-base leading-7 text-[var(--dbp-muted)] sm:text-lg">{schema.summary}</p>
+      {summary ? (
+        <p className="text-pretty text-base leading-7 text-[var(--dbp-muted)] sm:text-lg">{summary}</p>
       ) : null}
     </header>
   );
 }
 
-function BuildMetaBlock({ schema, currentVersionLabel }: { schema: GeneratedPageSchema; currentVersionLabel: string }) {
+function BuildMetaBlock({ block }: { block: GeneratedBlock }) {
+  const props = block.props && typeof block.props === "object" ? block.props : {};
+  const currentVersionLabel =
+    typeof props.currentVersionLabel === "string" && props.currentVersionLabel.trim().length > 0
+      ? props.currentVersionLabel
+      : "v?";
+  const primaryColor = typeof props.primaryColor === "string" ? props.primaryColor : "#111827";
+  const accentColor = typeof props.accentColor === "string" ? props.accentColor : "#3B82F6";
+  const fontFamily = typeof props.fontFamily === "string" ? props.fontFamily : "Inter";
+
   return (
     <footer className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-xs text-muted sm:px-5">
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -160,96 +150,46 @@ function BuildMetaBlock({ schema, currentVersionLabel }: { schema: GeneratedPage
         <span className="inline-flex items-center gap-1">
           <span
             className="inline-block h-3 w-3 rounded-full border border-border"
-            style={{ backgroundColor: schema.theme.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
             aria-hidden
           />
-          <code>{schema.theme.primaryColor}</code>
+          <code>{primaryColor}</code>
         </span>
         <span className="inline-flex items-center gap-1">
           <span
             className="inline-block h-3 w-3 rounded-full border border-border"
-            style={{ backgroundColor: schema.theme.accentColor }}
+            style={{ backgroundColor: accentColor }}
             aria-hidden
           />
-          <code>{schema.theme.accentColor}</code>
+          <code>{accentColor}</code>
         </span>
-        <span>Font: {schema.theme.fontFamily}</span>
+        <span>Font: {fontFamily}</span>
       </div>
     </footer>
   );
 }
 
-function renderLayoutRegion(region: DemoLayoutRegion, entries: DemoLayoutEntry[], context: DemoLayoutContext): ReactNode {
-  const contentById = new Map((context.schema.blocks ?? context.schema.sections).map((block) => [block.id, block]));
-  const resolvedContentBlocks: GeneratedBlock[] = [];
-  const output: ReactNode[] = [];
-  const flushContentBlocks = (keyBase: string) => {
-    if (resolvedContentBlocks.length === 0) {
-      return;
-    }
+function WidgetEmbedBlock({ block }: { block: GeneratedBlock }) {
+  const props = block.props && typeof block.props === "object" ? block.props : {};
+  const html = typeof props.html === "string" ? props.html : "";
 
-    output.push(
-      <PageRenderer
-        key={`${keyBase}-${output.length}`}
-        page={{ ...context.schema, blocks: [...resolvedContentBlocks], sections: [...resolvedContentBlocks] }}
-        resolveAsset={context.resolveAsset}
-      />,
-    );
-    resolvedContentBlocks.length = 0;
-  };
+  if (!html) {
+    return null;
+  }
 
-  entries.forEach((entry, index) => {
-    const maybeReferencedBlock =
-      typeof entry === "string"
-        ? contentById.get(entry)
-        : typeof entry.type === "string" && entry.type !== "pageHeader" && entry.type !== "widgetEmbed" && entry.type !== "buildMeta"
-          ? entry
-          : null;
+  return <WidgetEmbed html={html} />;
+}
 
-    if (maybeReferencedBlock) {
-      resolvedContentBlocks.push(maybeReferencedBlock);
-      return;
-    }
+function registerDemoShellBlocks() {
+  if (demoShellBlocksRegistered) {
+    return;
+  }
 
-    flushContentBlocks(`${region}-${index}`);
-    const block = typeof entry === "string" ? null : entry;
-    const blockType = block?.type?.trim();
+  registerBlock("pageHeader", ({ block }) => <PageHeaderBlock block={block} />);
+  registerBlock("buildMeta", ({ block }) => <BuildMetaBlock block={block} />);
+  registerBlock("widgetEmbed", ({ block }) => <WidgetEmbedBlock block={block} />);
 
-    if (blockType === "pageHeader") {
-      output.push(
-        <PageHeaderBlock
-          key={`${region}-${index}-page-header`}
-          schema={context.schema}
-          pageTitleFallback={context.page?.title ?? SITE_DEFAULT_TITLE}
-          logoAsset={context.logoAsset}
-        />,
-      );
-      return;
-    }
-
-    if (blockType === "widgetEmbed") {
-      output.push(
-        context.page?.widgetEmbedHtml ? (
-          <WidgetEmbed key={`${region}-${index}-widget-embed`} html={context.page.widgetEmbedHtml} />
-        ) : null,
-      );
-      return;
-    }
-
-    if (blockType === "buildMeta") {
-      output.push(
-        <BuildMetaBlock
-          key={`${region}-${index}-build-meta`}
-          schema={context.schema}
-          currentVersionLabel={context.currentVersionLabel}
-        />,
-      );
-      return;
-    }
-  });
-
-  flushContentBlocks(`${region}-tail`);
-  return output;
+  demoShellBlocksRegistered = true;
 }
 
 export default async function DemoPage({ params }: DemoPageProps) {
@@ -291,7 +231,20 @@ export default async function DemoPage({ params }: DemoPageProps) {
   const currentVersionLabel = page.currentVersion?.versionNumber
     ? `v${page.currentVersion.versionNumber}`
     : "v?";
-  const layout = normalizeLayout(schema);
+
+  registerDemoShellBlocks();
+
+  const renderSchema = buildDemoRenderSchema(schema, {
+    pageTitleFallback: page.title || SITE_DEFAULT_TITLE,
+    currentVersionLabel,
+    widgetEmbedHtml: page.widgetEmbedHtml,
+    logoAsset: logoAsset
+      ? {
+          storageUrl: logoAsset.storageUrl,
+          fileName: logoAsset.fileName,
+        }
+      : undefined,
+  });
   const themeVariables = {
     "--dbp-primary": schema.theme.primaryColor,
     "--dbp-accent": schema.theme.accentColor,
@@ -305,27 +258,7 @@ export default async function DemoPage({ params }: DemoPageProps) {
   return (
     <div style={themeVariables}>
       <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
-        {renderLayoutRegion("top", layout.top, {
-          page,
-          schema,
-          logoAsset,
-          resolveAsset,
-          currentVersionLabel,
-        })}
-        {renderLayoutRegion("main", layout.main, {
-          page,
-          schema,
-          logoAsset,
-          resolveAsset,
-          currentVersionLabel,
-        })}
-        {renderLayoutRegion("bottom", layout.bottom, {
-          page,
-          schema,
-          logoAsset,
-          resolveAsset,
-          currentVersionLabel,
-        })}
+        <PageRenderer page={renderSchema} resolveAsset={resolveAsset} />
       </Container>
     </div>
   );
