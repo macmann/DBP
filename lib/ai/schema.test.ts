@@ -452,6 +452,56 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal("sections" in result.data, false);
   });
 
+  it("maps legacy sections with custom types into blocks without enum restrictions", () => {
+    const payload = {
+      ...validFixture,
+      sections: [
+        {
+          id: "legacy-social-proof",
+          type: "socialProofWall",
+          heading: "Legacy social proof",
+        },
+      ],
+    };
+    delete (payload as { blocks?: unknown }).blocks;
+
+    const sanitized = sanitizeGeneratedPageSchema(payload);
+    const result = validateGeneratedPageSchema(sanitized);
+
+    assert.equal(result.success, true);
+    if (!result.success) {
+      throw new Error("Expected validation success");
+    }
+
+    assert.deepEqual(result.data.blocks?.[0], {
+      id: "legacy-social-proof",
+      type: "socialProofWall",
+      props: {
+        heading: "Legacy social proof",
+      },
+    });
+  });
+
+  it("fails when legacy sections omit required baseline block shape", () => {
+    const payload = {
+      ...validFixture,
+      sections: [
+        {
+          id: "missing-type",
+        },
+      ],
+    };
+    delete (payload as { blocks?: unknown }).blocks;
+
+    const result = validateGeneratedPageSchema(payload);
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("blocks[0].type must be a non-empty string."));
+  });
+
   it("fails when block url-safe fields include unsupported characters", () => {
     const payload = {
       ...validFixture,
@@ -516,7 +566,7 @@ describe("buildPageGenerationPrompts", () => {
       pagePrompt: "Create a landing page",
       referenceLinks: [],
       assets: [],
-      allowedSections: ["hero", "features", "cta"],
+      allowedBlockTypes: ["hero", "features", "cta"],
       toneBrandingHints: [],
       layoutRegions: ["top", "main", "bottom"],
     });
@@ -571,7 +621,7 @@ describe("buildPageGenerationPrompts", () => {
     );
     assert.match(
       prompt.userPrompt,
-      /"type": "allowedType \/\/ required, must be from Allowed block types"/,
+      /"type": "string \/\/ required URL-safe token, usually derived from the page prompt"/,
     );
     assert.match(
       prompt.userPrompt,
@@ -586,8 +636,8 @@ describe("buildPageGenerationPrompts", () => {
       prompt.userPrompt,
       /Ensure every layout ID exists in blocks\[\]\.id and preserve block ID uniqueness\./,
     );
-    assert.match(prompt.userPrompt, /Use only the keys above and only allowed block types\./);
+    assert.match(prompt.userPrompt, /Use only the keys above\. Block type names should be URL-safe and prompt-driven\./);
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
-    assert.match(prompt.userPrompt, /Allowed block types:\nhero, features, cta/);
+    assert.match(prompt.userPrompt, /Prompt-suggested block types:\nhero, features, cta/);
   });
 });

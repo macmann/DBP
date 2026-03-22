@@ -4,15 +4,16 @@ import { buildPageGenerationPrompts, type BuildPromptInput } from "./promptBuild
 import promptArchetypes from "./fixtures/prompt-archetypes.json";
 import promptArchetypeSnapshots from "./fixtures/prompt-archetypes.snap.json";
 
-type PromptArchetypeFixture = Omit<BuildPromptInput, "layoutRegions"> & {
+type PromptArchetypeFixture = Omit<BuildPromptInput, "layoutRegions" | "allowedBlockTypes"> & {
   name: string;
+  allowedSections: readonly string[];
 };
 
 function normalizePromptOutput(payload: ReturnType<typeof buildPageGenerationPrompts>) {
   const userSections = payload.userPrompt
     .split("\n\n")
     .filter(
-      (section) => section.startsWith("Page prompt:") || section.startsWith("Allowed block types:"),
+      (section) => section.startsWith("Page prompt:") || section.startsWith("Prompt-suggested block types:"),
     );
 
   return {
@@ -39,7 +40,7 @@ describe("buildPageGenerationPrompts fixture snapshots", () => {
             pagePrompt: fixture.pagePrompt,
             referenceLinks: fixture.referenceLinks,
             assets: fixture.assets,
-            allowedSections: fixture.allowedSections,
+            allowedBlockTypes: fixture.allowedSections,
             toneBrandingHints: fixture.toneBrandingHints,
             layoutRegions: ["top", "main", "bottom"],
           }),

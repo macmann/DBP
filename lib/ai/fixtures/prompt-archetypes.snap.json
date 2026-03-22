@@ -4,7 +4,7 @@
     "systemPromptHasVariationRule": true,
     "userSections": [
       "Page prompt:\nCreate a conversion-first SaaS page that opens with FAQ before feature details.",
-      "Allowed block types:\nhero, faq, features, cta, footer"
+      "Prompt-suggested block types:\nhero, faq, features, cta, footer"
     ]
   },
   "storytelling_nonprofit": {
@@ -12,7 +12,7 @@
     "systemPromptHasVariationRule": true,
     "userSections": [
       "Page prompt:\nBuild a long-form storytelling page for a nonprofit with alternating image/text narrative blocks.",
-      "Allowed block types:\nhero, imageText, testimonial, cta, footer"
+      "Prompt-suggested block types:\nhero, imageText, testimonial, cta, footer"
     ]
   },
   "comparison_grid_b2b": {
@@ -20,7 +20,7 @@
     "systemPromptHasVariationRule": true,
     "userSections": [
       "Page prompt:\nGenerate a comparison-led B2B landing page with a cards-3 feature matrix and compact CTA.",
-      "Allowed block types:\nhero, features, logoStrip, cta, footer"
+      "Prompt-suggested block types:\nhero, features, logoStrip, cta, footer"
     ]
   }
 }

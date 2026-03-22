@@ -8,7 +8,6 @@ import { callOpenAIForPageSchema } from "@/lib/ai/openaiClient";
 import { applyAssetFallbacks } from "@/lib/ai/applyAssetFallbacks";
 import { buildPageGenerationPrompts } from "@/lib/ai/promptBuilder";
 import {
-  ALLOWED_SECTION_TYPES,
   type GeneratedPageSchema,
   sanitizeGeneratedPageSchema,
   validateGeneratedPageSchema,
@@ -251,12 +250,8 @@ function buildGenerationDiagnostics(input: {
   validationErrors?: string[];
   requestId?: string | null;
 }): GenerationDiagnostics {
-  const sections = input.sanitizedSchema.sections ?? [];
-  const unknownBlockCount = sections.filter(
-    (section) => !(ALLOWED_SECTION_TYPES as readonly string[]).includes(section.type),
-  ).length;
-  const validationWarnings =
-    unknownBlockCount > 0 ? [`unknown block types encountered (${unknownBlockCount})`] : [];
+  const unknownBlockCount = 0;
+  const validationWarnings: string[] = [];
 
   return {
     requestId: input.requestId,
@@ -787,7 +782,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         ? page.referenceLinks.filter((link): link is string => typeof link === "string")
         : [],
       assets: page.assets,
-      allowedSections: ALLOWED_SECTION_TYPES,
+      allowedBlockTypes: [],
       toneBrandingHints: [
         `Use ${page.project.name} brand voice where possible.`,
         "Prefer concise, conversion-oriented marketing copy.",
@@ -1286,7 +1281,7 @@ export async function generateNewVersion(
         ? page.referenceLinks.filter((link): link is string => typeof link === "string")
         : [],
       assets: page.assets,
-      allowedSections: ALLOWED_SECTION_TYPES,
+      allowedBlockTypes: [],
       toneBrandingHints: [
         `Use ${page.project.name} brand voice where possible.`,
         "Preserve valid structure while applying requested improvements.",
