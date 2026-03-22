@@ -32,17 +32,17 @@ export function HeroSection({ section, resolveAsset }: SectionRenderProps) {
             heading={heading ?? "Build trust with a clear value proposition"}
             body={body}
             headingClassName="sm:text-4xl"
-            bodyClassName="text-neutral-200"
+            bodyClassName="text-white/85"
           />
           {cta ? (
             <a
               href={cta.href}
-              className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
+              className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[var(--dbp-ink)] transition hover:opacity-90"
             >
               {cta.label}
             </a>
           ) : (
-            <p className="text-sm text-neutral-300">
+            <p className="text-sm text-white/75">
               Add a call-to-action to improve conversion focus.
             </p>
           )}
@@ -51,7 +51,7 @@ export function HeroSection({ section, resolveAsset }: SectionRenderProps) {
           src={heroImage?.storageUrl}
           alt={heroImage?.fileName}
           fallbackLabel="Add a hero image for stronger visual hierarchy."
-          className="border-white/10 bg-neutral-900"
+          className="border-white/20 bg-black/20"
           aspectClassName="aspect-[4/3]"
         />
       </div>

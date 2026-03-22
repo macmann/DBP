@@ -20,20 +20,18 @@ export function FeaturesSection({ section }: SectionRenderProps) {
         <SectionHeader
           heading={heading ?? "Core features"}
           body={body}
-          headingClassName="text-neutral-900"
-          bodyClassName="text-neutral-600"
         />
         {items.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {items.map((item, index) => (
               <article
                 key={`${section.id}-feature-${index}`}
-                className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5"
+                className="rounded-2xl border border-[var(--dbp-border)] bg-[var(--dbp-surface-muted)] p-5"
               >
-                <h3 className="text-base font-semibold text-neutral-900">
+                <h3 className="text-base font-semibold text-[var(--dbp-ink)]">
                   {getString(item, "title") ?? `Feature ${index + 1}`}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-neutral-600">
+                <p className="mt-2 text-sm leading-6 text-[var(--dbp-muted)]">
                   {getString(item, "description") ??
                     "Additional feature details can be added here."}
                 </p>

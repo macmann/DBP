@@ -23,8 +23,6 @@ export function ImageTextSection({ section, resolveAsset }: SectionRenderProps) 
               body ??
               "Pair concise copy with supporting imagery to improve readability and comprehension."
             }
-            headingClassName="text-neutral-900"
-            bodyClassName="text-neutral-600"
           />
         </div>
         <MediaFrame

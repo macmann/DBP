@@ -11,8 +11,8 @@ export function FooterSection({ section }: SectionRenderProps) {
         heading={heading ?? "Thanks for visiting"}
         body={body ?? "Update this footer with legal text, links, or your company address."}
         align="center"
-        headingClassName="text-lg text-neutral-900 sm:text-xl"
-        bodyClassName="mx-auto text-neutral-600"
+        headingClassName="text-lg sm:text-xl"
+        bodyClassName="mx-auto"
       />
     </SectionShell>
   );

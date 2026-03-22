@@ -13,17 +13,17 @@ export function CTASection({ section }: SectionRenderProps) {
           heading={heading ?? "Ready to get started?"}
           body={body}
           align="center"
-          bodyClassName="mx-auto text-neutral-200"
+          bodyClassName="mx-auto text-white/85"
         />
         {cta ? (
           <a
             href={cta.href}
-            className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-neutral-900 transition hover:bg-neutral-100"
+            className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-[var(--dbp-ink)] transition hover:opacity-90"
           >
             {cta.label}
           </a>
         ) : (
-          <p className="text-sm text-neutral-300">Action link unavailable.</p>
+          <p className="text-sm text-white/75">Action link unavailable.</p>
         )}
       </div>
     </SectionShell>
