@@ -13,19 +13,26 @@ import { FormSection } from "@/components/forms/FormSection";
 import { FormTextArea } from "@/components/forms/FormTextArea";
 import { FormTextInput } from "@/components/forms/FormTextInput";
 import { ReferenceLinksListEditor } from "@/components/forms/ReferenceLinksListEditor";
+import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
 import { STYLE_PRESETS, type StylePresetKey } from "@/lib/ai/stylePresets";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 import { cn } from "@/lib/utils/cn";
+import type { UploadedAssetDto } from "@/types/asset-upload";
 import type { PageEditorFormModel } from "@/types/page-editor";
 
 type PageEditorFormProps = {
+  projectId: string;
   projectSlug: string;
   pageId: string;
   previewSlug: string;
   initialModel: PageEditorFormModel;
+  initialAssets: UploadedAssetDto[];
+  isGenerationReady: boolean;
+  requiredImageSlots: number;
+  requiresLogo: boolean;
 };
 
 type SurfaceStatus = "idle" | "success" | "error" | "running";
@@ -55,7 +62,17 @@ function StatusSurface({ status, message }: { status: SurfaceStatus; message: st
   );
 }
 
-export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel }: PageEditorFormProps) {
+export function PageEditorForm({
+  projectId,
+  projectSlug,
+  pageId,
+  previewSlug,
+  initialModel,
+  initialAssets,
+  isGenerationReady,
+  requiredImageSlots,
+  requiresLogo,
+}: PageEditorFormProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(
@@ -195,6 +212,15 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
           ))}
         </div>
       </FormSection>
+
+      <PageAssetsSection
+        projectId={projectId}
+        pageId={pageId}
+        isGenerationReady={isGenerationReady}
+        requiresLogo={requiresLogo}
+        requiredImageSlots={requiredImageSlots}
+        initialAssets={initialAssets}
+      />
 
       <FormSection title="Widget embed" description="Paste external widget HTML/script to render on the public page.">
         <FormTextArea

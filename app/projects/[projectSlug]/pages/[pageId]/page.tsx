@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PageStatusBadge } from "@/components/dashboard/PageStatusBadge";
-import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { PageEditorForm } from "@/components/forms/PageEditorForm";
 import { VersionHistoryPanel } from "@/components/forms/VersionHistoryPanel";
 import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
@@ -182,12 +181,11 @@ export default async function PageDetailPage({
           </div>
         </div>
 
-        <PageAssetsSection
+        <PageEditorForm
           projectId={page.projectId}
+          projectSlug={page.project.slug}
           pageId={page.id}
-          isGenerationReady={Boolean(page.currentVersionId)}
-          requiresLogo={requiredAssetSlots.requiresLogo}
-          requiredImageSlots={requiredAssetSlots.requiredImageSlots}
+          previewSlug={page.publicSlug}
           initialAssets={page.assets.map((asset) => ({
             id: asset.id,
             projectId: asset.projectId,
@@ -200,12 +198,9 @@ export default async function PageDetailPage({
             metadata: (asset.metadata as Record<string, unknown> | null) ?? null,
             createdAt: asset.createdAt.toISOString(),
           }))}
-        />
-
-        <PageEditorForm
-          projectSlug={page.project.slug}
-          pageId={page.id}
-          previewSlug={page.publicSlug}
+          isGenerationReady={Boolean(page.currentVersionId)}
+          requiresLogo={requiredAssetSlots.requiresLogo}
+          requiredImageSlots={requiredAssetSlots.requiredImageSlots}
           initialModel={{
             details: {
               title: page.title,
