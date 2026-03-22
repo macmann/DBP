@@ -12,6 +12,7 @@ import {
   type GeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "@/lib/ai/schema";
+import { applyPromptLayoutDirectives } from "@/lib/ai/layoutDirectives";
 import {
   composePromptWithStyle,
   isStylePresetKey,
@@ -779,7 +780,10 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       };
     }
 
-    const generatedSchema: GeneratedPageSchema = applyAssetFallbacks(parsed.data, page.assets);
+    const generatedSchema: GeneratedPageSchema = applyPromptLayoutDirectives(
+      applyAssetFallbacks(parsed.data, page.assets),
+      page.prompt ?? "",
+    );
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({
@@ -1157,7 +1161,10 @@ export async function generateNewVersion(
       };
     }
 
-    const revisedSchema: GeneratedPageSchema = applyAssetFallbacks(parsed.data, page.assets);
+    const revisedSchema: GeneratedPageSchema = applyPromptLayoutDirectives(
+      applyAssetFallbacks(parsed.data, page.assets),
+      normalizedInstruction,
+    );
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({

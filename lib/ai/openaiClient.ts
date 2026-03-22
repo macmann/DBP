@@ -63,7 +63,7 @@ export async function callOpenAIForPageSchema(input: OpenAIPromptInput) {
           type: "json_object",
         },
       },
-      temperature: 0.2,
+      temperature: 0.6,
     }),
   });
 

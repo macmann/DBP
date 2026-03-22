@@ -27,6 +27,7 @@ export type ValidationResult<T> = ValidationSuccess<T> | ValidationFailure;
 export type GeneratedSection = {
   id: string;
   type: AllowedSectionType;
+  layoutVariant?: string;
   heading?: string;
   body?: string;
   items?: Array<Record<string, unknown>>;
@@ -131,6 +132,9 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
         return section;
       }
       const nextSection: Record<string, unknown> = { ...section };
+      if (typeof section.layoutVariant === "string") {
+        nextSection.layoutVariant = section.layoutVariant.trim();
+      }
       if (isRecord(section.cta) && typeof section.cta.href === "string") {
         nextSection.cta = {
           ...section.cta,
