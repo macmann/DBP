@@ -16,6 +16,7 @@ export type BuildPromptInput = {
   assets: PromptAsset[];
   allowedSections: readonly AllowedSectionType[];
   toneBrandingHints: string[];
+  layoutRegions: readonly ["top", "main", "bottom"];
 };
 
 export function buildPageGenerationPrompts(input: BuildPromptInput) {
@@ -24,11 +25,12 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "Output JSON only (no markdown, no prose, no explanations).",
     "Return exactly one JSON object with only these top-level keys: pageTitle, summary (optional), pageHeaderAlignment (optional), theme, seo, blocks, layout.",
     "theme, seo, blocks, and layout are required and must be valid objects/array.",
+    "The response contract is block/layout based only: blocks[] define content units and layout maps placement by block ID.",
     "seo.title must be 70 characters or fewer.",
     "seo.description must be 160 characters or fewer.",
     "Every blocks[].props.cta.href must be either an absolute http(s) URL or a root-relative path that starts with '/'.",
     "Use only block types from the allowed list.",
-    "Each blocks[] entry must include type and props. variant is optional.",
+    "Each blocks[] entry must include id and type. variant and props are optional.",
     "Any media references (blocks[].props.mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
     "If uploaded image/logo assets are provided, assign relevant blocks[].props.mediaAssetIds for visual blocks (hero, imageText, gallery, logoStrip, testimonial).",
     "Pick assets by semantic fit from fileName/type/metadata so the demo renders real images instead of fallback placeholders.",
@@ -38,7 +40,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "When the prompt requests a specific layout pattern (for example split hero, comparison grid, FAQ-first, long-form storytelling), reflect that in block sequencing, block variants, and props content.",
     "Set blocks[].variant when useful so the renderer can apply explicit layout intent (examples: split, centered, media-left, media-right, cards-2, cards-3, cards-4, alternating, stacked).",
     "Preserve deterministic JSON constraints while increasing semantic diversity: vary composition and copy strategy without inventing non-schema keys.",
-    "layout.top, layout.main, and layout.bottom must be arrays of block IDs that reference existing blocks[].id values.",
+    `layout.${input.layoutRegions[0]}, layout.${input.layoutRegions[1]}, and layout.${input.layoutRegions[2]} must be arrays of block IDs that reference existing blocks[].id values.`,
   ].join("\n");
 
   const userPrompt = [
@@ -85,13 +87,13 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     '      "id": "string // stable block id",',
     '      "type": "allowedType // required, must be from Allowed block types",',
     '      "variant?": "string // optional layout/style variant token",',
-    '      "props": "object // block-specific payload (headings, body, items, cta, mediaAssetIds, etc.)"',
+    '      "props?": "object // optional block payload (headings, body, items, cta, mediaAssetIds, etc.)"',
     "    }",
     "  ],",
     '  "layout": {',
-    '    "top": "string[] // block ids placed above main content",',
-    '    "main": "string[] // block ids for primary narrative flow",',
-    '    "bottom": "string[] // block ids for footer-adjacent content"',
+    `    "${input.layoutRegions[0]}": "string[] // block ids placed above main content",`,
+    `    "${input.layoutRegions[1]}": "string[] // block ids for primary narrative flow",`,
+    `    "${input.layoutRegions[2]}": "string[] // block ids for footer-adjacent content"`,
     "  }",
     "}",
     "Do not output any text before or after the JSON object.",

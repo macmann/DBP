@@ -4,14 +4,16 @@ import { buildPageGenerationPrompts, type BuildPromptInput } from "./promptBuild
 import promptArchetypes from "./fixtures/prompt-archetypes.json";
 import promptArchetypeSnapshots from "./fixtures/prompt-archetypes.snap.json";
 
-type PromptArchetypeFixture = BuildPromptInput & {
+type PromptArchetypeFixture = Omit<BuildPromptInput, "layoutRegions"> & {
   name: string;
 };
 
 function normalizePromptOutput(payload: ReturnType<typeof buildPageGenerationPrompts>) {
   const userSections = payload.userPrompt
     .split("\n\n")
-    .filter((section) => section.startsWith("Page prompt:") || section.startsWith("Allowed sections:"));
+    .filter(
+      (section) => section.startsWith("Page prompt:") || section.startsWith("Allowed block types:"),
+    );
 
   return {
     systemPromptHasLayoutRule: payload.systemPrompt.includes(
@@ -39,6 +41,7 @@ describe("buildPageGenerationPrompts fixture snapshots", () => {
             assets: fixture.assets,
             allowedSections: fixture.allowedSections,
             toneBrandingHints: fixture.toneBrandingHints,
+            layoutRegions: ["top", "main", "bottom"],
           }),
         ),
       ]),
