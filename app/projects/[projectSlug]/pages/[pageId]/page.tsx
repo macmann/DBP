@@ -5,6 +5,7 @@ import { PageAssetsSection } from "@/components/assets/PageAssetsSection";
 import { PageEditorForm } from "@/components/forms/PageEditorForm";
 import { VersionHistoryPanel } from "@/components/forms/VersionHistoryPanel";
 import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
+import { detectStylePresetFromPrompt, stripStyleInstructionFromPrompt } from "@/lib/ai/stylePresets";
 import { prisma } from "@/lib/db";
 import { validateGeneratedPageSchema } from "@/lib/ai/schema";
 import { buildCanonicalPublicPath } from "@/lib/config/publishing";
@@ -181,7 +182,12 @@ export default async function PageDetailPage({
               title: page.title,
               slug: page.slug,
             },
-            prompt: page.currentVersion?.instructionPrompt ?? page.prompt ?? "",
+            prompt: stripStyleInstructionFromPrompt(
+              page.currentVersion?.instructionPrompt ?? page.prompt ?? "",
+            ),
+            stylePreset: detectStylePresetFromPrompt(
+              page.currentVersion?.instructionPrompt ?? page.prompt ?? "",
+            ),
             widgetEmbedHtml: page.widgetEmbedHtml ?? "",
             referenceLinks: Array.isArray(page.referenceLinks)
               ? page.referenceLinks.filter((link): link is string => typeof link === "string")

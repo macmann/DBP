@@ -13,7 +13,7 @@ import {
   validateGeneratedPageSchema,
 } from "@/lib/ai/schema";
 import {
-  getStylePresetInstruction,
+  composePromptWithStyle,
   isStylePresetKey,
   type StylePresetKey,
 } from "@/lib/ai/stylePresets";
@@ -454,8 +454,7 @@ export async function createPage(
     const slug = await ensureUniquePageSlug(project.id, baseSlug);
     const publicSlug = await ensureUniquePublicSlug(baseSlug);
     const stylePreset = stylePresetRaw as StylePresetKey;
-    const styleInstruction = getStylePresetInstruction(stylePreset);
-    const promptWithStyle = `${prompt}\n\nDesign style requirement:\n${styleInstruction}`;
+    const promptWithStyle = composePromptWithStyle(prompt, stylePreset);
 
     const page = await prisma.$transaction(async (tx) => {
       const createdPage = await tx.page.create({
@@ -554,6 +553,7 @@ export async function updatePage(
   const title = String(formData.get("title") ?? "").trim();
   const customSlug = String(formData.get("slug") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
+  const stylePresetRaw = String(formData.get("stylePreset") ?? "").trim();
   const widgetEmbedHtml = String(formData.get("widgetEmbedHtml") ?? "").trim();
   const referenceLinks = parseReferenceLinksFromForm(formData);
   const validationErrors = validatePageInput({
@@ -573,7 +573,19 @@ export async function updatePage(
     };
   }
 
+  if (!stylePresetRaw || !isStylePresetKey(stylePresetRaw)) {
+    return {
+      status: "error",
+      ok: false,
+      message: "Could not save changes.",
+      fieldErrors: {
+        stylePreset: "Please choose a valid style preset.",
+      },
+    };
+  }
+
   try {
+    const promptWithStyle = composePromptWithStyle(prompt, stylePresetRaw as StylePresetKey);
     const baseSlug = slugify(customSlug || title) || "page";
     const slug = await ensureUniquePageSlug(project.id, baseSlug, pageId);
     const publicSlug = await ensureUniquePublicSlug(baseSlug, pageId);
@@ -586,7 +598,7 @@ export async function updatePage(
         data: {
           title,
           slug,
-          prompt: prompt || null,
+          prompt: promptWithStyle || null,
           widgetEmbedHtml: widgetEmbedHtml || null,
           referenceLinks: referenceLinks.filter(Boolean),
           publicSlug,
@@ -599,7 +611,7 @@ export async function updatePage(
             id: existingPage.currentVersionId,
           },
           data: {
-            instructionPrompt: prompt || null,
+            instructionPrompt: promptWithStyle || null,
           },
         });
       }
@@ -923,8 +935,7 @@ export async function quickGeneratePage(
 
   try {
     const stylePreset = stylePresetRaw as StylePresetKey;
-    const styleInstruction = getStylePresetInstruction(stylePreset);
-    const promptWithStyle = `${prompt}\n\nDesign style requirement:\n${styleInstruction}`;
+    const promptWithStyle = composePromptWithStyle(prompt, stylePreset);
 
     const existingProject = await prisma.project.findFirst({
       where: {
@@ -976,7 +987,7 @@ export async function quickGeneratePage(
         data: {
           pageId: createdPage.id,
           versionNumber: 1,
-          instructionPrompt: prompt,
+          instructionPrompt: promptWithStyle,
           generatedSchemaJson: Prisma.JsonNull,
           notes: "Initial quick-start version",
         },
