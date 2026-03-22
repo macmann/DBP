@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 
-import { AssetType } from "@prisma/client";
+import { AssetType, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { applyAssetFallbacks } from "@/lib/ai/applyAssetFallbacks";
 import { validateGeneratedPageSchema } from "@/lib/ai/schema";
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
           await prisma.pageVersion.update({
             where: { id: pageWithVersion.currentVersionId },
             data: {
-              generatedSchemaJson: hydratedSchema
+              generatedSchemaJson: JSON.parse(JSON.stringify(hydratedSchema)) as Prisma.InputJsonValue
             }
           });
         }
