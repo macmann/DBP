@@ -29,10 +29,14 @@ function renderBlock(block: GeneratedBlock, resolveAsset: AssetResolver) {
     return <MalformedBlockPlaceholder blockId="unknown" />;
   }
 
-  const resolved = resolveBlock(String(block.type));
+  if (typeof block.type !== "string" || block.type.trim().length === 0) {
+    return <MalformedBlockPlaceholder blockId={block.id} />;
+  }
+
+  const resolved = resolveBlock(block.type);
 
   if (!resolved) {
-    return <UnknownBlockPlaceholder type={String(block.type)} />;
+    return <UnknownBlockPlaceholder type={block.type} />;
   }
 
   if (resolved.validator && !resolved.validator(block.props)) {

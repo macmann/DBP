@@ -24,28 +24,7 @@ type BlockRegistration = {
   validator?: BlockValidator;
 };
 
-const blockRegistry = new Map<string, BlockRegistration>([
-  ["hero", { component: createBlockAdapter(HeroSection), validator: validateCommonProps }],
-  [
-    "logoStrip",
-    { component: createBlockAdapter(LogoStripSection), validator: validateCommonProps },
-  ],
-  ["features", { component: createBlockAdapter(FeaturesSection), validator: validateCommonProps }],
-  [
-    "imageText",
-    { component: createBlockAdapter(ImageTextSection), validator: validateCommonProps },
-  ],
-  ["gallery", { component: createBlockAdapter(GallerySection), validator: validateCommonProps }],
-  [
-    "testimonial",
-    { component: createBlockAdapter(TestimonialSection), validator: validateCommonProps },
-  ],
-  ["faq", { component: createBlockAdapter(FAQSection), validator: validateCommonProps }],
-  ["cta", { component: createBlockAdapter(CTASection), validator: validateCommonProps }],
-  ["footer", { component: createBlockAdapter(FooterSection), validator: validateCommonProps }],
-]);
-
-
+const blockRegistry = new Map<string, BlockRegistration>();
 
 export function registerBlock(
   type: string,
@@ -58,3 +37,17 @@ export function registerBlock(
 export function resolveBlock(type: string): BlockRegistration | null {
   return blockRegistry.get(type) ?? null;
 }
+
+function bootstrapBlockRegistry() {
+  registerBlock("hero", createBlockAdapter(HeroSection), validateCommonProps);
+  registerBlock("logoStrip", createBlockAdapter(LogoStripSection), validateCommonProps);
+  registerBlock("features", createBlockAdapter(FeaturesSection), validateCommonProps);
+  registerBlock("imageText", createBlockAdapter(ImageTextSection), validateCommonProps);
+  registerBlock("gallery", createBlockAdapter(GallerySection), validateCommonProps);
+  registerBlock("testimonial", createBlockAdapter(TestimonialSection), validateCommonProps);
+  registerBlock("faq", createBlockAdapter(FAQSection), validateCommonProps);
+  registerBlock("cta", createBlockAdapter(CTASection), validateCommonProps);
+  registerBlock("footer", createBlockAdapter(FooterSection), validateCommonProps);
+}
+
+bootstrapBlockRegistry();
