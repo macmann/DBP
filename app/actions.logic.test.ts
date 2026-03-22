@@ -93,6 +93,20 @@ describe("action logic: build failure validation paths", () => {
     assert.match(block, /code: "invalid_prompt"/);
     assert.match(block, /PageStatus\.failed/);
   });
+
+  it("applies block safety sanitization before persisting build output", () => {
+    const block = getFunctionBlock(actionsSource, "buildPage");
+
+    assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
+    assert.match(block, /generatedSchemaJson: generatedSchema/);
+  });
+
+  it("applies block safety sanitization before persisting generated revisions", () => {
+    const block = getFunctionBlock(actionsSource, "generateNewVersion");
+
+    assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
+    assert.match(block, /generatedSchemaJson: revisedSchema/);
+  });
 });
 
 describe("action logic: page deletion", () => {
