@@ -31,11 +31,13 @@ const validFixture = {
     {
       id: "hero-1",
       type: "hero",
-      heading: "Know your numbers",
-      body: "A simple analytics platform.",
-      cta: {
-        label: "Start free",
-        href: "/signup",
+      props: {
+        heading: "Know your numbers",
+        body: "A simple analytics platform.",
+        cta: {
+          label: "Start free",
+          href: "/signup",
+        },
       },
     },
   ],
@@ -43,11 +45,13 @@ const validFixture = {
     {
       id: "hero-1",
       type: "hero",
-      heading: "Know your numbers",
-      body: "A simple analytics platform.",
-      cta: {
-        label: "Start free",
-        href: "/signup",
+      props: {
+        heading: "Know your numbers",
+        body: "A simple analytics platform.",
+        cta: {
+          label: "Start free",
+          href: "/signup",
+        },
       },
     },
   ],
@@ -149,10 +153,12 @@ describe("validateGeneratedPageSchema", () => {
       ...validFixture,
       blocks: [
         {
-          ...validFixture.sections[0],
-          cta: {
-            label: "Start free",
-            href: "not a url",
+          ...validFixture.blocks[0],
+          props: {
+            cta: {
+              label: "Start free",
+              href: "not a url",
+            },
           },
         },
       ],
@@ -273,7 +279,8 @@ describe("validateGeneratedPageSchema", () => {
       ...validFixture,
       sections: [
         {
-          ...validFixture.sections[0],
+          id: "hero-1",
+          type: "hero",
           cta: {
             label: "   ",
             href: "/signup",
@@ -294,9 +301,9 @@ describe("validateGeneratedPageSchema", () => {
   it("allows unknown block types with baseline validation", () => {
     const payload = {
       ...validFixture,
-      sections: [
+      blocks: [
         {
-          ...validFixture.sections[0],
+          id: "hero-1",
           type: "video" as unknown as string,
         },
       ],
@@ -307,21 +314,26 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal(result.success, true);
   });
 
+  it("accepts minimal block shape (id + type) without section-specific fields", () => {
+    const payload = {
+      ...validFixture,
+      blocks: [
+        {
+          id: "only-required-fields",
+          type: "customBlock",
+        },
+      ],
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, true);
+  });
+
   it("accepts dynamic blocks in layout regions when ids/types are present", () => {
     const payload = {
       ...validFixture,
       blocks: [
         ...validFixture.blocks,
-        {
-          id: "custom-social-proof",
-          type: "socialProofWall",
-          props: {
-            heading: "Loved by teams",
-          },
-        },
-      ],
-      sections: [
-        ...validFixture.sections,
         {
           id: "custom-social-proof",
           type: "socialProofWall",
@@ -386,15 +398,16 @@ describe("validateGeneratedPageSchema", () => {
       pageHeaderAlignment: "  CENTER ",
       sections: [
         {
-          ...validFixture.sections[0],
+          id: "hero-1",
+          type: "hero",
           cta: {
             label: "Start free",
             href: "www.example.com/pricing",
           },
         },
         {
-          ...validFixture.sections[0],
           id: "cta-2",
+          type: "hero",
           cta: {
             label: "Contact",
             href: "contact",
@@ -411,6 +424,40 @@ describe("validateGeneratedPageSchema", () => {
       throw new Error("Expected validation success");
     }
     assert.equal(result.data.pageHeaderAlignment, "center");
+  });
+
+  it("maps legacy sections arrays into blocks during sanitization", () => {
+    const payload = {
+      ...validFixture,
+      sections: [
+        {
+          id: "legacy-hero",
+          type: "hero",
+          layoutVariant: "split",
+          heading: "Legacy heading",
+          body: "Legacy body",
+        },
+      ],
+    };
+    delete (payload as { blocks?: unknown }).blocks;
+
+    const sanitized = sanitizeGeneratedPageSchema(payload);
+    const result = validateGeneratedPageSchema(sanitized);
+
+    assert.equal(result.success, true);
+    if (!result.success) {
+      throw new Error("Expected validation success");
+    }
+
+    assert.deepEqual(result.data.blocks?.[0], {
+      id: "legacy-hero",
+      type: "hero",
+      variant: "split",
+      props: {
+        heading: "Legacy heading",
+        body: "Legacy body",
+      },
+    });
   });
 
   it("migrates legacy saved schema fixtures at runtime", () => {
