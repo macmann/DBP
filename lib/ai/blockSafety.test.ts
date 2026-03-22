@@ -1,8 +1,23 @@
 import { describe, it } from "node:test";
 import * as assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
-import { sanitizeGeneratedPageBlockSafety } from "@/lib/ai/blockSafety";
-import type { GeneratedPageSchema } from "@/lib/ai/schema";
+import {
+  formatBlockSafetyViolations,
+  inspectGeneratedPageBlockSafety,
+  sanitizeGeneratedPageBlockSafety,
+} from "@/lib/ai/blockSafety";
+import type { GeneratedBlock, GeneratedPageSchema } from "@/lib/ai/schema";
+
+type MaliciousFixture = {
+  name: string;
+  block: GeneratedBlock;
+  expectedViolationCodes: string[];
+};
+
+const maliciousFixtures = JSON.parse(
+  readFileSync(new URL("./fixtures/block-safety-malicious.json", import.meta.url), "utf8"),
+) as MaliciousFixture[];
 
 function createFixture(overrides?: Partial<GeneratedPageSchema>): GeneratedPageSchema {
   return {
@@ -153,14 +168,8 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
 
     const sanitized = sanitizeGeneratedPageBlockSafety(schema);
     const widgetProps = sanitized.blocks?.[0]?.props as Record<string, unknown>;
-    assert.equal(
-      ((widgetProps.payload as Record<string, unknown>).snippet as string) ?? "",
-      "",
-    );
-    assert.equal(
-      (widgetProps.config as Record<string, unknown>).sourceUrl,
-      undefined,
-    );
+    assert.equal(((widgetProps.payload as Record<string, unknown>).snippet as string) ?? "", "");
+    assert.equal((widgetProps.config as Record<string, unknown>).sourceUrl, undefined);
   });
 
   it("permits dangerous HTML only for explicitly-allowed block types", () => {
@@ -210,5 +219,42 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     assert.deepEqual(sanitized.layout?.top, ["hero-1"]);
     assert.deepEqual(sanitized.layout?.main, ["hero-1"]);
     assert.deepEqual(sanitized.layout?.bottom, []);
+  });
+
+  it("tracks actionable violations for malicious fixture payloads", () => {
+    for (const fixture of maliciousFixtures) {
+      const result = inspectGeneratedPageBlockSafety(
+        createFixture({
+          blocks: [fixture.block],
+          sections: [],
+        }),
+      );
+
+      assert.deepEqual(
+        result.violations.map((violation) => violation.code),
+        fixture.expectedViolationCodes,
+        `fixture failed: ${fixture.name}`,
+      );
+    }
+  });
+
+  it("formats policy violations into actionable error text", () => {
+    const result = inspectGeneratedPageBlockSafety(
+      createFixture({
+        blocks: [
+          {
+            id: "hero-1",
+            type: "hero",
+            props: {
+              href: "javascript:alert(1)",
+            },
+          },
+        ],
+      }),
+    );
+
+    const message = formatBlockSafetyViolations(result.violations);
+    assert.match(message, /disallowed_url_protocol/);
+    assert.match(message, /blocks\.hero-1\.props\.href/);
   });
 });

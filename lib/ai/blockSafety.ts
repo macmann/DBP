@@ -25,13 +25,13 @@ const HTML_PROP_KEYS = new Set([
   "payload",
 ]);
 
-const ALLOWED_EMBED_BLOCK_TYPES = new Set(["widgetEmbed"]);
+const ALLOWED_EMBED_BLOCK_TYPES = new Set(["widgetembed"]);
 const DENIED_EMBED_BLOCK_TYPES = new Set([
   "embed",
   "iframe",
-  "scriptEmbed",
-  "htmlEmbed",
-  "rawHtml",
+  "scriptembed",
+  "htmlembed",
+  "rawhtml",
 ]);
 
 export type BlockSafetyPolicy = {
@@ -48,12 +48,35 @@ export type SanitizeBlockSafetyOptions = {
   allowedInlineHtmlBlockTypes?: readonly string[];
 };
 
+export type BlockSafetyViolationCode =
+  | "denied_embed_block"
+  | "disallowed_url_protocol"
+  | "unsafe_html_payload";
+
+export type BlockSafetyViolation = {
+  code: BlockSafetyViolationCode;
+  blockId: string;
+  blockType: string;
+  path: string;
+  message: string;
+  valuePreview?: string;
+};
+
+export type BlockSafetyResult = {
+  schema: GeneratedPageSchema;
+  violations: BlockSafetyViolation[];
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function normalizeType(type: string): string {
+  return type.trim().toLowerCase();
+}
+
 function isEmbedLikeType(type: string): boolean {
-  const normalizedType = type.trim().toLowerCase();
+  const normalizedType = normalizeType(type);
   return (
     normalizedType.includes("embed") ||
     normalizedType.includes("iframe") ||
@@ -97,32 +120,87 @@ function looksLikeHtml(value: string): boolean {
   return /<[^>]+>/.test(value) || /&lt;[^&]+&gt;/.test(value);
 }
 
+function previewValue(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized.length > 80 ? `${normalized.slice(0, 77)}...` : normalized;
+}
+
+type BlockContext = {
+  blockId: string;
+  blockType: string;
+};
+
+function pushViolation(
+  violations: BlockSafetyViolation[],
+  input: Omit<BlockSafetyViolation, "valuePreview"> & { value?: unknown },
+) {
+  violations.push({
+    code: input.code,
+    blockId: input.blockId,
+    blockType: input.blockType,
+    path: input.path,
+    message: input.message,
+    valuePreview: previewValue(input.value),
+  });
+}
+
 function sanitizePropValue(
   key: string,
   value: unknown,
   blockType: string,
   allowedInlineHtmlBlockTypes: ReadonlySet<string>,
+  blockContext: BlockContext,
+  violations: BlockSafetyViolation[],
+  path: string,
 ): unknown {
   const normalizedKey = key.trim().toLowerCase();
 
   if (typeof value === "string") {
     if (URL_PROP_KEYS.has(normalizedKey)) {
-      return sanitizeUrlValue(value, ROOT_RELATIVE_ONLY_URL_PROP_KEYS.has(normalizedKey));
+      const sanitizedUrl = sanitizeUrlValue(value, ROOT_RELATIVE_ONLY_URL_PROP_KEYS.has(normalizedKey));
+      if (sanitizedUrl === null) {
+        pushViolation(violations, {
+          code: "disallowed_url_protocol",
+          blockId: blockContext.blockId,
+          blockType: blockContext.blockType,
+          path,
+          value,
+          message: `Removed URL from '${key}' because only https/http (or root-relative for form actions) is allowed.`,
+        });
+      }
+      return sanitizedUrl;
     }
 
     if (HTML_PROP_KEYS.has(normalizedKey) || (isEmbedLikeType(blockType) && looksLikeHtml(value))) {
       const allowInlineHtml = allowedInlineHtmlBlockTypes.has(blockType);
       if (!allowInlineHtml && hasDangerousHtml(value)) {
+        pushViolation(violations, {
+          code: "unsafe_html_payload",
+          blockId: blockContext.blockId,
+          blockType: blockContext.blockType,
+          path,
+          value,
+          message: `Removed unsafe HTML/script payload from '${key}'.`,
+        });
         return "";
       }
     }
 
     if (
-      (normalizedKey.includes("url") ||
-        normalizedKey.endsWith("href") ||
-        normalizedKey.endsWith("src")) &&
+      (normalizedKey.includes("url") || normalizedKey.endsWith("href") || normalizedKey.endsWith("src")) &&
       /^(?:javascript|data|vbscript)\s*:/i.test(value.trim())
     ) {
+      pushViolation(violations, {
+        code: "disallowed_url_protocol",
+        blockId: blockContext.blockId,
+        blockType: blockContext.blockType,
+        path,
+        value,
+        message: `Removed URL-like payload from '${key}' because its protocol is unsafe.`,
+      });
       return null;
     }
 
@@ -131,18 +209,32 @@ function sanitizePropValue(
 
   if (Array.isArray(value)) {
     return value
-      .map((entry) => sanitizePropValue(key, entry, blockType, allowedInlineHtmlBlockTypes))
+      .map((entry, index) =>
+        sanitizePropValue(
+          key,
+          entry,
+          blockType,
+          allowedInlineHtmlBlockTypes,
+          blockContext,
+          violations,
+          `${path}[${index}]`,
+        ),
+      )
       .filter((entry) => entry !== null && entry !== undefined);
   }
 
   if (isRecord(value)) {
     const next: Record<string, unknown> = {};
     for (const [nestedKey, nestedValue] of Object.entries(value)) {
+      const nestedPath = `${path}.${nestedKey}`;
       const sanitizedNestedValue = sanitizePropValue(
         nestedKey,
         nestedValue,
         blockType,
         allowedInlineHtmlBlockTypes,
+        blockContext,
+        violations,
+        nestedPath,
       );
 
       if (sanitizedNestedValue !== null && sanitizedNestedValue !== undefined) {
@@ -159,14 +251,20 @@ function sanitizePropValue(
 function sanitizeBlock(
   block: GeneratedBlock,
   allowedInlineHtmlBlockTypes: ReadonlySet<string>,
+  violations: BlockSafetyViolation[],
 ): GeneratedBlock | null {
   const blockType = typeof block.type === "string" ? block.type.trim() : "";
-  const normalizedType = blockType.toLowerCase();
+  const normalizedType = normalizeType(blockType);
+  const blockId = typeof block.id === "string" ? block.id : "unknown-block";
 
-  if (
-    isEmbedLikeType(normalizedType) &&
-    !BLOCK_SAFETY_POLICY.allowedEmbedBlockTypes.has(normalizedType)
-  ) {
+  if (isEmbedLikeType(normalizedType) && !BLOCK_SAFETY_POLICY.allowedEmbedBlockTypes.has(normalizedType)) {
+    pushViolation(violations, {
+      code: "denied_embed_block",
+      blockId,
+      blockType: blockType || String(block.type),
+      path: `blocks.${blockId}`,
+      message: `Removed disallowed embed-like block type '${blockType || String(block.type)}'.`,
+    });
     return null;
   }
 
@@ -178,7 +276,18 @@ function sanitizeBlock(
   if (isRecord(block.props)) {
     const nextProps: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(block.props)) {
-      const sanitizedValue = sanitizePropValue(key, value, normalizedType, allowedInlineHtmlBlockTypes);
+      const sanitizedValue = sanitizePropValue(
+        key,
+        value,
+        normalizedType,
+        allowedInlineHtmlBlockTypes,
+        {
+          blockId,
+          blockType: blockType || String(block.type),
+        },
+        violations,
+        `blocks.${blockId}.props.${key}`,
+      );
       if (sanitizedValue !== null && sanitizedValue !== undefined) {
         nextProps[key] = sanitizedValue;
       }
@@ -187,8 +296,18 @@ function sanitizeBlock(
   }
 
   if (isRecord(block.cta)) {
-    const sanitizedHref =
-      typeof block.cta.href === "string" ? sanitizeUrlValue(block.cta.href) : null;
+    const sanitizedHref = typeof block.cta.href === "string" ? sanitizeUrlValue(block.cta.href) : null;
+
+    if (sanitizedHref === null && typeof block.cta.href === "string") {
+      pushViolation(violations, {
+        code: "disallowed_url_protocol",
+        blockId,
+        blockType: blockType || String(block.type),
+        path: `blocks.${blockId}.cta.href`,
+        value: block.cta.href,
+        message: "Replaced unsafe CTA href with '/'.",
+      });
+    }
 
     nextBlock.cta = {
       ...block.cta,
@@ -199,17 +318,18 @@ function sanitizeBlock(
   return nextBlock;
 }
 
-export function sanitizeGeneratedPageBlockSafety(
+export function inspectGeneratedPageBlockSafety(
   schema: GeneratedPageSchema,
   options?: SanitizeBlockSafetyOptions,
-): GeneratedPageSchema {
+): BlockSafetyResult {
   const allowedInlineHtmlBlockTypes = new Set(
-    (options?.allowedInlineHtmlBlockTypes ?? []).map((type) => type.trim().toLowerCase()),
+    (options?.allowedInlineHtmlBlockTypes ?? []).map((type) => normalizeType(type)),
   );
+  const violations: BlockSafetyViolation[] = [];
 
   const sourceBlocks = schema.blocks ?? schema.sections;
   const sanitizedBlocks = sourceBlocks
-    .map((block) => sanitizeBlock(block, allowedInlineHtmlBlockTypes))
+    .map((block) => sanitizeBlock(block, allowedInlineHtmlBlockTypes, violations))
     .filter((block): block is GeneratedBlock => block !== null);
 
   const allowedBlockIds = new Set(sanitizedBlocks.map((block) => block.id));
@@ -237,9 +357,33 @@ export function sanitizeGeneratedPageBlockSafety(
     : undefined;
 
   return {
-    ...schema,
-    blocks: sanitizedBlocks,
-    sections: sanitizedBlocks,
-    ...(nextLayout ? { layout: nextLayout } : {}),
+    schema: {
+      ...schema,
+      blocks: sanitizedBlocks,
+      sections: sanitizedBlocks,
+      ...(nextLayout ? { layout: nextLayout } : {}),
+    },
+    violations,
   };
+}
+
+export function sanitizeGeneratedPageBlockSafety(
+  schema: GeneratedPageSchema,
+  options?: SanitizeBlockSafetyOptions,
+): GeneratedPageSchema {
+  return inspectGeneratedPageBlockSafety(schema, options).schema;
+}
+
+export function formatBlockSafetyViolations(violations: readonly BlockSafetyViolation[]): string {
+  if (violations.length === 0) {
+    return "";
+  }
+
+  return violations
+    .slice(0, 5)
+    .map((violation, index) => {
+      const valueSnippet = violation.valuePreview ? ` Value: ${violation.valuePreview}` : "";
+      return `${index + 1}. [${violation.code}] ${violation.message} (${violation.path}).${valueSnippet}`;
+    })
+    .join(" ");
 }
