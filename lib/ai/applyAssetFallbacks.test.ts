@@ -15,6 +15,11 @@ const baseSchema: GeneratedPageSchema = {
     title: "SEO title",
     description: "SEO description",
   },
+  blocks: [
+    { id: "hero-1", type: "hero", heading: "Hero" },
+    { id: "logo-1", type: "logoStrip", heading: "Logos" },
+    { id: "gallery-1", type: "gallery", heading: "Gallery" },
+  ],
   sections: [
     { id: "hero-1", type: "hero", heading: "Hero" },
     { id: "logo-1", type: "logoStrip", heading: "Logos" },
@@ -30,9 +35,9 @@ describe("applyAssetFallbacks", () => {
       { id: "shot-b", type: "image", mimeType: "image/webp" },
     ]);
 
-    assert.deepEqual(result.sections[0].mediaAssetIds, ["shot-a"]);
-    assert.deepEqual(result.sections[1].mediaAssetIds, ["logo-a"]);
-    assert.deepEqual(result.sections[2].mediaAssetIds, ["shot-a", "shot-b"]);
+    assert.deepEqual(result.blocks[0].mediaAssetIds, ["shot-a"]);
+    assert.deepEqual(result.blocks[1].mediaAssetIds, ["logo-a"]);
+    assert.deepEqual(result.blocks[2].mediaAssetIds, ["shot-a", "shot-b"]);
     assert.equal(result.seo.ogImageAssetId, "shot-a");
   });
 
@@ -43,7 +48,7 @@ describe("applyAssetFallbacks", () => {
         ...baseSchema.seo,
         ogImageAssetId: "missing-id",
       },
-      sections: [
+      blocks: [
         {
           id: "hero-1",
           type: "hero",
@@ -57,7 +62,7 @@ describe("applyAssetFallbacks", () => {
       { id: "shot-a", type: "image", mimeType: "image/png" },
     ]);
 
-    assert.deepEqual(result.sections[0].mediaAssetIds, ["shot-a"]);
+    assert.deepEqual(result.blocks[0].mediaAssetIds, ["shot-a"]);
     assert.equal(result.seo.ogImageAssetId, "shot-a");
   });
 });

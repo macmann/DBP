@@ -21,7 +21,8 @@ export function applyAssetFallbacks(schema: GeneratedPageSchema, assets: AssetRe
 
   const fallbackPrimaryImageId = nonLogoImageAssets[0]?.id ?? imageAssets[0]?.id;
 
-  const nextSections = schema.sections.map((section) => {
+  const sourceBlocks = schema.blocks ?? schema.sections ?? [];
+  const nextBlocks = sourceBlocks.map((section) => {
     if (!VISUAL_SECTION_TYPES.has(section.type)) {
       return section;
     }
@@ -75,6 +76,7 @@ export function applyAssetFallbacks(schema: GeneratedPageSchema, assets: AssetRe
       ...schema.seo,
       ...(hasValidOgImageId || !fallbackPrimaryImageId ? {} : { ogImageAssetId: fallbackPrimaryImageId }),
     },
-    sections: nextSections,
+    blocks: nextBlocks,
+    sections: nextBlocks,
   };
 }

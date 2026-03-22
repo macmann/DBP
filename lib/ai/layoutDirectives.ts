@@ -112,11 +112,13 @@ export function applyPromptLayoutDirectives(
   prompt: string,
 ): GeneratedPageSchema {
   const directives = parseLayoutDirectivesFromPrompt(prompt);
-  const reordered = reorderSections(schema.sections, directives.sectionOrder);
+  const sourceBlocks = schema.blocks ?? schema.sections ?? [];
+  const reordered = reorderSections(sourceBlocks, directives.sectionOrder);
   const withVariants = applyVariants(reordered, directives.sectionVariants);
 
   return {
     ...schema,
+    blocks: withVariants,
     sections: withVariants,
   };
 }

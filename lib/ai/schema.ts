@@ -72,9 +72,9 @@ export type GeneratedPageSchema = {
     canonicalUrl?: string;
     ogImageAssetId?: string;
   };
-  blocks?: GeneratedBlock[];
-  // Legacy alias kept for compatibility with older call-sites.
-  sections: GeneratedBlock[];
+  blocks: GeneratedBlock[];
+  // Legacy alias accepted at ingest time via sanitize/validate, but not emitted.
+  sections?: GeneratedBlock[];
   layout?: GeneratedPageLayout;
 };
 
@@ -157,6 +157,10 @@ function coerceLegacySectionToBlock(section: Record<string, unknown>): Record<st
 
 function getRawBlocks(payload: Record<string, unknown>): unknown {
   return payload.blocks ?? payload.sections;
+}
+
+function isUrlSafeToken(value: string): boolean {
+  return /^[a-z0-9](?:[a-z0-9-_]*[a-z0-9])?$/i.test(value);
 }
 
 function inferDefaultLayout(blocks: Record<string, unknown>[]): GeneratedPageLayout {
@@ -250,7 +254,9 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     });
 
     sanitized.blocks = normalizedBlocks;
-    sanitized.sections = normalizedBlocks;
+    if ("sections" in sanitized) {
+      delete sanitized.sections;
+    }
     normalizedBlockRecords = normalizedBlocks.filter((block): block is Record<string, unknown> => isRecord(block));
 
     if (!isRecord(payload.layout)) {
@@ -440,14 +446,20 @@ export function validateGeneratedPageSchema(
 
       if (typeof block.id !== "string" || block.id.trim().length === 0) {
         errors.push(`blocks[${index}].id must be a non-empty string.`);
+      } else if (!isUrlSafeToken(block.id.trim())) {
+        errors.push(`blocks[${index}].id must be URL-safe (letters, numbers, '-' or '_').`);
       }
 
       if (typeof block.type !== "string" || block.type.trim().length === 0) {
         errors.push(`blocks[${index}].type must be a non-empty string.`);
+      } else if (!isUrlSafeToken(block.type.trim())) {
+        errors.push(`blocks[${index}].type must be URL-safe (letters, numbers, '-' or '_').`);
       }
 
       if (block.variant !== undefined && (typeof block.variant !== "string" || block.variant.trim().length === 0)) {
         errors.push(`blocks[${index}].variant must be a non-empty string when provided.`);
+      } else if (typeof block.variant === "string" && !isUrlSafeToken(block.variant.trim())) {
+        errors.push(`blocks[${index}].variant must be URL-safe (letters, numbers, '-' or '_').`);
       }
 
       if (block.props !== undefined && !isRecord(block.props)) {
@@ -522,10 +534,18 @@ export function validateGeneratedPageSchema(
 
           if (typeof block.id !== "string" || block.id.trim().length === 0) {
             errors.push(`layout.${regionName}[${index}].id must be a non-empty string.`);
+          } else if (!isUrlSafeToken(block.id.trim())) {
+            errors.push(
+              `layout.${regionName}[${index}].id must be URL-safe (letters, numbers, '-' or '_').`,
+            );
           }
 
           if (typeof block.type !== "string" || block.type.trim().length === 0) {
             errors.push(`layout.${regionName}[${index}].type must be a non-empty string.`);
+          } else if (!isUrlSafeToken(block.type.trim())) {
+            errors.push(
+              `layout.${regionName}[${index}].type must be URL-safe (letters, numbers, '-' or '_').`,
+            );
           }
         });
       }
