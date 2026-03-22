@@ -307,6 +307,40 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal(result.success, true);
   });
 
+  it("accepts dynamic blocks in layout regions when ids/types are present", () => {
+    const payload = {
+      ...validFixture,
+      blocks: [
+        ...validFixture.blocks,
+        {
+          id: "custom-social-proof",
+          type: "socialProofWall",
+          props: {
+            heading: "Loved by teams",
+          },
+        },
+      ],
+      sections: [
+        ...validFixture.sections,
+        {
+          id: "custom-social-proof",
+          type: "socialProofWall",
+          props: {
+            heading: "Loved by teams",
+          },
+        },
+      ],
+      layout: {
+        top: [{ id: "shell-page-header", type: "pageHeader" }],
+        main: ["hero-1", "custom-social-proof"],
+        bottom: [{ id: "shell-build-meta", type: "buildMeta" }],
+      },
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, true);
+  });
+
   it("accepts layout regions with block references and inline blocks", () => {
     const payload = {
       ...validFixture,

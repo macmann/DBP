@@ -101,11 +101,30 @@ describe("action logic: build failure validation paths", () => {
     assert.match(block, /generatedSchemaJson: generatedSchema/);
   });
 
+  it("logs structured generation diagnostics for build output", () => {
+    const block = getFunctionBlock(actionsSource, "buildPage");
+
+    assert.match(block, /buildGenerationDiagnostics\(/);
+    assert.match(block, /unknownBlockCount/);
+    assert.match(block, /sanitizationEdits/);
+    assert.match(block, /validationWarnings/);
+    assert.match(block, /validationErrors/);
+    assert.match(block, /console\.info\("buildPage generation diagnostics"/);
+  });
+
   it("applies block safety sanitization before persisting generated revisions", () => {
     const block = getFunctionBlock(actionsSource, "generateNewVersion");
 
     assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
     assert.match(block, /generatedSchemaJson: revisedSchema/);
+  });
+
+  it("logs structured generation diagnostics for iterative revisions", () => {
+    const block = getFunctionBlock(actionsSource, "generateNewVersion");
+
+    assert.match(block, /buildGenerationDiagnostics\(/);
+    assert.match(block, /console\.info\("generateNewVersion generation diagnostics"/);
+    assert.match(block, /console\.error\("generateNewVersion schema validation failed"/);
   });
 });
 

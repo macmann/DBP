@@ -10,6 +10,7 @@ import { buildPageGenerationPrompts } from "@/lib/ai/promptBuilder";
 import {
   ALLOWED_SECTION_TYPES,
   type GeneratedPageSchema,
+  sanitizeGeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "@/lib/ai/schema";
 import { sanitizeGeneratedPageBlockSafety } from "@/lib/ai/blockSafety";
@@ -196,6 +197,71 @@ export type QuickGenerateState = {
   projectSlug?: string;
   pageId?: string;
 };
+
+type GenerationDiagnostics = {
+  requestId?: string | null;
+  unknownBlockCount: number;
+  sanitizationEdits: number;
+  validationWarnings: string[];
+  validationErrors: string[];
+};
+
+function countJsonDifferences(before: unknown, after: unknown): number {
+  if (Object.is(before, after)) {
+    return 0;
+  }
+
+  if (Array.isArray(before) && Array.isArray(after)) {
+    const maxLength = Math.max(before.length, after.length);
+    let differences = 0;
+    for (let index = 0; index < maxLength; index += 1) {
+      differences += countJsonDifferences(before[index], after[index]);
+    }
+    return differences;
+  }
+
+  if (
+    typeof before === "object" &&
+    before !== null &&
+    typeof after === "object" &&
+    after !== null &&
+    !Array.isArray(before) &&
+    !Array.isArray(after)
+  ) {
+    const beforeRecord = before as Record<string, unknown>;
+    const afterRecord = after as Record<string, unknown>;
+    const keys = new Set([...Object.keys(beforeRecord), ...Object.keys(afterRecord)]);
+    let differences = 0;
+    for (const key of keys) {
+      differences += countJsonDifferences(beforeRecord[key], afterRecord[key]);
+    }
+    return differences;
+  }
+
+  return 1;
+}
+
+function buildGenerationDiagnostics(input: {
+  rawSchema: GeneratedPageSchema;
+  sanitizedSchema: GeneratedPageSchema;
+  validationErrors?: string[];
+  requestId?: string | null;
+}): GenerationDiagnostics {
+  const sections = input.sanitizedSchema.sections ?? [];
+  const unknownBlockCount = sections.filter(
+    (section) => !(ALLOWED_SECTION_TYPES as readonly string[]).includes(section.type),
+  ).length;
+  const validationWarnings =
+    unknownBlockCount > 0 ? [`unknown block types encountered (${unknownBlockCount})`] : [];
+
+  return {
+    requestId: input.requestId,
+    unknownBlockCount,
+    sanitizationEdits: countJsonDifferences(input.rawSchema, input.sanitizedSchema),
+    validationWarnings,
+    validationErrors: input.validationErrors ?? [],
+  };
+}
 
 function mapBuildFailure(errorMessage: string): {
   code: "invalid_prompt" | "missing_api_key" | "generation_failure";
@@ -728,6 +794,12 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     const parsed = validateGeneratedPageSchema(aiOutput.json);
 
     if (!parsed.success) {
+      const diagnostics = buildGenerationDiagnostics({
+        rawSchema: sanitizeGeneratedPageSchema(aiOutput.json) as GeneratedPageSchema,
+        sanitizedSchema: sanitizeGeneratedPageSchema(aiOutput.json) as GeneratedPageSchema,
+        validationErrors: parsed.errors,
+        requestId: aiOutput.requestId,
+      });
       const themeOrSeoErrors = parsed.errors.filter(
         (error) => error.startsWith("theme") || error.startsWith("seo"),
       );
@@ -744,6 +816,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       console.error("buildPage schema validation failed", {
         projectSlug,
         pageId,
+        diagnostics,
         ...context,
       });
 
@@ -787,6 +860,16 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         page.prompt ?? "",
       ),
     );
+    const diagnostics = buildGenerationDiagnostics({
+      rawSchema: parsed.data,
+      sanitizedSchema: generatedSchema,
+      requestId: aiOutput.requestId,
+    });
+    console.info("buildPage generation diagnostics", {
+      projectSlug,
+      pageId,
+      diagnostics,
+    });
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({
@@ -1158,6 +1241,17 @@ export async function generateNewVersion(
     const parsed = validateGeneratedPageSchema(aiOutput.json);
 
     if (!parsed.success) {
+      const diagnostics = buildGenerationDiagnostics({
+        rawSchema: sanitizeGeneratedPageSchema(aiOutput.json) as GeneratedPageSchema,
+        sanitizedSchema: sanitizeGeneratedPageSchema(aiOutput.json) as GeneratedPageSchema,
+        validationErrors: parsed.errors,
+        requestId: aiOutput.requestId,
+      });
+      console.error("generateNewVersion schema validation failed", {
+        projectSlug,
+        pageId,
+        diagnostics,
+      });
       return {
         status: "error",
         message: "Generated revision did not pass schema validation.",
@@ -1170,6 +1264,16 @@ export async function generateNewVersion(
         normalizedInstruction,
       ),
     );
+    const diagnostics = buildGenerationDiagnostics({
+      rawSchema: parsed.data,
+      sanitizedSchema: revisedSchema,
+      requestId: aiOutput.requestId,
+    });
+    console.info("generateNewVersion generation diagnostics", {
+      projectSlug,
+      pageId,
+      diagnostics,
+    });
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({
