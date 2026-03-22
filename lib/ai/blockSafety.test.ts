@@ -91,6 +91,28 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     });
   });
 
+  it("requires root-relative urls for action/formAction fields", () => {
+    const schema = createFixture({
+      blocks: [
+        {
+          id: "form-1",
+          type: "cta",
+          props: {
+            action: "https://evil.example.com/collect",
+            formAction: "/submit",
+          },
+        },
+      ],
+      sections: [],
+    });
+
+    const sanitized = sanitizeGeneratedPageBlockSafety(schema);
+
+    assert.deepEqual(sanitized.blocks?.[0]?.props, {
+      formAction: "/submit",
+    });
+  });
+
   it("strips dangerous inline HTML/script payloads when HTML is not explicitly allowed", () => {
     const schema = createFixture({
       blocks: [
@@ -108,6 +130,61 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     const sanitized = sanitizeGeneratedPageBlockSafety(schema);
 
     assert.equal((sanitized.blocks?.[0]?.props as Record<string, unknown>).html, "");
+  });
+
+  it("neutralizes dangerous HTML-like payload strings on embed-like blocks", () => {
+    const schema = createFixture({
+      blocks: [
+        {
+          id: "widget-1",
+          type: "widgetEmbed",
+          props: {
+            payload: {
+              snippet: "<img src=x onerror=alert(1)>",
+            },
+            config: {
+              sourceUrl: "javascript:alert('pwned')",
+            },
+          },
+        },
+      ],
+      sections: [],
+    });
+
+    const sanitized = sanitizeGeneratedPageBlockSafety(schema);
+    const widgetProps = sanitized.blocks?.[0]?.props as Record<string, unknown>;
+    assert.equal(
+      ((widgetProps.payload as Record<string, unknown>).snippet as string) ?? "",
+      "",
+    );
+    assert.equal(
+      (widgetProps.config as Record<string, unknown>).sourceUrl,
+      undefined,
+    );
+  });
+
+  it("permits dangerous HTML only for explicitly-allowed block types", () => {
+    const schema = createFixture({
+      blocks: [
+        {
+          id: "widget-1",
+          type: "widgetEmbed",
+          props: {
+            html: "<script src='https://safe-widget.example/script.js'></script>",
+          },
+        },
+      ],
+      sections: [],
+    });
+
+    const sanitized = sanitizeGeneratedPageBlockSafety(schema, {
+      allowedInlineHtmlBlockTypes: ["widgetEmbed"],
+    });
+
+    assert.equal(
+      (sanitized.blocks?.[0]?.props as Record<string, unknown>).html,
+      "<script src='https://safe-widget.example/script.js'></script>",
+    );
   });
 
   it("drops denied embed-like blocks and removes matching layout references", () => {
