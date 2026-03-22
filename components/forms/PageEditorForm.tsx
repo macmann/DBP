@@ -237,63 +237,68 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
       {state.status === "error" ? <StatusSurface status="error" message={state.message} /> : null}
       {state.status === "success" ? <StatusSurface status="success" message={state.message} /> : null}
 
-      <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
-        <h3 className="text-base font-semibold text-fg">Iterative update</h3>
-        <StatusSurface status={versionState.status} message={versionState.message} />
-        <FormTextArea
-          id="iterativeInstruction"
-          name="iterativeInstruction"
-          label="Update instructions"
-          rows={5}
-          value={iterativeInstruction}
-          onChange={(event) => setIterativeInstruction(event.target.value)}
-          placeholder="Example: Keep the hero, replace testimonial section with pricing cards, and tighten SEO description."
-          helperText="Describe only what should change from the current version."
-          disabled={isVersionPending}
-        />
-        <div>
-          <Button
-            type="button"
+      <section className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
+        <details className="group space-y-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-base font-semibold text-fg marker:content-none">
+            <span>Iterative update</span>
+            <span className="text-sm font-medium text-muted transition group-open:rotate-180">⌄</span>
+          </summary>
+          <StatusSurface status={versionState.status} message={versionState.message} />
+          <FormTextArea
+            id="iterativeInstruction"
+            name="iterativeInstruction"
+            label="Update instructions"
+            rows={5}
+            value={iterativeInstruction}
+            onChange={(event) => setIterativeInstruction(event.target.value)}
+            placeholder="Example: Keep the hero, replace testimonial section with pricing cards, and tighten SEO description."
+            helperText="Describe only what should change from the current version."
             disabled={isVersionPending}
-            className="w-full sm:w-auto"
-            variant="secondary"
-            onClick={() => {
-              startVersionTransition(async () => {
-                setVersionState({ status: "running", message: "Generating a new version from your instructions..." });
-                const saveResult = await persistLatestFormState();
-                if (!saveResult.ok) {
-                  setVersionState({
-                    status: "error",
-                    message: `Could not save latest prompt/settings before generation: ${saveResult.message}`,
-                  });
-                  return;
-                }
+          />
+          <div>
+            <Button
+              type="button"
+              disabled={isVersionPending}
+              className="w-full sm:w-auto"
+              variant="secondary"
+              onClick={() => {
+                startVersionTransition(async () => {
+                  setVersionState({ status: "running", message: "Generating a new version from your instructions..." });
+                  const saveResult = await persistLatestFormState();
+                  if (!saveResult.ok) {
+                    setVersionState({
+                      status: "error",
+                      message: `Could not save latest prompt/settings before generation: ${saveResult.message}`,
+                    });
+                    return;
+                  }
 
-                const result = await generateNewVersion(projectSlug, pageId, iterativeInstruction);
+                  const result = await generateNewVersion(projectSlug, pageId, iterativeInstruction);
 
-                if (result.status === "success") {
-                  setIterativeInstruction("");
-                  setVersionState({
-                    status: "success",
-                    message: `Generated v${result.versionNumber} (${result.sectionCount} sections). The latest preview now points to this version.`,
-                  });
-                  setPreviewState({
-                    status: "success",
-                    message: "Generation succeeded. Open preview to review the latest published version.",
-                  });
-                  router.refresh();
-                } else {
-                  setVersionState({
-                    status: "error",
-                    message: result.message,
-                  });
-                }
-              });
-            }}
-          >
-            {isVersionPending ? "Generating version..." : "Generate new version"}
-          </Button>
-        </div>
+                  if (result.status === "success") {
+                    setIterativeInstruction("");
+                    setVersionState({
+                      status: "success",
+                      message: `Generated v${result.versionNumber} (${result.sectionCount} sections). The latest preview now points to this version.`,
+                    });
+                    setPreviewState({
+                      status: "success",
+                      message: "Generation succeeded. Open preview to review the latest published version.",
+                    });
+                    router.refresh();
+                  } else {
+                    setVersionState({
+                      status: "error",
+                      message: result.message,
+                    });
+                  }
+                });
+              }}
+            >
+              {isVersionPending ? "Generating version..." : "Generate new version"}
+            </Button>
+          </div>
+        </details>
       </section>
 
       <section className="space-y-3 rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm md:p-6">
