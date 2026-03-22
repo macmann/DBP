@@ -12,7 +12,9 @@ type VersionHistoryItem = {
   instructionPrompt: string | null;
   notes: string | null;
   createdAt: string;
-  hasValidSchema: boolean;
+  schemaValidity: "valid" | "invalid";
+  unknownBlockTypes: string[];
+  blockCount: number;
 };
 
 type VersionHistoryPanelProps = {
@@ -66,7 +68,7 @@ export function VersionHistoryPanel({
                     ) : null}
                     <Button
                       type="button"
-                      disabled={isPending || isCurrent || !version.hasValidSchema}
+                      disabled={isPending || isCurrent || version.schemaValidity === "invalid"}
                       variant="outline"
                       size="sm"
                       onClick={() => {
@@ -82,19 +84,27 @@ export function VersionHistoryPanel({
                         });
                       }}
                     >
-                      {isCurrent ? "Active" : version.hasValidSchema ? "Rollback" : "Invalid schema"}
+                      {isCurrent ? "Active" : version.schemaValidity === "valid" ? "Rollback" : "Invalid schema"}
                     </Button>
                   </div>
                 </div>
+                <p className="mt-2 text-xs text-muted">
+                  {version.blockCount} blocks · schema {version.schemaValidity}
+                </p>
                 <p className="mt-2 text-sm text-fg">
                   {version.instructionPrompt?.trim() || "No instruction prompt captured for this version."}
                 </p>
                 <p className="mt-1 text-sm text-muted">
                   {version.notes?.trim() || "No version notes available for this version."}
                 </p>
-                {!version.hasValidSchema ? (
+                {version.schemaValidity === "invalid" ? (
                   <p className="mt-2 text-xs font-medium text-warning">
                     Rollback unavailable: this version schema failed validation.
+                  </p>
+                ) : null}
+                {version.unknownBlockTypes.length > 0 ? (
+                  <p className="mt-2 text-xs font-medium text-info">
+                    Unknown block types (rendered via fallback): {version.unknownBlockTypes.join(", ")}
                   </p>
                 ) : null}
               </li>
