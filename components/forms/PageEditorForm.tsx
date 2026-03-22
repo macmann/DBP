@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   buildPage,
@@ -55,6 +55,7 @@ function StatusSurface({ status, message }: { status: SurfaceStatus; message: st
 
 export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel }: PageEditorFormProps) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(
     updatePage.bind(null, projectSlug, pageId),
     { status: "idle", ok: true, message: "" } satisfies UpdatePageState,
@@ -79,6 +80,34 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
 
   const previewPath = `${buildCanonicalPublicPath(previewSlug)}${hideDbpHeader ? "?hideDbpHeader=1" : ""}`;
 
+  async function persistLatestFormState() {
+    if (!formRef.current) {
+      return {
+        ok: false,
+        message: "Could not read the latest form values. Save changes, then try again.",
+      } as const;
+    }
+
+    const latestFormData = new FormData(formRef.current);
+    const saveResult = await updatePage(
+      projectSlug,
+      pageId,
+      { status: "idle", ok: true, message: "" },
+      latestFormData,
+    );
+
+    if (!saveResult.ok) {
+      return {
+        ok: false,
+        message: saveResult.message,
+      } as const;
+    }
+
+    return {
+      ok: true,
+    } as const;
+  }
+
   useEffect(() => {
     const handlePreviewUpdate = () => {
       setPreviewState({
@@ -93,6 +122,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
 
   return (
     <form
+      ref={formRef}
       action={formAction}
       className="space-y-5"
       aria-busy={isPending || isBuildPending || isVersionPending || isDeletePending}
@@ -198,6 +228,15 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
             onClick={() => {
               startVersionTransition(async () => {
                 setVersionState({ status: "running", message: "Generating a new version from your instructions..." });
+                const saveResult = await persistLatestFormState();
+                if (!saveResult.ok) {
+                  setVersionState({
+                    status: "error",
+                    message: `Could not save latest prompt/settings before generation: ${saveResult.message}`,
+                  });
+                  return;
+                }
+
                 const result = await generateNewVersion(projectSlug, pageId, iterativeInstruction);
 
                 if (result.status === "success") {
@@ -240,6 +279,15 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
             onClick={() => {
               startBuildTransition(async () => {
                 setBuildState({ status: "running", message: "Building page now. This can take a moment..." });
+                const saveResult = await persistLatestFormState();
+                if (!saveResult.ok) {
+                  setBuildState({
+                    status: "error",
+                    message: `Could not save latest prompt/settings before build: ${saveResult.message}`,
+                  });
+                  return;
+                }
+
                 const result = await buildPage(projectSlug, pageId);
 
                 if (result.status === "success") {
