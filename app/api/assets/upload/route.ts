@@ -2,6 +2,8 @@ export const runtime = "nodejs";
 
 import { AssetType } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { applyAssetFallbacks } from "@/lib/ai/applyAssetFallbacks";
+import { validateGeneratedPageSchema } from "@/lib/ai/schema";
 import { prisma } from "@/lib/db";
 import { getImageDimensions } from "@/lib/storage/getImageDimensions";
 import { StorageConfigurationError, uploadAsset } from "@/lib/storage/uploadAsset";
@@ -104,6 +106,51 @@ export async function POST(request: Request) {
         metadata
       }
     });
+
+    if (pageId) {
+      const pageWithVersion = await prisma.page.findFirst({
+        where: { id: pageId, projectId },
+        select: {
+          currentVersionId: true,
+          currentVersion: {
+            select: {
+              id: true,
+              generatedSchemaJson: true
+            }
+          },
+          assets: {
+            where: {
+              mimeType: {
+                startsWith: "image/"
+              }
+            },
+            select: {
+              id: true,
+              type: true,
+              mimeType: true
+            },
+            orderBy: {
+              sortOrder: "asc"
+            }
+          }
+        }
+      });
+
+      if (pageWithVersion?.currentVersionId && pageWithVersion.currentVersion) {
+        const parsedSchema = validateGeneratedPageSchema(pageWithVersion.currentVersion.generatedSchemaJson);
+
+        if (parsedSchema.success) {
+          const hydratedSchema = applyAssetFallbacks(parsedSchema.data, pageWithVersion.assets);
+
+          await prisma.pageVersion.update({
+            where: { id: pageWithVersion.currentVersionId },
+            data: {
+              generatedSchemaJson: hydratedSchema
+            }
+          });
+        }
+      }
+    }
 
     const dto: UploadedAssetDto = {
       id: asset.id,
