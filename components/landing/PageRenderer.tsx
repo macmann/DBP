@@ -49,12 +49,8 @@ function renderRegionEntries(
   resolveAsset: AssetResolver,
 ) {
   return entries.map((entry, index) => {
-    const block =
-      typeof entry === "string"
-        ? (blockMap.get(entry) ?? { id: entry, type: "missing-block-ref" })
-        : entry;
-    const key =
-      typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `layout-${index}`;
+    const block = blockMap.get(entry) ?? { id: entry, type: "missing-block-ref" };
+    const key = typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `layout-${index}`;
 
     return (
       <div key={key} className="scroll-mt-24">

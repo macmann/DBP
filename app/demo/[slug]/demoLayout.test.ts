@@ -1,6 +1,9 @@
 import * as assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { GeneratedPageSchema } from "@/lib/ai/schema";
+import { validateGeneratedPageSchema } from "@/lib/ai/schema";
+import legacySavedVersionFixture from "@/lib/ai/fixtures/saved-version-v1.json";
+import currentSavedVersionFixture from "@/lib/ai/fixtures/saved-version-v2.json";
 import { buildDemoRenderSchema } from "./demoLayout";
 
 function buildSchema(overrides?: Partial<GeneratedPageSchema>): GeneratedPageSchema {
@@ -59,10 +62,14 @@ describe("buildDemoRenderSchema", () => {
   it("normalizes inline layout entries to ID references and preserves embedded HTML safely", () => {
     const schema = buildSchema({
       layout: {
-        top: [{ id: "shell-page-header", type: "pageHeader" }],
-        main: ["hero-1", { id: "promo-inline", type: "cta", props: { heading: "Promo" } }],
-        bottom: [{ id: "shell-widget-embed", type: "widgetEmbed" }, "shell-build-meta"],
+        top: ["shell-page-header"],
+        main: ["hero-1", "promo-inline"],
+        bottom: ["shell-widget-embed", "shell-build-meta"],
       },
+      blocks: [
+        ...buildSchema().blocks,
+        { id: "promo-inline", type: "cta", props: { heading: "Promo" } },
+      ],
     });
 
     const result = buildDemoRenderSchema(schema, {
@@ -81,5 +88,45 @@ describe("buildDemoRenderSchema", () => {
     assert.equal(widgetBlock?.type, "widgetEmbed");
     assert.equal(widgetBlock?.props?.html, "<script>alert('safe-render-through-widget')</script>");
     assert.ok(result.blocks?.some((block) => block.id === "promo-inline"));
+  });
+
+  it("keeps legacy published fixtures renderable through inferred shell layout", () => {
+    const parsed = validateGeneratedPageSchema(legacySavedVersionFixture);
+    assert.equal(parsed.success, true);
+    if (!parsed.success) {
+      throw new Error("Expected validation success");
+    }
+
+    const result = buildDemoRenderSchema(parsed.data, {
+      pageTitleFallback: "Fallback",
+      currentVersionLabel: "v1",
+      widgetEmbedHtml: "",
+    });
+
+    assert.deepEqual(result.layout, {
+      top: ["shell-page-header"],
+      main: ["hero-legacy", "features-legacy"],
+      bottom: ["shell-widget-embed", "shell-build-meta"],
+    });
+  });
+
+  it("keeps modern published fixtures renderable with explicit layout IDs", () => {
+    const parsed = validateGeneratedPageSchema(currentSavedVersionFixture);
+    assert.equal(parsed.success, true);
+    if (!parsed.success) {
+      throw new Error("Expected validation success");
+    }
+
+    const result = buildDemoRenderSchema(parsed.data, {
+      pageTitleFallback: "Fallback",
+      currentVersionLabel: "v2",
+      widgetEmbedHtml: "",
+    });
+
+    assert.deepEqual(result.layout, {
+      top: ["shell-page-header"],
+      main: ["hero-modern"],
+      bottom: ["shell-build-meta"],
+    });
   });
 });

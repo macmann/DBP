@@ -140,7 +140,7 @@ describe("PageRenderer", () => {
             },
           ]),
           layout: {
-            top: [{ id: "unknown-inline", type: "not-registered" }],
+            top: ["unknown-inline"],
             main: ["hero-1"],
             bottom: ["footer-1"],
           },

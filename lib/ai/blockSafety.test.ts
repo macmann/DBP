@@ -196,8 +196,8 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
       sections: [],
       layout: {
         top: ["embed-1", "hero-1"],
-        main: [{ id: "inline-embed", type: "iframe" }, "hero-1"],
-        bottom: [{ id: "widget-shell", type: "widgetEmbed" }],
+        main: ["inline-embed", "hero-1"],
+        bottom: ["widget-shell"],
       },
     });
 
@@ -209,6 +209,6 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     );
     assert.deepEqual(sanitized.layout?.top, ["hero-1"]);
     assert.deepEqual(sanitized.layout?.main, ["hero-1"]);
-    assert.equal((sanitized.layout?.bottom[0] as { type: string }).type, "widgetEmbed");
+    assert.deepEqual(sanitized.layout?.bottom, []);
   });
 });

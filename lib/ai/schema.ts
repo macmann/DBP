@@ -43,13 +43,12 @@ export type GeneratedBlock = {
   };
 };
 
-export type GeneratedLayoutEntry = string | GeneratedBlock;
 // Backward-compatible alias for older call sites.
 export type GeneratedSection = GeneratedBlock;
 export type GeneratedPageLayout = {
-  top: GeneratedLayoutEntry[];
-  main: GeneratedLayoutEntry[];
-  bottom: GeneratedLayoutEntry[];
+  top: string[];
+  main: string[];
+  bottom: string[];
 };
 
 export const CURRENT_GENERATED_SCHEMA_VERSION = 2;
@@ -169,9 +168,9 @@ function inferDefaultLayout(blocks: Record<string, unknown>[]): GeneratedPageLay
     .filter((id): id is string => typeof id === "string" && id.trim().length > 0);
 
   return {
-    top: [{ id: "shell-page-header", type: "pageHeader" }],
+    top: ["shell-page-header"],
     main: contentBlockIds,
-    bottom: [{ id: "shell-widget-embed", type: "widgetEmbed" }, { id: "shell-build-meta", type: "buildMeta" }],
+    bottom: ["shell-widget-embed", "shell-build-meta"],
   };
 }
 
@@ -274,17 +273,19 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
         continue;
       }
 
-      nextLayout[regionName] = rawEntries.map((entry) => {
+      nextLayout[regionName] = rawEntries
+        .map((entry) => {
         if (typeof entry === "string") {
           return entry.trim();
         }
 
-        if (!isRecord(entry)) {
-          return entry;
+        if (isRecord(entry) && typeof entry.id === "string") {
+          return entry.id.trim();
         }
 
-        return sanitizeBlockRecord(entry);
-      });
+        return "";
+      })
+        .filter((entry) => entry.length > 0);
     }
 
     sanitized.layout = nextLayout;
@@ -518,33 +519,14 @@ export function validateGeneratedPageSchema(
         }
 
         regionEntries.forEach((entry, index) => {
-          if (typeof entry === "string") {
-            if (entry.trim().length === 0) {
-              errors.push(`layout.${regionName}[${index}] must be a non-empty string reference.`);
-            }
+          if (typeof entry !== "string" || entry.trim().length === 0) {
+            errors.push(`layout.${regionName}[${index}] must be a non-empty string reference.`);
             return;
           }
 
-          if (!isRecord(entry)) {
-            errors.push(`layout.${regionName}[${index}] must be a block reference string or object.`);
-            return;
-          }
-
-          const block = entry;
-
-          if (typeof block.id !== "string" || block.id.trim().length === 0) {
-            errors.push(`layout.${regionName}[${index}].id must be a non-empty string.`);
-          } else if (!isUrlSafeToken(block.id.trim())) {
+          if (!isUrlSafeToken(entry.trim())) {
             errors.push(
-              `layout.${regionName}[${index}].id must be URL-safe (letters, numbers, '-' or '_').`,
-            );
-          }
-
-          if (typeof block.type !== "string" || block.type.trim().length === 0) {
-            errors.push(`layout.${regionName}[${index}].type must be a non-empty string.`);
-          } else if (!isUrlSafeToken(block.type.trim())) {
-            errors.push(
-              `layout.${regionName}[${index}].type must be URL-safe (letters, numbers, '-' or '_').`,
+              `layout.${regionName}[${index}] must be URL-safe (letters, numbers, '-' or '_').`,
             );
           }
         });
