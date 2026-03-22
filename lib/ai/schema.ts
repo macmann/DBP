@@ -43,9 +43,9 @@ export type GeneratedBlock = {
   };
 };
 
+export type GeneratedLayoutEntry = string | GeneratedBlock;
 // Backward-compatible alias for older call sites.
 export type GeneratedSection = GeneratedBlock;
-export type GeneratedLayoutEntry = string | GeneratedBlock;
 export type GeneratedPageLayout = {
   top: GeneratedLayoutEntry[];
   main: GeneratedLayoutEntry[];
@@ -73,6 +73,7 @@ export type GeneratedPageSchema = {
     ogImageAssetId?: string;
   };
   blocks?: GeneratedBlock[];
+  // Legacy alias kept for compatibility with older call-sites.
   sections: GeneratedBlock[];
   layout?: GeneratedPageLayout;
 };
