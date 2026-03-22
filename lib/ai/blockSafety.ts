@@ -7,15 +7,22 @@ const URL_PROP_KEYS = new Set([
   "link",
   "poster",
   "action",
-  "formAction",
+  "formaction",
 ]);
+
+const ROOT_RELATIVE_ONLY_URL_PROP_KEYS = new Set(["action", "formaction"]);
 
 const HTML_PROP_KEYS = new Set([
   "html",
-  "embedHtml",
-  "innerHtml",
+  "embedhtml",
+  "innerhtml",
   "markup",
   "script",
+  "code",
+  "snippet",
+  "srcdoc",
+  "iframe",
+  "payload",
 ]);
 
 const ALLOWED_EMBED_BLOCK_TYPES = new Set(["widgetEmbed"]);
@@ -60,10 +67,14 @@ function isRootRelativePath(value: string): boolean {
   return value.startsWith("/") && !value.startsWith("//");
 }
 
-function sanitizeUrlValue(value: string): string | null {
+function sanitizeUrlValue(value: string, requireRootRelative = false): string | null {
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
+  }
+
+  if (requireRootRelative) {
+    return isRootRelativePath(trimmed) ? trimmed : null;
   }
 
   if (isRootRelativePath(trimmed)) {
@@ -82,22 +93,37 @@ function hasDangerousHtml(value: string): boolean {
   return /<\s*script\b/i.test(value) || /on[a-z]+\s*=\s*/i.test(value) || /javascript\s*:/i.test(value);
 }
 
+function looksLikeHtml(value: string): boolean {
+  return /<[^>]+>/.test(value) || /&lt;[^&]+&gt;/.test(value);
+}
+
 function sanitizePropValue(
   key: string,
   value: unknown,
   blockType: string,
   allowedInlineHtmlBlockTypes: ReadonlySet<string>,
 ): unknown {
+  const normalizedKey = key.trim().toLowerCase();
+
   if (typeof value === "string") {
-    if (URL_PROP_KEYS.has(key)) {
-      return sanitizeUrlValue(value);
+    if (URL_PROP_KEYS.has(normalizedKey)) {
+      return sanitizeUrlValue(value, ROOT_RELATIVE_ONLY_URL_PROP_KEYS.has(normalizedKey));
     }
 
-    if (HTML_PROP_KEYS.has(key)) {
+    if (HTML_PROP_KEYS.has(normalizedKey) || (isEmbedLikeType(blockType) && looksLikeHtml(value))) {
       const allowInlineHtml = allowedInlineHtmlBlockTypes.has(blockType);
       if (!allowInlineHtml && hasDangerousHtml(value)) {
         return "";
       }
+    }
+
+    if (
+      (normalizedKey.includes("url") ||
+        normalizedKey.endsWith("href") ||
+        normalizedKey.endsWith("src")) &&
+      /^(?:javascript|data|vbscript)\s*:/i.test(value.trim())
+    ) {
+      return null;
     }
 
     return value;
