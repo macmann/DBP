@@ -41,20 +41,6 @@ const validFixture = {
       },
     },
   ],
-  sections: [
-    {
-      id: "hero-1",
-      type: "hero",
-      props: {
-        heading: "Know your numbers",
-        body: "A simple analytics platform.",
-        cta: {
-          label: "Start free",
-          href: "/signup",
-        },
-      },
-    },
-  ],
 } as const;
 
 describe("validateGeneratedPageSchema", () => {
@@ -277,7 +263,7 @@ describe("validateGeneratedPageSchema", () => {
   it("fails when CTA label is blank", () => {
     const payload = {
       ...validFixture,
-      sections: [
+      blocks: [
         {
           id: "hero-1",
           type: "hero",
@@ -424,6 +410,7 @@ describe("validateGeneratedPageSchema", () => {
       throw new Error("Expected validation success");
     }
     assert.equal(result.data.pageHeaderAlignment, "center");
+    assert.equal("sections" in result.data, false);
   });
 
   it("maps legacy sections arrays into blocks during sanitization", () => {
@@ -458,6 +445,37 @@ describe("validateGeneratedPageSchema", () => {
         body: "Legacy body",
       },
     });
+    assert.equal("sections" in result.data, false);
+  });
+
+  it("fails when block url-safe fields include unsupported characters", () => {
+    const payload = {
+      ...validFixture,
+      blocks: [
+        {
+          id: "hero 1",
+          type: "hero/main",
+          variant: "split view",
+        },
+      ],
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(
+      result.errors.includes("blocks[0].id must be URL-safe (letters, numbers, '-' or '_')."),
+    );
+    assert.ok(
+      result.errors.includes("blocks[0].type must be URL-safe (letters, numbers, '-' or '_')."),
+    );
+    assert.ok(
+      result.errors.includes(
+        "blocks[0].variant must be URL-safe (letters, numbers, '-' or '_').",
+      ),
+    );
   });
 
   it("migrates legacy saved schema fixtures at runtime", () => {
