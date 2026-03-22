@@ -109,7 +109,7 @@ export function PrimaryGenerateForm() {
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-3xl rounded-2xl border border-border bg-surface p-5 shadow-xl">
             <h3 className="text-lg font-semibold text-fg">Choose a generation style</h3>
-            <p className="mt-1 text-sm text-muted">Pick one of six templates before generation.</p>
+            <p className="mt-1 text-sm text-muted">Pick one of six visual styles before generation.</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {STYLE_PRESETS.map((preset) => (
                 <label
@@ -147,7 +147,7 @@ export function PrimaryGenerateForm() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="rounded-2xl border border-border bg-surface p-6 text-center shadow-xl">
             <p className="text-base font-semibold text-fg">Generating your page…</p>
-            <p className="mt-1 text-sm text-muted">Applying selected style and building layout.</p>
+            <p className="mt-1 text-sm text-muted">Applying selected style and generating layout from your prompt.</p>
           </div>
         </div>
       ) : null}
