@@ -1,0 +1,34 @@
+{
+  "pageTitle": "Legacy Landing",
+  "summary": "Original schema generated before blocks migration.",
+  "theme": {
+    "primaryColor": "#111827",
+    "accentColor": "#3B82F6",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "Legacy Landing",
+    "description": "Legacy page content."
+  },
+  "sections": [
+    {
+      "id": "hero-legacy",
+      "type": "hero",
+      "heading": "Legacy hero heading",
+      "body": "Legacy hero body copy.",
+      "cta": {
+        "label": "Get started",
+        "href": "www.legacy.example"
+      }
+    },
+    {
+      "id": "features-legacy",
+      "type": "features",
+      "items": [
+        {
+          "title": "Fast setup"
+        }
+      ]
+    }
+  ]
+}

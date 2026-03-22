@@ -52,7 +52,10 @@ export type GeneratedPageLayout = {
   bottom: GeneratedLayoutEntry[];
 };
 
+export const CURRENT_GENERATED_SCHEMA_VERSION = 2;
+
 export type GeneratedPageSchema = {
+  schemaVersion?: number;
   pageTitle: string;
   summary?: string;
   pageHeaderAlignment?: "left" | "center";
@@ -155,6 +158,18 @@ function getRawBlocks(payload: Record<string, unknown>): unknown {
   return payload.blocks ?? payload.sections;
 }
 
+function inferDefaultLayout(blocks: Record<string, unknown>[]): GeneratedPageLayout {
+  const contentBlockIds = blocks
+    .map((block) => block.id)
+    .filter((id): id is string => typeof id === "string" && id.trim().length > 0);
+
+  return {
+    top: [{ id: "shell-page-header", type: "pageHeader" }],
+    main: contentBlockIds,
+    bottom: [{ id: "shell-widget-embed", type: "widgetEmbed" }, { id: "shell-build-meta", type: "buildMeta" }],
+  };
+}
+
 function getBlockCta(block: Record<string, unknown>): unknown {
   if (isRecord(block.props) && block.props.cta !== undefined) {
     return block.props.cta;
@@ -197,6 +212,7 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
 
   const sanitized: Record<string, unknown> = {
     ...payload,
+    schemaVersion: CURRENT_GENERATED_SCHEMA_VERSION,
   };
 
   if (typeof payload.pageHeaderAlignment === "string") {
@@ -221,6 +237,7 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
   }
 
   const rawBlocks = getRawBlocks(payload);
+  let normalizedBlockRecords: Record<string, unknown>[] = [];
   if (Array.isArray(rawBlocks)) {
     const normalizedBlocks = rawBlocks.map((block) => {
       if (!isRecord(block)) {
@@ -233,6 +250,11 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
 
     sanitized.blocks = normalizedBlocks;
     sanitized.sections = normalizedBlocks;
+    normalizedBlockRecords = normalizedBlocks.filter((block): block is Record<string, unknown> => isRecord(block));
+
+    if (!isRecord(payload.layout)) {
+      sanitized.layout = inferDefaultLayout(normalizedBlockRecords);
+    }
   }
 
   if (isRecord(payload.layout)) {
@@ -259,6 +281,13 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     }
 
     sanitized.layout = nextLayout;
+
+    if (normalizedBlockRecords.length > 0 && !Array.isArray(nextLayout.main)) {
+      sanitized.layout = {
+        ...nextLayout,
+        main: inferDefaultLayout(normalizedBlockRecords).main,
+      };
+    }
   }
 
   return sanitized;
@@ -279,6 +308,16 @@ export function validateGeneratedPageSchema(
 
   if (typeof payload.pageTitle !== "string" || payload.pageTitle.trim().length === 0) {
     errors.push("pageTitle must be a non-empty string.");
+  }
+
+  if (payload.schemaVersion !== undefined) {
+    if (
+      typeof payload.schemaVersion !== "number" ||
+      !Number.isInteger(payload.schemaVersion) ||
+      payload.schemaVersion < 1
+    ) {
+      errors.push("schemaVersion must be a positive integer when provided.");
+    }
   }
 
   if (payload.pageHeaderAlignment !== undefined) {
