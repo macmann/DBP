@@ -7,6 +7,7 @@
 - [ ] Home/generate flow creates a project + page without manual DB edits.
 - [ ] Generation returns a successful result state and displays the latest version details.
 - [ ] Generated content is saved to the current page version and visible in editor + preview routes.
+- [ ] Generation diagnostics logs include unknown block count, sanitization edit count, and validation warnings/errors.
 
 ### Failure messaging
 
@@ -67,6 +68,8 @@
 - [ ] Public demo route resolves correctly and renders latest published content.
 - [ ] Layout/spacing/typography quality matches the app baseline.
 - [ ] Links, CTA buttons, and media sections render correctly across breakpoints.
+- [ ] Block registry coverage is verified: known blocks render, unknown block types show fallback placeholders.
+- [ ] Layout regions (`top`, `main`, `bottom`) are verified to render in region order with block-reference + inline-block entries.
 
 ## 3) “Done” Criteria (Release Gate)
 

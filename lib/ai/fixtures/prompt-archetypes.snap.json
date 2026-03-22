@@ -1,0 +1,26 @@
+{
+  "faq_first_saas": {
+    "systemPromptHasLayoutRule": true,
+    "systemPromptHasVariationRule": true,
+    "userSections": [
+      "Page prompt:\nCreate a conversion-first SaaS page that opens with FAQ before feature details.",
+      "Allowed sections:\nhero, faq, features, cta, footer"
+    ]
+  },
+  "storytelling_nonprofit": {
+    "systemPromptHasLayoutRule": true,
+    "systemPromptHasVariationRule": true,
+    "userSections": [
+      "Page prompt:\nBuild a long-form storytelling page for a nonprofit with alternating image/text narrative blocks.",
+      "Allowed sections:\nhero, imageText, testimonial, cta, footer"
+    ]
+  },
+  "comparison_grid_b2b": {
+    "systemPromptHasLayoutRule": true,
+    "systemPromptHasVariationRule": true,
+    "userSections": [
+      "Page prompt:\nGenerate a comparison-led B2B landing page with a cards-3 feature matrix and compact CTA.",
+      "Allowed sections:\nhero, features, logoStrip, cta, footer"
+    ]
+  }
+}

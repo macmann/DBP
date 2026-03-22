@@ -1,0 +1,44 @@
+[
+  {
+    "name": "faq_first_saas",
+    "pagePrompt": "Create a conversion-first SaaS page that opens with FAQ before feature details.",
+    "referenceLinks": ["https://example.com/pricing", "https://example.com/security"],
+    "assets": [
+      {
+        "id": "asset-hero-1",
+        "type": "image",
+        "storageUrl": "https://cdn.example.com/hero-1.png",
+        "metadata": { "alt": "Dashboard screenshot" },
+        "fileName": "dashboard-hero.png",
+        "mimeType": "image/png"
+      }
+    ],
+    "allowedSections": ["hero", "faq", "features", "cta", "footer"],
+    "toneBrandingHints": ["Crisp and enterprise-friendly voice."]
+  },
+  {
+    "name": "storytelling_nonprofit",
+    "pagePrompt": "Build a long-form storytelling page for a nonprofit with alternating image/text narrative blocks.",
+    "referenceLinks": ["https://example.org/impact-report"],
+    "assets": [
+      {
+        "id": "asset-story-1",
+        "type": "image",
+        "storageUrl": "https://cdn.example.org/story-1.jpg",
+        "metadata": { "photographer": "Jane Doe" },
+        "fileName": "community-story.jpg",
+        "mimeType": "image/jpeg"
+      }
+    ],
+    "allowedSections": ["hero", "imageText", "testimonial", "cta", "footer"],
+    "toneBrandingHints": ["Human-centered and optimistic tone."]
+  },
+  {
+    "name": "comparison_grid_b2b",
+    "pagePrompt": "Generate a comparison-led B2B landing page with a cards-3 feature matrix and compact CTA.",
+    "referenceLinks": [],
+    "assets": [],
+    "allowedSections": ["hero", "features", "logoStrip", "cta", "footer"],
+    "toneBrandingHints": ["Confident and data-backed language."]
+  }
+]

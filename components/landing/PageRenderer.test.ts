@@ -84,4 +84,62 @@ describe("PageRenderer", () => {
     assert.match(markup, /could not be rendered due to malformed props/);
     assert.match(markup, /hero-malformed/);
   });
+
+  it("renders blocks by layout regions when layout is provided", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: {
+          ...buildPage([
+            {
+              id: "hero-1",
+              type: "hero",
+              props: { heading: "Hero in main" },
+            },
+            {
+              id: "footer-1",
+              type: "footer",
+              props: { heading: "Footer in bottom" },
+            },
+          ]),
+          layout: {
+            top: [{ id: "unknown-inline", type: "not-registered" }],
+            main: ["hero-1"],
+            bottom: ["footer-1"],
+          },
+        },
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /data-layout-region=\"top\"/);
+    assert.match(markup, /data-layout-region=\"main\"/);
+    assert.match(markup, /data-layout-region=\"bottom\"/);
+    assert.match(markup, /Hero in main/);
+    assert.match(markup, /Footer in bottom/);
+  });
+
+  it("renders unknown fallback for unresolved layout block references", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: {
+          ...buildPage([
+            {
+              id: "hero-1",
+              type: "hero",
+              props: { heading: "Hero in main" },
+            },
+          ]),
+          layout: {
+            top: [],
+            main: ["hero-1", "missing-block-id"],
+            bottom: [],
+          },
+        },
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /Unsupported block type/);
+    assert.match(markup, /missing-block-ref/);
+  });
 });
