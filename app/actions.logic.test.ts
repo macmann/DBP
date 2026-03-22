@@ -102,6 +102,15 @@ describe("action logic: build failure validation paths", () => {
     assert.match(block, /generatedSchemaJson: generatedSchema/);
   });
 
+  it("buildPage uses blocks/layout prompt contract end-to-end", () => {
+    const block = getFunctionBlock(actionsSource, "buildPage");
+
+    assert.match(block, /buildPageGenerationPrompts\(/);
+    assert.match(block, /layoutRegions: \["top", "main", "bottom"\]/);
+    assert.match(block, /sectionCount: generatedSchema\.blocks\.length/);
+    assert.doesNotMatch(block, /generatedSchema\.sections/);
+  });
+
   it("logs structured generation diagnostics for build output", () => {
     const block = getFunctionBlock(actionsSource, "buildPage");
 
@@ -119,6 +128,15 @@ describe("action logic: build failure validation paths", () => {
     assert.match(block, /inspectGeneratedPageBlockSafety\(/);
     assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
     assert.match(block, /generatedSchemaJson: revisedSchema/);
+  });
+
+  it("generateNewVersion uses blocks/layout prompt contract end-to-end", () => {
+    const block = getFunctionBlock(actionsSource, "generateNewVersion");
+
+    assert.match(block, /buildPageGenerationPrompts\(/);
+    assert.match(block, /layoutRegions: \["top", "main", "bottom"\]/);
+    assert.match(block, /sectionCount: revisedSchema\.blocks\.length/);
+    assert.doesNotMatch(block, /revisedSchema\.sections/);
   });
 
   it("buildPage surfaces actionable errors when safety policy blocks output", () => {
