@@ -1,21 +1,12 @@
 import type { GeneratedBlock, GeneratedSection } from "@/lib/ai/schema";
 import type { ReactNode } from "react";
-import { registerBlock, type BlockComponentProps } from "@/components/landing/blockRegistry";
-import { CTASection } from "@/components/landing/sections/CTASection";
-import { FAQSection } from "@/components/landing/sections/FAQSection";
-import { FeaturesSection } from "@/components/landing/sections/FeaturesSection";
-import { FooterSection } from "@/components/landing/sections/FooterSection";
-import { GallerySection } from "@/components/landing/sections/GallerySection";
-import { HeroSection } from "@/components/landing/sections/HeroSection";
-import { ImageTextSection } from "@/components/landing/sections/ImageTextSection";
-import { LogoStripSection } from "@/components/landing/sections/LogoStripSection";
-import { TestimonialSection } from "@/components/landing/sections/TestimonialSection";
+import type { BlockComponentProps } from "@/components/landing/blockRegistry";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function toSection(block: GeneratedBlock): GeneratedSection {
+export function toSection(block: GeneratedBlock): GeneratedSection {
   const props = isRecord(block.props) ? block.props : {};
 
   return {
@@ -59,7 +50,7 @@ function toSection(block: GeneratedBlock): GeneratedSection {
   };
 }
 
-function validateCommonProps(props: Record<string, unknown> | undefined): boolean {
+export function validateCommonProps(props: Record<string, unknown> | undefined): boolean {
   if (props === undefined) {
     return true;
   }
@@ -105,20 +96,13 @@ function validateCommonProps(props: Record<string, unknown> | undefined): boolea
   return true;
 }
 
-function createBlockAdapter(
-  SectionComponent: (props: { section: GeneratedSection; resolveAsset: BlockComponentProps["resolveAsset"] }) => ReactNode,
+export function createBlockAdapter(
+  SectionComponent: (props: {
+    section: GeneratedSection;
+    resolveAsset: BlockComponentProps["resolveAsset"];
+  }) => ReactNode,
 ) {
   return function BlockAdapter({ block, resolveAsset }: BlockComponentProps) {
     return <SectionComponent section={toSection(block)} resolveAsset={resolveAsset} />;
   };
 }
-
-registerBlock("hero", createBlockAdapter(HeroSection), validateCommonProps);
-registerBlock("logoStrip", createBlockAdapter(LogoStripSection), validateCommonProps);
-registerBlock("features", createBlockAdapter(FeaturesSection), validateCommonProps);
-registerBlock("imageText", createBlockAdapter(ImageTextSection), validateCommonProps);
-registerBlock("gallery", createBlockAdapter(GallerySection), validateCommonProps);
-registerBlock("testimonial", createBlockAdapter(TestimonialSection), validateCommonProps);
-registerBlock("faq", createBlockAdapter(FAQSection), validateCommonProps);
-registerBlock("cta", createBlockAdapter(CTASection), validateCommonProps);
-registerBlock("footer", createBlockAdapter(FooterSection), validateCommonProps);

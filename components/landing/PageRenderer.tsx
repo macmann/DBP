@@ -1,7 +1,7 @@
 import type { GeneratedBlock, GeneratedPageSchema } from "@/lib/ai/schema";
 import type { AssetResolver } from "@/components/landing/types";
 import { resolveBlock } from "@/components/landing/blockRegistry";
-import "@/components/landing/blockAdapters";
+import { registerLandingBlocks } from "@/components/landing/registeredBlocks";
 
 type PageRendererProps = {
   page: GeneratedPageSchema;
@@ -51,8 +51,11 @@ function renderRegionEntries(
 ) {
   return entries.map((entry, index) => {
     const block =
-      typeof entry === "string" ? blockMap.get(entry) ?? { id: entry, type: "missing-block-ref" } : entry;
-    const key = typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `layout-${index}`;
+      typeof entry === "string"
+        ? (blockMap.get(entry) ?? { id: entry, type: "missing-block-ref" })
+        : entry;
+    const key =
+      typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `layout-${index}`;
 
     return (
       <div key={key} className="scroll-mt-24">
@@ -63,20 +66,30 @@ function renderRegionEntries(
 }
 
 export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
+  registerLandingBlocks();
   const blocks = page.blocks ?? page.sections;
   const layout = page.layout;
   const blockMap = new Map(
     blocks
-      .filter((block): block is GeneratedBlock => typeof block.id === "string" && block.id.trim().length > 0)
+      .filter(
+        (block): block is GeneratedBlock =>
+          typeof block.id === "string" && block.id.trim().length > 0,
+      )
       .map((block) => [block.id, block]),
   );
 
   if (layout) {
     return (
       <div className="space-y-8 sm:space-y-10 lg:space-y-12">
-        <div data-layout-region="top">{renderRegionEntries(layout.top, blockMap, resolveAsset)}</div>
-        <div data-layout-region="main">{renderRegionEntries(layout.main, blockMap, resolveAsset)}</div>
-        <div data-layout-region="bottom">{renderRegionEntries(layout.bottom, blockMap, resolveAsset)}</div>
+        <div data-layout-region="top">
+          {renderRegionEntries(layout.top, blockMap, resolveAsset)}
+        </div>
+        <div data-layout-region="main">
+          {renderRegionEntries(layout.main, blockMap, resolveAsset)}
+        </div>
+        <div data-layout-region="bottom">
+          {renderRegionEntries(layout.bottom, blockMap, resolveAsset)}
+        </div>
       </div>
     );
   }
@@ -85,7 +98,9 @@ export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
     <div className="space-y-8 sm:space-y-10 lg:space-y-12">
       {blocks.map((block, index) => (
         <div
-          key={typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `block-${index}`}
+          key={
+            typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `block-${index}`
+          }
           className="scroll-mt-24"
         >
           {renderBlock(block, resolveAsset)}
