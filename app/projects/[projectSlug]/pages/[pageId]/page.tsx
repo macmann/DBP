@@ -21,6 +21,29 @@ function formatDate(value: Date | null) {
   }).format(value);
 }
 
+
+
+function deriveRequiredAssetSlots(schemaPayload: unknown): { requiresLogo: boolean; requiredImageSlots: number } {
+  const validated = validateGeneratedPageSchema(schemaPayload);
+  if (!validated.success) {
+    return { requiresLogo: false, requiredImageSlots: 0 };
+  }
+
+  const requiresLogo = validated.data.sections.some((section) => section.type === "logoStrip");
+  const requiredImageSlots = validated.data.sections.reduce((count, section) => {
+    if (section.type === "hero" || section.type === "imageText") {
+      return count + 1;
+    }
+
+    if (section.type === "gallery") {
+      return count + Math.max(1, section.mediaAssetIds?.length ?? 0);
+    }
+
+    return count;
+  }, 0);
+
+  return { requiresLogo, requiredImageSlots };
+}
 export default async function PageDetailPage({
   params,
 }: {
@@ -61,6 +84,7 @@ export default async function PageDetailPage({
           versionNumber: true,
           instructionPrompt: true,
           notes: true,
+          generatedSchemaJson: true,
         },
       },
       versions: {
@@ -102,6 +126,8 @@ export default async function PageDetailPage({
   if (!page) {
     notFound();
   }
+
+  const requiredAssetSlots = deriveRequiredAssetSlots(page.currentVersion?.generatedSchemaJson);
 
   return (
     <DashboardLayout
@@ -160,6 +186,8 @@ export default async function PageDetailPage({
           projectId={page.projectId}
           pageId={page.id}
           isGenerationReady={Boolean(page.currentVersionId)}
+          requiresLogo={requiredAssetSlots.requiresLogo}
+          requiredImageSlots={requiredAssetSlots.requiredImageSlots}
           initialAssets={page.assets.map((asset) => ({
             id: asset.id,
             projectId: asset.projectId,

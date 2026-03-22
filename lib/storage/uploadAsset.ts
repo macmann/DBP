@@ -21,7 +21,7 @@ type LocalStorageConfig = {
 };
 
 const DEFAULT_ASSET_STORAGE_LOCAL_DIR = "public/uploads/assets";
-const DEFAULT_ASSET_PUBLIC_BASE_URL = "/uploads/assets/";
+const DEFAULT_ASSET_PUBLIC_BASE_URL = "/api/assets/file/";
 
 function getLocalStorageConfig(): LocalStorageConfig {
   const localDir = process.env.ASSET_STORAGE_LOCAL_DIR ?? DEFAULT_ASSET_STORAGE_LOCAL_DIR;
