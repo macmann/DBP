@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import type { CSSProperties } from "react";
 import { Container } from "@/components/layout/Container";
 import { PageRenderer } from "@/components/landing/PageRenderer";
 import { WidgetEmbed } from "@/components/landing/WidgetEmbed";
@@ -119,9 +120,22 @@ export default async function DemoPage({ params }: DemoPageProps) {
   const logoAsset = page.assets.find(
     (asset) => asset.type === "logo" && asset.mimeType.startsWith("image/"),
   );
+  const currentVersionLabel = page.currentVersion?.versionNumber
+    ? `v${page.currentVersion.versionNumber}`
+    : "v?";
+  const themeVariables = {
+    "--dbp-primary": schema.theme.primaryColor,
+    "--dbp-accent": schema.theme.accentColor,
+    "--dbp-ink": schema.theme.primaryColor,
+    "--dbp-muted": "color-mix(in srgb, var(--dbp-ink) 70%, #475569)",
+    "--dbp-border": "color-mix(in srgb, var(--dbp-primary) 18%, #cbd5e1)",
+    "--dbp-surface": "#ffffff",
+    "--dbp-surface-muted": "color-mix(in srgb, var(--dbp-accent) 8%, #f8fafc)",
+  } as CSSProperties;
 
   return (
-    <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
+    <div style={themeVariables}>
+      <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
       <header className="mx-auto max-w-3xl space-y-4 text-center">
         {logoAsset ? (
           <div className="relative mx-auto h-12 w-28 sm:h-14 sm:w-32">
@@ -135,15 +149,41 @@ export default async function DemoPage({ params }: DemoPageProps) {
             />
           </div>
         ) : null}
-        <h1 className="text-balance text-3xl font-semibold tracking-tight text-fg sm:text-4xl lg:text-5xl">
+        <h1 className="text-balance text-3xl font-semibold tracking-tight text-[var(--dbp-ink)] sm:text-4xl lg:text-5xl">
           {schema.pageTitle || page.title}
         </h1>
         {schema.summary ? (
-          <p className="text-pretty text-base leading-7 text-muted sm:text-lg">{schema.summary}</p>
+          <p className="text-pretty text-base leading-7 text-[var(--dbp-muted)] sm:text-lg">
+            {schema.summary}
+          </p>
         ) : null}
       </header>
       <PageRenderer page={schema} resolveAsset={resolveAsset} />
       {page.widgetEmbedHtml ? <WidgetEmbed html={page.widgetEmbedHtml} /> : null}
-    </Container>
+      <footer className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-xs text-muted sm:px-5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="font-medium text-fg">Build {currentVersionLabel}</span>
+          <span>Theme:</span>
+          <span className="inline-flex items-center gap-1">
+            <span
+              className="inline-block h-3 w-3 rounded-full border border-border"
+              style={{ backgroundColor: schema.theme.primaryColor }}
+              aria-hidden
+            />
+            <code>{schema.theme.primaryColor}</code>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span
+              className="inline-block h-3 w-3 rounded-full border border-border"
+              style={{ backgroundColor: schema.theme.accentColor }}
+              aria-hidden
+            />
+            <code>{schema.theme.accentColor}</code>
+          </span>
+          <span>Font: {schema.theme.fontFamily}</span>
+        </div>
+      </footer>
+      </Container>
+    </div>
   );
 }

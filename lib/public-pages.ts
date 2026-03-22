@@ -20,6 +20,8 @@ export async function getPublishedDemoPage(input: { publicSlug: string; projectS
       widgetEmbedHtml: true,
       currentVersion: {
         select: {
+          id: true,
+          versionNumber: true,
           generatedSchemaJson: true,
         },
       },

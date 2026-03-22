@@ -20,20 +20,18 @@ export function FAQSection({ section }: SectionRenderProps) {
         <SectionHeader
           heading={heading ?? "Frequently asked questions"}
           body={body}
-          headingClassName="text-neutral-900"
-          bodyClassName="text-neutral-600"
         />
         {items.length > 0 ? (
           <div className="space-y-3">
             {items.map((item, index) => (
               <details
                 key={`${section.id}-faq-${index}`}
-                className="group rounded-2xl border border-neutral-200 bg-neutral-50 p-5"
+                className="group rounded-2xl border border-[var(--dbp-border)] bg-[var(--dbp-surface-muted)] p-5"
               >
-                <summary className="cursor-pointer list-none pr-6 text-sm font-semibold text-neutral-900 marker:content-none sm:text-base">
+                <summary className="cursor-pointer list-none pr-6 text-sm font-semibold text-[var(--dbp-ink)] marker:content-none sm:text-base">
                   {getString(item, "question") ?? `Question ${index + 1}`}
                 </summary>
-                <p className="mt-3 text-sm leading-6 text-neutral-600">
+                <p className="mt-3 text-sm leading-6 text-[var(--dbp-muted)]">
                   {getString(item, "answer") ?? "Answer unavailable."}
                 </p>
               </details>

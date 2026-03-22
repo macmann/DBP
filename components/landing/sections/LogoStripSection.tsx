@@ -24,7 +24,7 @@ export function LogoStripSection({ section, resolveAsset }: SectionRenderProps) 
             alt={logo.fileName}
             fit="contain"
             aspectClassName="aspect-[5/3]"
-            className="bg-white p-4"
+            className="bg-[var(--dbp-surface)] p-4"
             fallbackLabel="Logo unavailable"
           />
         ))}

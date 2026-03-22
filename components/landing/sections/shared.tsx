@@ -11,8 +11,9 @@ export function SectionShell({ children, className = "", tone = "default" }: Sec
   const base = "overflow-hidden rounded-3xl border px-6 py-10 shadow-sm sm:px-8 sm:py-12 lg:px-10";
 
   const tones = {
-    default: "border-neutral-200/80 bg-white",
-    inverted: "border-neutral-800 bg-neutral-950 text-white",
+    default: "border-[var(--dbp-border)] bg-[var(--dbp-surface)] text-[var(--dbp-ink)]",
+    inverted:
+      "border-transparent bg-gradient-to-br from-[var(--dbp-primary)] to-[var(--dbp-accent)] text-white",
   } as const;
 
   return <section className={`${base} ${tones[tone]} ${className}`.trim()}>{children}</section>;
@@ -41,13 +42,17 @@ export function SectionHeader({
     <header className={`space-y-3 ${align === "center" ? "text-center" : "text-left"}`}>
       {heading ? (
         <h2
-          className={`text-balance text-2xl font-semibold tracking-tight sm:text-3xl ${headingClassName}`.trim()}
+          className={`text-balance text-2xl font-semibold tracking-tight text-[var(--dbp-ink)] sm:text-3xl ${headingClassName}`.trim()}
         >
           {heading}
         </h2>
       ) : null}
       {body ? (
-        <p className={`max-w-3xl text-sm leading-7 sm:text-base ${bodyClassName}`}>{body}</p>
+        <p
+          className={`max-w-3xl text-sm leading-7 text-[var(--dbp-muted)] sm:text-base ${bodyClassName}`.trim()}
+        >
+          {body}
+        </p>
       ) : null}
     </header>
   );
@@ -56,7 +61,7 @@ export function SectionHeader({
 export function EmptyState({ message, className = "" }: { message: string; className?: string }) {
   return (
     <div
-      className={`rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 px-4 py-6 text-sm text-neutral-600 ${className}`.trim()}
+      className={`rounded-2xl border border-dashed border-[var(--dbp-border)] bg-[var(--dbp-surface-muted)] px-4 py-6 text-sm text-[var(--dbp-muted)] ${className}`.trim()}
     >
       {message}
     </div>
@@ -86,7 +91,7 @@ export function MediaFrame({
 
   return (
     <div
-      className={`relative ${aspectClassName} w-full overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100 ${className}`.trim()}
+      className={`relative ${aspectClassName} w-full overflow-hidden rounded-2xl border border-[var(--dbp-border)] bg-[var(--dbp-surface-muted)] ${className}`.trim()}
     >
       {hasSource ? (
         <Image
@@ -98,7 +103,7 @@ export function MediaFrame({
           className={`${fit === "contain" ? "object-contain" : "object-cover"} ${imageClassName}`.trim()}
         />
       ) : (
-        <div className="flex h-full items-center justify-center px-4 text-center text-sm text-neutral-500">
+        <div className="flex h-full items-center justify-center px-4 text-center text-sm text-[var(--dbp-muted)]">
           {fallbackLabel}
         </div>
       )}

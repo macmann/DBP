@@ -20,20 +20,18 @@ export function TestimonialSection({ section }: SectionRenderProps) {
         <SectionHeader
           heading={heading ?? "What customers are saying"}
           body={body}
-          headingClassName="text-neutral-900"
-          bodyClassName="text-neutral-600"
         />
         {items.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2">
             {items.map((item, index) => (
               <blockquote
                 key={`${section.id}-testimonial-${index}`}
-                className="rounded-2xl border border-neutral-200 bg-neutral-50 p-6"
+                className="rounded-2xl border border-[var(--dbp-border)] bg-[var(--dbp-surface-muted)] p-6"
               >
-                <p className="text-sm leading-7 text-neutral-700">
+                <p className="text-sm leading-7 text-[var(--dbp-muted)]">
                   “{getString(item, "quote") ?? "No quote provided."}”
                 </p>
-                <footer className="mt-4 text-sm font-semibold text-neutral-900">
+                <footer className="mt-4 text-sm font-semibold text-[var(--dbp-ink)]">
                   {getString(item, "author") ?? "Anonymous"}
                 </footer>
               </blockquote>
