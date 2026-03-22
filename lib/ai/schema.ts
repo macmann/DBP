@@ -1,17 +1,3 @@
-export const ALLOWED_SECTION_TYPES = [
-  "hero",
-  "logoStrip",
-  "features",
-  "imageText",
-  "gallery",
-  "testimonial",
-  "faq",
-  "cta",
-  "footer",
-] as const;
-
-export type AllowedSectionType = (typeof ALLOWED_SECTION_TYPES)[number];
-
 type ValidationSuccess<T> = {
   success: true;
   data: T;
@@ -24,9 +10,28 @@ type ValidationFailure = {
 
 export type ValidationResult<T> = ValidationSuccess<T> | ValidationFailure;
 
-export type GeneratedSection = {
+// Legacy defaults kept for prompt/layout helpers. Validation no longer hard-fails
+// for types outside this list.
+export const ALLOWED_SECTION_TYPES = [
+  "hero",
+  "logoStrip",
+  "features",
+  "imageText",
+  "gallery",
+  "testimonial",
+  "faq",
+  "cta",
+  "footer",
+] as const;
+
+export type AllowedSectionType = string;
+
+export type GeneratedBlock = {
   id: string;
-  type: AllowedSectionType;
+  type: string;
+  variant?: string;
+  props?: Record<string, unknown>;
+  // Legacy section fields kept for compatibility with existing renderers.
   layoutVariant?: string;
   heading?: string;
   body?: string;
@@ -37,6 +42,9 @@ export type GeneratedSection = {
     href: string;
   };
 };
+
+// Backward-compatible alias for older call sites.
+export type GeneratedSection = GeneratedBlock;
 
 export type GeneratedPageSchema = {
   pageTitle: string;
@@ -55,7 +63,14 @@ export type GeneratedPageSchema = {
     canonicalUrl?: string;
     ogImageAssetId?: string;
   };
-  sections: GeneratedSection[];
+  blocks?: GeneratedBlock[];
+  sections: GeneratedBlock[];
+};
+
+export type BlockValidator = (props: Record<string, unknown> | undefined) => string[];
+
+export type ValidateGeneratedPageSchemaOptions = {
+  blockValidators?: Partial<Record<string, BlockValidator>>;
 };
 
 function looksLikeDomain(value: string): boolean {
@@ -87,10 +102,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isAllowedSectionType(value: unknown): value is AllowedSectionType {
-  return typeof value === "string" && ALLOWED_SECTION_TYPES.includes(value as AllowedSectionType);
-}
-
 function isValidUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -102,6 +113,47 @@ function isValidUrl(value: string): boolean {
 
 function hasOnlyAllowedKeys(record: Record<string, unknown>, allowedKeys: string[]): boolean {
   return Object.keys(record).every((key) => allowedKeys.includes(key));
+}
+
+function coerceLegacySectionToBlock(section: Record<string, unknown>): Record<string, unknown> {
+  const {
+    layoutVariant,
+    heading,
+    body,
+    items,
+    mediaAssetIds,
+    cta,
+    props,
+    ...rest
+  } = section;
+
+  const nextProps: Record<string, unknown> = {
+    ...(isRecord(props) ? props : {}),
+  };
+
+  if (heading !== undefined) nextProps.heading = heading;
+  if (body !== undefined) nextProps.body = body;
+  if (items !== undefined) nextProps.items = items;
+  if (mediaAssetIds !== undefined) nextProps.mediaAssetIds = mediaAssetIds;
+  if (cta !== undefined) nextProps.cta = cta;
+
+  return {
+    ...rest,
+    ...(layoutVariant !== undefined ? { variant: layoutVariant } : {}),
+    ...(Object.keys(nextProps).length > 0 ? { props: nextProps } : {}),
+  };
+}
+
+function getRawBlocks(payload: Record<string, unknown>): unknown {
+  return payload.blocks ?? payload.sections;
+}
+
+function getBlockCta(block: Record<string, unknown>): unknown {
+  if (isRecord(block.props) && block.props.cta !== undefined) {
+    return block.props.cta;
+  }
+
+  return block.cta;
 }
 
 export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
@@ -134,23 +186,41 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     sanitized.seo = seo;
   }
 
-  if (Array.isArray(payload.sections)) {
-    sanitized.sections = payload.sections.map((section) => {
-      if (!isRecord(section)) {
-        return section;
+  const rawBlocks = getRawBlocks(payload);
+  if (Array.isArray(rawBlocks)) {
+    const normalizedBlocks = rawBlocks.map((block) => {
+      if (!isRecord(block)) {
+        return block;
       }
-      const nextSection: Record<string, unknown> = { ...section };
-      if (typeof section.layoutVariant === "string") {
-        nextSection.layoutVariant = section.layoutVariant.trim();
+
+      const nextBlock = Array.isArray(payload.blocks) ? { ...block } : coerceLegacySectionToBlock(block);
+
+      if (typeof nextBlock.variant === "string") {
+        nextBlock.variant = nextBlock.variant.trim();
       }
-      if (isRecord(section.cta) && typeof section.cta.href === "string") {
-        nextSection.cta = {
-          ...section.cta,
-          href: normalizeCtaHref(section.cta.href),
+
+      if (isRecord(nextBlock.props) && isRecord(nextBlock.props.cta) && typeof nextBlock.props.cta.href === "string") {
+        nextBlock.props = {
+          ...nextBlock.props,
+          cta: {
+            ...nextBlock.props.cta,
+            href: normalizeCtaHref(nextBlock.props.cta.href),
+          },
         };
       }
-      return nextSection;
+
+      if (isRecord(nextBlock.cta) && typeof nextBlock.cta.href === "string") {
+        nextBlock.cta = {
+          ...nextBlock.cta,
+          href: normalizeCtaHref(nextBlock.cta.href),
+        };
+      }
+
+      return nextBlock;
     });
+
+    sanitized.blocks = normalizedBlocks;
+    sanitized.sections = normalizedBlocks;
   }
 
   return sanitized;
@@ -158,6 +228,7 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
 
 export function validateGeneratedPageSchema(
   payload: unknown,
+  options?: ValidateGeneratedPageSchemaOptions,
 ): ValidationResult<GeneratedPageSchema> {
   const errors: string[] = [];
 
@@ -274,51 +345,66 @@ export function validateGeneratedPageSchema(
     }
   }
 
-  if (!Array.isArray(payload.sections)) {
-    errors.push("sections must be an array.");
+  const rawBlocks = getRawBlocks(payload);
+
+  if (!Array.isArray(rawBlocks)) {
+    errors.push("blocks must be an array.");
   }
 
-  if (Array.isArray(payload.sections)) {
-    payload.sections.forEach((section, index) => {
-      if (!isRecord(section)) {
-        errors.push(`sections[${index}] must be an object.`);
+  if (Array.isArray(rawBlocks)) {
+    rawBlocks.forEach((maybeBlock, index) => {
+      if (!isRecord(maybeBlock)) {
+        errors.push(`blocks[${index}] must be an object.`);
         return;
       }
 
-      if (typeof section.id !== "string" || section.id.trim().length === 0) {
-        errors.push(`sections[${index}].id must be a non-empty string.`);
+      const block = payload.blocks ? maybeBlock : coerceLegacySectionToBlock(maybeBlock);
+
+      if (typeof block.id !== "string" || block.id.trim().length === 0) {
+        errors.push(`blocks[${index}].id must be a non-empty string.`);
       }
 
-      if (!isAllowedSectionType(section.type)) {
-        errors.push(`sections[${index}].type must be one of: ${ALLOWED_SECTION_TYPES.join(", ")}.`);
+      if (typeof block.type !== "string" || block.type.trim().length === 0) {
+        errors.push(`blocks[${index}].type must be a non-empty string.`);
       }
 
-      if (section.mediaAssetIds !== undefined) {
-        if (
-          !Array.isArray(section.mediaAssetIds) ||
-          section.mediaAssetIds.some((id) => typeof id !== "string")
-        ) {
-          errors.push(`sections[${index}].mediaAssetIds must be an array of strings.`);
-        }
+      if (block.variant !== undefined && (typeof block.variant !== "string" || block.variant.trim().length === 0)) {
+        errors.push(`blocks[${index}].variant must be a non-empty string when provided.`);
       }
 
-      if (section.cta !== undefined) {
-        if (!isRecord(section.cta)) {
-          errors.push(`sections[${index}].cta must be an object.`);
+      if (block.props !== undefined && !isRecord(block.props)) {
+        errors.push(`blocks[${index}].props must be an object when provided.`);
+      }
+
+      const cta = getBlockCta(block);
+      if (cta !== undefined) {
+        if (!isRecord(cta)) {
+          errors.push(`blocks[${index}].cta must be an object.`);
         } else {
-          if (typeof section.cta.label !== "string" || section.cta.label.trim().length === 0) {
-            errors.push(`sections[${index}].cta.label must be a non-empty string.`);
+          if (typeof cta.label !== "string" || cta.label.trim().length === 0) {
+            errors.push(`blocks[${index}].cta.label must be a non-empty string.`);
           }
-          if (typeof section.cta.href !== "string" || section.cta.href.trim().length === 0) {
-            errors.push(`sections[${index}].cta.href must be a non-empty string.`);
+
+          if (typeof cta.href !== "string" || cta.href.trim().length === 0) {
+            errors.push(`blocks[${index}].cta.href must be a non-empty string.`);
           } else {
-            const href = section.cta.href.trim();
+            const href = cta.href.trim();
             const isPathHref = href.startsWith("/");
             if (!isPathHref && !isValidUrl(href)) {
               errors.push(
-                `sections[${index}].cta.href must be an absolute http(s) URL or root-relative path.`,
+                `blocks[${index}].cta.href must be an absolute http(s) URL or root-relative path.`,
               );
             }
+          }
+        }
+      }
+
+      if (typeof block.type === "string") {
+        const validator = options?.blockValidators?.[block.type];
+        if (validator) {
+          const blockValidatorErrors = validator(isRecord(block.props) ? block.props : undefined);
+          for (const error of blockValidatorErrors) {
+            errors.push(`blocks[${index}].${error}`);
           }
         }
       }
@@ -332,8 +418,10 @@ export function validateGeneratedPageSchema(
     };
   }
 
+  const sanitized = sanitizeGeneratedPageSchema(payload);
+
   return {
     success: true,
-    data: payload as GeneratedPageSchema,
+    data: sanitized as GeneratedPageSchema,
   };
 }
