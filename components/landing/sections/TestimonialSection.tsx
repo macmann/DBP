@@ -2,6 +2,7 @@ import {
   getBody,
   getHeading,
   getItems,
+  getLayoutVariant,
   getString,
   type SectionRenderProps,
 } from "@/components/landing/types";
@@ -10,9 +11,12 @@ import { EmptyState, SectionHeader, SectionShell } from "@/components/landing/se
 export function TestimonialSection({ section }: SectionRenderProps) {
   const heading = getHeading(section);
   const body = getBody(section);
+  const layoutVariant = getLayoutVariant(section);
   const items = getItems(section).filter(
     (item) => getString(item, "quote") || getString(item, "author"),
   );
+  const gridClassName =
+    layoutVariant === "cards-3" ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2";
 
   return (
     <SectionShell>
@@ -22,7 +26,7 @@ export function TestimonialSection({ section }: SectionRenderProps) {
           body={body}
         />
         {items.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className={`grid gap-4 ${gridClassName}`}>
             {items.map((item, index) => (
               <blockquote
                 key={`${section.id}-testimonial-${index}`}

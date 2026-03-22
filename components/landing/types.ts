@@ -38,6 +38,12 @@ export function getBody(section: GeneratedSection): string | null {
   return typeof section.body === "string" && section.body.trim().length > 0 ? section.body : null;
 }
 
+export function getLayoutVariant(section: GeneratedSection): string | null {
+  return typeof section.layoutVariant === "string" && section.layoutVariant.trim().length > 0
+    ? section.layoutVariant.trim().toLowerCase()
+    : null;
+}
+
 export function getCta(section: GeneratedSection): { label: string; href: string } | null {
   if (!section.cta) {
     return null;

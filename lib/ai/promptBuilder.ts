@@ -32,6 +32,10 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "If uploaded image/logo assets are provided, assign relevant section.mediaAssetIds for visual sections (hero, imageText, gallery, logoStrip, testimonial).",
     "Pick assets by semantic fit from fileName/type/metadata so the demo renders real images instead of fallback placeholders.",
     "Section selection, section order, and content hierarchy must follow the page prompt and not default to a fixed boilerplate sequence.",
+    "Treat the page prompt as the source of truth for layout instructions: vary section types, ordering, density, and narrative flow based on the prompt.",
+    "Do not reuse a default blueprint. If two prompts differ, the resulting section plan should differ in structure, not only copy or colors.",
+    "When the prompt requests a specific layout pattern (for example split hero, comparison grid, FAQ-first, long-form storytelling), reflect that in the section sequence and section content.",
+    "Set sections[].layoutVariant when useful so the renderer can apply explicit layout intent (examples: split, centered, media-left, media-right, cards-2, cards-3, cards-4, alternating, stacked).",
   ].join("\n");
 
   const userPrompt = [
@@ -76,6 +80,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "    {",
     '      "id": "string // stable section id",',
     '      "type": "allowedType // must be from Allowed sections",',
+    '      "layoutVariant?": "string // optional layout instruction token for renderer",',
     '      "heading?": "string // section heading",',
     '      "body?": "string // section body",',
     '      "items?": "object[] // structured content items",',
@@ -86,6 +91,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "}",
     "Do not output any text before or after the JSON object.",
     "Use only the keys above and only allowed section types.",
+    "Important: layout must be instruction-driven from the Page prompt, not template-driven.",
   ].join("\n\n");
 
   return {
