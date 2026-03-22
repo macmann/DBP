@@ -2,7 +2,6 @@ import { describe, it } from "node:test";
 import * as assert from "node:assert/strict";
 
 import {
-  ALLOWED_SECTION_TYPES,
   sanitizeGeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "./schema";
@@ -25,6 +24,18 @@ const validFixture = {
     canonicalUrl: "https://example.com/analytics",
     ogImageAssetId: "asset-og-1",
   },
+  blocks: [
+    {
+      id: "hero-1",
+      type: "hero",
+      heading: "Know your numbers",
+      body: "A simple analytics platform.",
+      cta: {
+        label: "Start free",
+        href: "/signup",
+      },
+    },
+  ],
   sections: [
     {
       id: "hero-1",
@@ -133,7 +144,7 @@ describe("validateGeneratedPageSchema", () => {
   it("fails when CTA href is not URL or root-relative path", () => {
     const payload = {
       ...validFixture,
-      sections: [
+      blocks: [
         {
           ...validFixture.sections[0],
           cta: {
@@ -152,7 +163,7 @@ describe("validateGeneratedPageSchema", () => {
     }
     assert.ok(
       result.errors.includes(
-        "sections[0].cta.href must be an absolute http(s) URL or root-relative path.",
+        "blocks[0].cta.href must be an absolute http(s) URL or root-relative path.",
       ),
     );
   });
@@ -223,24 +234,35 @@ describe("validateGeneratedPageSchema", () => {
     assert.ok(result.errors.includes("seo.description must be at most 160 characters."));
   });
 
-  it("fails when section mediaAssetIds contains non-string values", () => {
+  it("supports optional per-block validators", () => {
     const payload = {
       ...validFixture,
-      sections: [
+      blocks: [
         {
-          ...validFixture.sections[0],
-          mediaAssetIds: ["asset-1", 123],
+          ...validFixture.blocks[0],
+          props: {
+            eyebrow: 123,
+          },
         },
       ],
     };
 
-    const result = validateGeneratedPageSchema(payload);
+    const result = validateGeneratedPageSchema(payload, {
+      blockValidators: {
+        hero: (props) => {
+          if (typeof props?.eyebrow !== "string") {
+            return ["props.eyebrow must be a string when provided."];
+          }
+          return [];
+        },
+      },
+    });
 
     assert.equal(result.success, false);
     if (result.success) {
       throw new Error("Expected validation failure");
     }
-    assert.ok(result.errors.includes("sections[0].mediaAssetIds must be an array of strings."));
+    assert.ok(result.errors.includes("blocks[0].props.eyebrow must be a string when provided."));
   });
 
   it("fails when CTA label is blank", () => {
@@ -263,31 +285,23 @@ describe("validateGeneratedPageSchema", () => {
     if (result.success) {
       throw new Error("Expected validation failure");
     }
-    assert.ok(result.errors.includes("sections[0].cta.label must be a non-empty string."));
+    assert.ok(result.errors.includes("blocks[0].cta.label must be a non-empty string."));
   });
 
-  it("fails when a section type is invalid", () => {
+  it("allows unknown block types with baseline validation", () => {
     const payload = {
       ...validFixture,
       sections: [
         {
           ...validFixture.sections[0],
-          type: "video" as unknown,
+          type: "video" as unknown as string,
         },
       ],
     };
 
     const result = validateGeneratedPageSchema(payload);
 
-    assert.equal(result.success, false);
-    if (result.success) {
-      throw new Error("Expected validation failure");
-    }
-    assert.ok(
-      result.errors.includes(
-        `sections[0].type must be one of: ${ALLOWED_SECTION_TYPES.join(", ")}.`,
-      ),
-    );
+    assert.equal(result.success, true);
   });
 
   it("sanitizes common model formatting issues", () => {
