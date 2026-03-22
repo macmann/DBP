@@ -788,6 +788,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         `Use ${page.project.name} brand voice where possible.`,
         "Prefer concise, conversion-oriented marketing copy.",
       ],
+      layoutRegions: ["top", "main", "bottom"],
     });
 
     const aiOutput = await callOpenAIForPageSchema(prompts);
@@ -1235,6 +1236,7 @@ export async function generateNewVersion(
         `Use ${page.project.name} brand voice where possible.`,
         "Preserve valid structure while applying requested improvements.",
       ],
+      layoutRegions: ["top", "main", "bottom"],
     });
 
     const aiOutput = await callOpenAIForPageSchema(prompts);

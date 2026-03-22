@@ -518,6 +518,7 @@ describe("buildPageGenerationPrompts", () => {
       assets: [],
       allowedSections: ["hero", "features", "cta"],
       toneBrandingHints: [],
+      layoutRegions: ["top", "main", "bottom"],
     });
 
     assert.match(
@@ -533,7 +534,7 @@ describe("buildPageGenerationPrompts", () => {
     );
     assert.match(
       prompt.systemPrompt,
-      /Each blocks\[\] entry must include type and props\. variant is optional\./,
+      /Each blocks\[\] entry must include id and type\. variant and props are optional\./,
     );
     assert.match(
       prompt.systemPrompt,
@@ -550,6 +551,10 @@ describe("buildPageGenerationPrompts", () => {
     assert.match(
       prompt.systemPrompt,
       /layout\.top, layout\.main, and layout\.bottom must be arrays of block IDs that reference existing blocks\[\]\.id values\./,
+    );
+    assert.match(
+      prompt.systemPrompt,
+      /The response contract is block\/layout based only: blocks\[\] define content units and layout maps placement by block ID\./,
     );
     assert.match(
       prompt.systemPrompt,
@@ -572,7 +577,7 @@ describe("buildPageGenerationPrompts", () => {
       prompt.userPrompt,
       /"variant\?": "string \/\/ optional layout\/style variant token"/,
     );
-    assert.match(prompt.userPrompt, /"props": "object \/\/ block-specific payload/);
+    assert.match(prompt.userPrompt, /"props\?": "object \/\/ optional block payload/);
     assert.match(prompt.userPrompt, /"layout": \{/);
     assert.match(prompt.userPrompt, /"top": "string\[\] \/\/ block ids placed above main content"/);
     assert.match(prompt.userPrompt, /"main": "string\[\] \/\/ block ids for primary narrative flow"/);
