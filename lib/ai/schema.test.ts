@@ -304,6 +304,40 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal(result.success, true);
   });
 
+  it("accepts layout regions with block references and inline blocks", () => {
+    const payload = {
+      ...validFixture,
+      layout: {
+        top: [{ id: "shell-page-header", type: "pageHeader" }],
+        main: ["hero-1"],
+        bottom: [{ id: "shell-build-meta", type: "buildMeta" }],
+      },
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, true);
+  });
+
+  it("fails when layout has invalid region entries", () => {
+    const payload = {
+      ...validFixture,
+      layout: {
+        top: [""],
+        main: [{ id: "", type: "hero" }],
+        bottom: [{ id: "shell-build-meta" }],
+      },
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("layout.top[0] must be a non-empty string reference."));
+    assert.ok(result.errors.includes("layout.main[0].id must be a non-empty string."));
+    assert.ok(result.errors.includes("layout.bottom[0].type must be a non-empty string."));
+  });
+
   it("sanitizes common model formatting issues", () => {
     const payload = {
       ...validFixture,

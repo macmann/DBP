@@ -45,6 +45,12 @@ export type GeneratedBlock = {
 
 // Backward-compatible alias for older call sites.
 export type GeneratedSection = GeneratedBlock;
+export type GeneratedLayoutEntry = string | GeneratedBlock;
+export type GeneratedPageLayout = {
+  top: GeneratedLayoutEntry[];
+  main: GeneratedLayoutEntry[];
+  bottom: GeneratedLayoutEntry[];
+};
 
 export type GeneratedPageSchema = {
   pageTitle: string;
@@ -65,6 +71,7 @@ export type GeneratedPageSchema = {
   };
   blocks?: GeneratedBlock[];
   sections: GeneratedBlock[];
+  layout?: GeneratedPageLayout;
 };
 
 export type BlockValidator = (props: Record<string, unknown> | undefined) => string[];
@@ -156,6 +163,33 @@ function getBlockCta(block: Record<string, unknown>): unknown {
   return block.cta;
 }
 
+function sanitizeBlockRecord(block: Record<string, unknown>): Record<string, unknown> {
+  const nextBlock = { ...block };
+
+  if (typeof nextBlock.variant === "string") {
+    nextBlock.variant = nextBlock.variant.trim();
+  }
+
+  if (isRecord(nextBlock.props) && isRecord(nextBlock.props.cta) && typeof nextBlock.props.cta.href === "string") {
+    nextBlock.props = {
+      ...nextBlock.props,
+      cta: {
+        ...nextBlock.props.cta,
+        href: normalizeCtaHref(nextBlock.props.cta.href),
+      },
+    };
+  }
+
+  if (isRecord(nextBlock.cta) && typeof nextBlock.cta.href === "string") {
+    nextBlock.cta = {
+      ...nextBlock.cta,
+      href: normalizeCtaHref(nextBlock.cta.href),
+    };
+  }
+
+  return nextBlock;
+}
+
 export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
   if (!isRecord(payload)) {
     return payload;
@@ -194,33 +228,37 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
       }
 
       const nextBlock = Array.isArray(payload.blocks) ? { ...block } : coerceLegacySectionToBlock(block);
-
-      if (typeof nextBlock.variant === "string") {
-        nextBlock.variant = nextBlock.variant.trim();
-      }
-
-      if (isRecord(nextBlock.props) && isRecord(nextBlock.props.cta) && typeof nextBlock.props.cta.href === "string") {
-        nextBlock.props = {
-          ...nextBlock.props,
-          cta: {
-            ...nextBlock.props.cta,
-            href: normalizeCtaHref(nextBlock.props.cta.href),
-          },
-        };
-      }
-
-      if (isRecord(nextBlock.cta) && typeof nextBlock.cta.href === "string") {
-        nextBlock.cta = {
-          ...nextBlock.cta,
-          href: normalizeCtaHref(nextBlock.cta.href),
-        };
-      }
-
-      return nextBlock;
+      return sanitizeBlockRecord(nextBlock);
     });
 
     sanitized.blocks = normalizedBlocks;
     sanitized.sections = normalizedBlocks;
+  }
+
+  if (isRecord(payload.layout)) {
+    const regionNames = ["top", "main", "bottom"] as const;
+    const nextLayout: Record<string, unknown> = {};
+
+    for (const regionName of regionNames) {
+      const rawEntries = payload.layout[regionName];
+      if (!Array.isArray(rawEntries)) {
+        continue;
+      }
+
+      nextLayout[regionName] = rawEntries.map((entry) => {
+        if (typeof entry === "string") {
+          return entry.trim();
+        }
+
+        if (!isRecord(entry)) {
+          return entry;
+        }
+
+        return sanitizeBlockRecord(entry);
+      });
+    }
+
+    sanitized.layout = nextLayout;
   }
 
   return sanitized;
@@ -409,6 +447,49 @@ export function validateGeneratedPageSchema(
         }
       }
     });
+  }
+
+  if (payload.layout !== undefined) {
+    const regionNames = ["top", "main", "bottom"] as const;
+    if (!isRecord(payload.layout)) {
+      errors.push("layout must be an object when provided.");
+    } else {
+      if (!hasOnlyAllowedKeys(payload.layout, [...regionNames])) {
+        errors.push("layout contains unsupported keys.");
+      }
+
+      for (const regionName of regionNames) {
+        const regionEntries = payload.layout[regionName];
+        if (!Array.isArray(regionEntries)) {
+          errors.push(`layout.${regionName} must be an array.`);
+          continue;
+        }
+
+        regionEntries.forEach((entry, index) => {
+          if (typeof entry === "string") {
+            if (entry.trim().length === 0) {
+              errors.push(`layout.${regionName}[${index}] must be a non-empty string reference.`);
+            }
+            return;
+          }
+
+          if (!isRecord(entry)) {
+            errors.push(`layout.${regionName}[${index}] must be a block reference string or object.`);
+            return;
+          }
+
+          const block = entry;
+
+          if (typeof block.id !== "string" || block.id.trim().length === 0) {
+            errors.push(`layout.${regionName}[${index}].id must be a non-empty string.`);
+          }
+
+          if (typeof block.type !== "string" || block.type.trim().length === 0) {
+            errors.push(`layout.${regionName}[${index}].type must be a non-empty string.`);
+          }
+        });
+      }
+    }
   }
 
   if (errors.length > 0) {

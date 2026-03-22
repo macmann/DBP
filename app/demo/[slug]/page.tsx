@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Container } from "@/components/layout/Container";
 import { PageRenderer } from "@/components/landing/PageRenderer";
 import { WidgetEmbed } from "@/components/landing/WidgetEmbed";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
-import { type GeneratedPageSchema, validateGeneratedPageSchema } from "@/lib/ai/schema";
+import type { GeneratedBlock, GeneratedPageSchema, GeneratedPageLayout } from "@/lib/ai/schema";
+import { validateGeneratedPageSchema } from "@/lib/ai/schema";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/config/brand";
 import { getPublishedDemoPage } from "@/lib/public-pages";
 
@@ -15,6 +16,17 @@ type DemoPageProps = {
 };
 
 type AssetLookupMap = Map<string, ResolvedAsset>;
+type DemoLayoutEntry = string | GeneratedBlock;
+type DemoLayoutRegion = "top" | "main" | "bottom";
+type DemoPublishedPage = NonNullable<Awaited<ReturnType<typeof getPublishedDemoPage>>>;
+
+type DemoLayoutContext = {
+  page: DemoPublishedPage;
+  schema: GeneratedPageSchema;
+  logoAsset: DemoPublishedPage["assets"][number] | undefined;
+  resolveAsset: AssetResolver;
+  currentVersionLabel: string;
+};
 
 const SITE_DEFAULT_TITLE = PRODUCT_NAME;
 const SITE_DEFAULT_DESCRIPTION = PRODUCT_DESCRIPTION;
@@ -84,6 +96,162 @@ function InvalidSchemaFallback({ publicSlug }: { publicSlug: string }) {
   );
 }
 
+function normalizeLayout(schema: GeneratedPageSchema): GeneratedPageLayout {
+  if (schema.layout) {
+    return schema.layout;
+  }
+
+  const contentBlockIds = (schema.blocks ?? schema.sections)
+    .map((block) => block.id)
+    .filter((id): id is string => typeof id === "string" && id.trim().length > 0);
+
+  return {
+    top: [{ id: "shell-page-header", type: "pageHeader" }],
+    main: contentBlockIds,
+    bottom: [{ id: "shell-widget-embed", type: "widgetEmbed" }, { id: "shell-build-meta", type: "buildMeta" }],
+  };
+}
+
+function PageHeaderBlock({
+  schema,
+  pageTitleFallback,
+  logoAsset,
+}: {
+  schema: GeneratedPageSchema;
+  pageTitleFallback: string;
+  logoAsset: DemoLayoutContext["logoAsset"];
+}) {
+  const normalizedHeaderAlignment =
+    schema.pageHeaderAlignment?.trim().toLowerCase() === "center" ? "center" : "left";
+  const isPageHeaderCentered = normalizedHeaderAlignment === "center";
+
+  return (
+    <header
+      className={`max-w-3xl space-y-4 ${isPageHeaderCentered ? "mx-auto text-center" : "text-left"}`}
+    >
+      {logoAsset ? (
+        <div className={`relative h-12 w-28 sm:h-14 sm:w-32 ${isPageHeaderCentered ? "mx-auto" : ""}`}>
+          <Image
+            src={logoAsset.storageUrl}
+            alt={logoAsset.fileName || "Brand logo"}
+            fill
+            unoptimized
+            sizes="(max-width: 640px) 112px, 128px"
+            className="object-contain"
+          />
+        </div>
+      ) : null}
+      <h1 className="text-balance text-3xl font-semibold tracking-tight text-[var(--dbp-ink)] sm:text-4xl lg:text-5xl">
+        {schema.pageTitle || pageTitleFallback}
+      </h1>
+      {schema.summary ? (
+        <p className="text-pretty text-base leading-7 text-[var(--dbp-muted)] sm:text-lg">{schema.summary}</p>
+      ) : null}
+    </header>
+  );
+}
+
+function BuildMetaBlock({ schema, currentVersionLabel }: { schema: GeneratedPageSchema; currentVersionLabel: string }) {
+  return (
+    <footer className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-xs text-muted sm:px-5">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span className="font-medium text-fg">Build {currentVersionLabel}</span>
+        <span>Theme:</span>
+        <span className="inline-flex items-center gap-1">
+          <span
+            className="inline-block h-3 w-3 rounded-full border border-border"
+            style={{ backgroundColor: schema.theme.primaryColor }}
+            aria-hidden
+          />
+          <code>{schema.theme.primaryColor}</code>
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span
+            className="inline-block h-3 w-3 rounded-full border border-border"
+            style={{ backgroundColor: schema.theme.accentColor }}
+            aria-hidden
+          />
+          <code>{schema.theme.accentColor}</code>
+        </span>
+        <span>Font: {schema.theme.fontFamily}</span>
+      </div>
+    </footer>
+  );
+}
+
+function renderLayoutRegion(region: DemoLayoutRegion, entries: DemoLayoutEntry[], context: DemoLayoutContext): ReactNode {
+  const contentById = new Map((context.schema.blocks ?? context.schema.sections).map((block) => [block.id, block]));
+  const resolvedContentBlocks: GeneratedBlock[] = [];
+  const output: ReactNode[] = [];
+  const flushContentBlocks = (keyBase: string) => {
+    if (resolvedContentBlocks.length === 0) {
+      return;
+    }
+
+    output.push(
+      <PageRenderer
+        key={`${keyBase}-${output.length}`}
+        page={{ ...context.schema, blocks: [...resolvedContentBlocks], sections: [...resolvedContentBlocks] }}
+        resolveAsset={context.resolveAsset}
+      />,
+    );
+    resolvedContentBlocks.length = 0;
+  };
+
+  entries.forEach((entry, index) => {
+    const maybeReferencedBlock =
+      typeof entry === "string"
+        ? contentById.get(entry)
+        : typeof entry.type === "string" && entry.type !== "pageHeader" && entry.type !== "widgetEmbed" && entry.type !== "buildMeta"
+          ? entry
+          : null;
+
+    if (maybeReferencedBlock) {
+      resolvedContentBlocks.push(maybeReferencedBlock);
+      return;
+    }
+
+    flushContentBlocks(`${region}-${index}`);
+    const block = typeof entry === "string" ? null : entry;
+    const blockType = block?.type?.trim();
+
+    if (blockType === "pageHeader") {
+      output.push(
+        <PageHeaderBlock
+          key={`${region}-${index}-page-header`}
+          schema={context.schema}
+          pageTitleFallback={context.page?.title ?? SITE_DEFAULT_TITLE}
+          logoAsset={context.logoAsset}
+        />,
+      );
+      return;
+    }
+
+    if (blockType === "widgetEmbed") {
+      output.push(
+        context.page?.widgetEmbedHtml ? (
+          <WidgetEmbed key={`${region}-${index}-widget-embed`} html={context.page.widgetEmbedHtml} />
+        ) : null,
+      );
+      return;
+    }
+
+    if (blockType === "buildMeta") {
+      output.push(
+        <BuildMetaBlock
+          key={`${region}-${index}-build-meta`}
+          schema={context.schema}
+          currentVersionLabel={context.currentVersionLabel}
+        />,
+      );
+      return;
+    }
+  });
+
+  flushContentBlocks(`${region}-tail`);
+  return output;
+}
+
 export default async function DemoPage({ params }: DemoPageProps) {
   const { slug } = await params;
 
@@ -123,9 +291,7 @@ export default async function DemoPage({ params }: DemoPageProps) {
   const currentVersionLabel = page.currentVersion?.versionNumber
     ? `v${page.currentVersion.versionNumber}`
     : "v?";
-  const normalizedHeaderAlignment =
-    schema.pageHeaderAlignment?.trim().toLowerCase() === "center" ? "center" : "left";
-  const isPageHeaderCentered = normalizedHeaderAlignment === "center";
+  const layout = normalizeLayout(schema);
   const themeVariables = {
     "--dbp-primary": schema.theme.primaryColor,
     "--dbp-accent": schema.theme.accentColor,
@@ -139,57 +305,27 @@ export default async function DemoPage({ params }: DemoPageProps) {
   return (
     <div style={themeVariables}>
       <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
-        <header
-          className={`max-w-3xl space-y-4 ${isPageHeaderCentered ? "mx-auto text-center" : "text-left"}`}
-        >
-          {logoAsset ? (
-            <div
-              className={`relative h-12 w-28 sm:h-14 sm:w-32 ${isPageHeaderCentered ? "mx-auto" : ""}`}
-            >
-              <Image
-                src={logoAsset.storageUrl}
-                alt={logoAsset.fileName || "Brand logo"}
-                fill
-                unoptimized
-                sizes="(max-width: 640px) 112px, 128px"
-                className="object-contain"
-              />
-            </div>
-          ) : null}
-          <h1 className="text-balance text-3xl font-semibold tracking-tight text-[var(--dbp-ink)] sm:text-4xl lg:text-5xl">
-            {schema.pageTitle || page.title}
-          </h1>
-          {schema.summary ? (
-            <p className="text-pretty text-base leading-7 text-[var(--dbp-muted)] sm:text-lg">
-              {schema.summary}
-            </p>
-          ) : null}
-        </header>
-        <PageRenderer page={schema} resolveAsset={resolveAsset} />
-        {page.widgetEmbedHtml ? <WidgetEmbed html={page.widgetEmbedHtml} /> : null}
-        <footer className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-xs text-muted sm:px-5">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className="font-medium text-fg">Build {currentVersionLabel}</span>
-            <span>Theme:</span>
-            <span className="inline-flex items-center gap-1">
-              <span
-                className="inline-block h-3 w-3 rounded-full border border-border"
-                style={{ backgroundColor: schema.theme.primaryColor }}
-                aria-hidden
-              />
-              <code>{schema.theme.primaryColor}</code>
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span
-                className="inline-block h-3 w-3 rounded-full border border-border"
-                style={{ backgroundColor: schema.theme.accentColor }}
-                aria-hidden
-              />
-              <code>{schema.theme.accentColor}</code>
-            </span>
-            <span>Font: {schema.theme.fontFamily}</span>
-          </div>
-        </footer>
+        {renderLayoutRegion("top", layout.top, {
+          page,
+          schema,
+          logoAsset,
+          resolveAsset,
+          currentVersionLabel,
+        })}
+        {renderLayoutRegion("main", layout.main, {
+          page,
+          schema,
+          logoAsset,
+          resolveAsset,
+          currentVersionLabel,
+        })}
+        {renderLayoutRegion("bottom", layout.bottom, {
+          page,
+          schema,
+          logoAsset,
+          resolveAsset,
+          currentVersionLabel,
+        })}
       </Container>
     </div>
   );
