@@ -1,5 +1,4 @@
-import type { AllowedSectionType, GeneratedPageSchema, GeneratedSection } from "@/lib/ai/schema";
-import { ALLOWED_SECTION_TYPES } from "@/lib/ai/schema";
+import type { GeneratedPageSchema, GeneratedSection } from "@/lib/ai/schema";
 
 const KNOWN_VARIANTS = [
   "split",
@@ -14,17 +13,27 @@ const KNOWN_VARIANTS = [
 ] as const;
 
 type ParsedLayoutDirectives = {
-  sectionOrder: AllowedSectionType[];
-  sectionVariants: Partial<Record<AllowedSectionType, string>>;
+  sectionOrder: string[];
+  sectionVariants: Partial<Record<string, string>>;
 };
 
 function normalizeText(input: string): string {
   return input.toLowerCase();
 }
 
-function parseSectionOrder(text: string): AllowedSectionType[] {
+function getKnownTypes(sections: GeneratedSection[]): string[] {
+  return Array.from(
+    new Set(
+      sections
+        .map((section) => (typeof section.type === "string" ? normalizeText(section.type.trim()) : ""))
+        .filter((type) => type.length > 0),
+    ),
+  );
+}
+
+function parseSectionOrder(text: string, knownTypes: string[]): string[] {
   const lines = text.split(/\r?\n/);
-  const ordered: AllowedSectionType[] = [];
+  const ordered: string[] = [];
 
   for (const line of lines) {
     const normalizedLine = normalizeText(line);
@@ -32,7 +41,7 @@ function parseSectionOrder(text: string): AllowedSectionType[] {
       continue;
     }
 
-    for (const sectionType of ALLOWED_SECTION_TYPES) {
+    for (const sectionType of knownTypes) {
       if (normalizedLine.includes(sectionType) && !ordered.includes(sectionType)) {
         ordered.push(sectionType);
       }
@@ -42,14 +51,17 @@ function parseSectionOrder(text: string): AllowedSectionType[] {
   return ordered;
 }
 
-function parseSectionVariants(text: string): Partial<Record<AllowedSectionType, string>> {
+function parseSectionVariants(
+  text: string,
+  knownTypes: string[],
+): Partial<Record<string, string>> {
   const lines = text.split(/\r?\n/);
-  const directives: Partial<Record<AllowedSectionType, string>> = {};
+  const directives: Partial<Record<string, string>> = {};
 
   for (const line of lines) {
     const normalizedLine = normalizeText(line);
 
-    for (const sectionType of ALLOWED_SECTION_TYPES) {
+    for (const sectionType of knownTypes) {
       if (!normalizedLine.includes(sectionType)) {
         continue;
       }
@@ -66,23 +78,28 @@ function parseSectionVariants(text: string): Partial<Record<AllowedSectionType, 
   return directives;
 }
 
-export function parseLayoutDirectivesFromPrompt(prompt: string): ParsedLayoutDirectives {
+export function parseLayoutDirectivesFromPrompt(
+  prompt: string,
+  knownTypes: string[],
+): ParsedLayoutDirectives {
   const normalizedPrompt = normalizeText(prompt || "");
   return {
-    sectionOrder: parseSectionOrder(normalizedPrompt),
-    sectionVariants: parseSectionVariants(normalizedPrompt),
+    sectionOrder: parseSectionOrder(normalizedPrompt, knownTypes),
+    sectionVariants: parseSectionVariants(normalizedPrompt, knownTypes),
   };
 }
 
-function reorderSections(sections: GeneratedSection[], sectionOrder: AllowedSectionType[]): GeneratedSection[] {
+function reorderSections(sections: GeneratedSection[], sectionOrder: string[]): GeneratedSection[] {
   if (sectionOrder.length === 0) {
     return sections;
   }
 
   const rank = new Map(sectionOrder.map((type, index) => [type, index]));
   return [...sections].sort((a, b) => {
-    const aRank = rank.get(a.type);
-    const bRank = rank.get(b.type);
+    const aType = normalizeText(a.type);
+    const bType = normalizeText(b.type);
+    const aRank = rank.get(aType);
+    const bRank = rank.get(bType);
     if (aRank === undefined && bRank === undefined) return 0;
     if (aRank === undefined) return 1;
     if (bRank === undefined) return -1;
@@ -92,17 +109,18 @@ function reorderSections(sections: GeneratedSection[], sectionOrder: AllowedSect
 
 function applyVariants(
   sections: GeneratedSection[],
-  sectionVariants: Partial<Record<AllowedSectionType, string>>,
+  sectionVariants: Partial<Record<string, string>>,
 ): GeneratedSection[] {
   return sections.map((section) => {
-    const layoutVariant = sectionVariants[section.type];
-    if (!layoutVariant) {
+    const blockType = normalizeText(section.type);
+    const variant = sectionVariants[blockType];
+    if (!variant) {
       return section;
     }
 
     return {
       ...section,
-      layoutVariant,
+      variant,
     };
   });
 }
@@ -111,8 +129,8 @@ export function applyPromptLayoutDirectives(
   schema: GeneratedPageSchema,
   prompt: string,
 ): GeneratedPageSchema {
-  const directives = parseLayoutDirectivesFromPrompt(prompt);
   const sourceBlocks = schema.blocks ?? schema.sections ?? [];
+  const directives = parseLayoutDirectivesFromPrompt(prompt, getKnownTypes(sourceBlocks));
   const reordered = reorderSections(sourceBlocks, directives.sectionOrder);
   const withVariants = applyVariants(reordered, directives.sectionVariants);
 

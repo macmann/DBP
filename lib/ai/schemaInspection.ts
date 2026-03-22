@@ -1,5 +1,4 @@
 import {
-  ALLOWED_SECTION_TYPES,
   type GeneratedBlock,
   type GeneratedPageSchema,
   validateGeneratedPageSchema,
@@ -19,8 +18,6 @@ export type SchemaInspectionResult = {
   unknownBlockTypes: string[];
   blocks: BlockInspectionSummary[];
 };
-
-const knownBlockTypes = new Set<string>(ALLOWED_SECTION_TYPES);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -73,15 +70,12 @@ export function inspectGeneratedSchema(payload: unknown): SchemaInspectionResult
   }
 
   const blocks = getBlocks(validated.data);
-  const unknownBlockTypes = Array.from(
-    new Set(blocks.map((block) => block.type).filter((type) => !knownBlockTypes.has(type))),
-  );
 
   return {
     isValid: true,
     validationErrors: [],
     blockCount: blocks.length,
-    unknownBlockTypes,
+    unknownBlockTypes: [],
     blocks: blocks.map((block, index) => ({
       id: typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `block-${index + 1}`,
       type: block.type,

@@ -10,22 +10,6 @@ type ValidationFailure = {
 
 export type ValidationResult<T> = ValidationSuccess<T> | ValidationFailure;
 
-// Legacy defaults kept for prompt/layout helpers. Validation no longer hard-fails
-// for types outside this list.
-export const ALLOWED_SECTION_TYPES = [
-  "hero",
-  "logoStrip",
-  "features",
-  "imageText",
-  "gallery",
-  "testimonial",
-  "faq",
-  "cta",
-  "footer",
-] as const;
-
-export type AllowedSectionType = string;
-
 export type GeneratedBlock = {
   id: string;
   type: string;

@@ -1,5 +1,4 @@
 import type { AssetType } from "@prisma/client";
-import type { AllowedSectionType } from "./schema";
 
 type PromptAsset = {
   id: string;
@@ -14,7 +13,7 @@ export type BuildPromptInput = {
   pagePrompt: string;
   referenceLinks: string[];
   assets: PromptAsset[];
-  allowedSections: readonly AllowedSectionType[];
+  allowedBlockTypes?: readonly string[];
   toneBrandingHints: string[];
   layoutRegions: readonly ["top", "main", "bottom"];
 };
@@ -29,7 +28,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "seo.title must be 70 characters or fewer.",
     "seo.description must be 160 characters or fewer.",
     "Every blocks[].props.cta.href must be either an absolute http(s) URL or a root-relative path that starts with '/'.",
-    "Use only block types from the allowed list.",
+    "Prefer block types implied by the page prompt and keep type names URL-safe tokens.",
     "Each blocks[] entry must include id and type. variant and props are optional.",
     "Any media references (blocks[].props.mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
     "If uploaded image/logo assets are provided, assign relevant blocks[].props.mediaAssetIds for visual blocks (hero, imageText, gallery, logoStrip, testimonial).",
@@ -45,7 +44,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
 
   const userPrompt = [
     `Page prompt:\n${input.pagePrompt || "(none provided)"}`,
-    `Allowed block types:\n${input.allowedSections.join(", ")}`,
+    `Prompt-suggested block types:\n${(input.allowedBlockTypes ?? []).join(", ") || "(derive from page prompt)"}`,
     `Tone and branding hints:\n${input.toneBrandingHints.join("\n") || "(none provided)"}`,
     `Reference links:\n${input.referenceLinks.length > 0 ? input.referenceLinks.join("\n") : "(none provided)"}`,
     `Uploaded assets:\n${
@@ -85,7 +84,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     '  "blocks": [',
     "    {",
     '      "id": "string // stable block id",',
-    '      "type": "allowedType // required, must be from Allowed block types",',
+    '      "type": "string // required URL-safe token, usually derived from the page prompt",',
     '      "variant?": "string // optional layout/style variant token",',
     '      "props?": "object // optional block payload (headings, body, items, cta, mediaAssetIds, etc.)"',
     "    }",
@@ -97,7 +96,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "  }",
     "}",
     "Do not output any text before or after the JSON object.",
-    "Use only the keys above and only allowed block types.",
+    "Use only the keys above. Block type names should be URL-safe and prompt-driven.",
     "Ensure every layout ID exists in blocks[].id and preserve block ID uniqueness.",
     "Important: layout must be instruction-driven from the Page prompt, not template-driven.",
   ].join("\n\n");
