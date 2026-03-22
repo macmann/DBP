@@ -36,6 +36,31 @@ function inferLegacyLayout(blocks: GeneratedBlock[]): GeneratedPageLayout {
   };
 }
 
+function hasRenderableLayoutEntries(layout: GeneratedPageLayout): boolean {
+  return layout.top.length > 0 || layout.main.length > 0 || layout.bottom.length > 0;
+}
+
+function resolveNormalizedLayout(
+  schema: GeneratedPageSchema,
+  contentBlocks: GeneratedBlock[],
+): GeneratedPageLayout {
+  if (!schema.layout) {
+    return inferLegacyLayout(contentBlocks);
+  }
+
+  const normalizedLayout: GeneratedPageLayout = {
+    top: normalizeLayoutEntries(schema.layout.top),
+    main: normalizeLayoutEntries(schema.layout.main),
+    bottom: normalizeLayoutEntries(schema.layout.bottom),
+  };
+
+  if (!hasRenderableLayoutEntries(normalizedLayout)) {
+    return inferLegacyLayout(contentBlocks);
+  }
+
+  return normalizedLayout;
+}
+
 export function buildDemoRenderSchema(
   schema: GeneratedPageSchema,
   options: DemoRenderSchemaOptions,
@@ -49,13 +74,7 @@ export function buildDemoRenderSchema(
     }
   }
 
-  const normalizedLayout = schema.layout
-    ? {
-        top: normalizeLayoutEntries(schema.layout.top),
-        main: normalizeLayoutEntries(schema.layout.main),
-        bottom: normalizeLayoutEntries(schema.layout.bottom),
-      }
-    : inferLegacyLayout(contentBlocks);
+  const normalizedLayout = resolveNormalizedLayout(schema, contentBlocks);
 
   const shellBlocks: GeneratedBlock[] = [
     {

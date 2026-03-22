@@ -129,4 +129,53 @@ describe("buildDemoRenderSchema", () => {
       bottom: ["shell-build-meta"],
     });
   });
+
+  it("falls back to legacy shell composition when layout is present but empty", () => {
+    const schema = buildSchema({
+      layout: {
+        top: ["   "],
+        main: [],
+        bottom: [""],
+      },
+    });
+
+    const result = buildDemoRenderSchema(schema, {
+      pageTitleFallback: "Fallback",
+      currentVersionLabel: "v2",
+      widgetEmbedHtml: "",
+    });
+
+    assert.deepEqual(result.layout, {
+      top: ["shell-page-header"],
+      main: ["hero-1", "faq-1"],
+      bottom: ["shell-widget-embed", "shell-build-meta"],
+    });
+  });
+
+  it("keeps schema-driven region composition for explicit shell block placement", () => {
+    const schema = buildSchema({
+      layout: {
+        top: ["shell-build-meta"],
+        main: ["shell-page-header", "hero-1"],
+        bottom: ["faq-1", "shell-widget-embed"],
+      },
+    });
+
+    const result = buildDemoRenderSchema(schema, {
+      pageTitleFallback: "Fallback",
+      currentVersionLabel: "v9",
+      widgetEmbedHtml: "<div>embed</div>",
+    });
+
+    assert.deepEqual(result.layout, {
+      top: ["shell-build-meta"],
+      main: ["shell-page-header", "hero-1"],
+      bottom: ["faq-1", "shell-widget-embed"],
+    });
+
+    const blockTypes = new Map(result.blocks?.map((block) => [block.id, block.type]));
+    assert.equal(blockTypes.get("shell-page-header"), "pageHeader");
+    assert.equal(blockTypes.get("shell-widget-embed"), "widgetEmbed");
+    assert.equal(blockTypes.get("shell-build-meta"), "buildMeta");
+  });
 });
