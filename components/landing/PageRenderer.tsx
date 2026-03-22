@@ -1,74 +1,60 @@
-import type { GeneratedPageSchema, GeneratedSection } from "@/lib/ai/schema";
+import type { GeneratedBlock, GeneratedPageSchema } from "@/lib/ai/schema";
 import type { AssetResolver } from "@/components/landing/types";
-import { CTASection } from "@/components/landing/sections/CTASection";
-import { FAQSection } from "@/components/landing/sections/FAQSection";
-import { FeaturesSection } from "@/components/landing/sections/FeaturesSection";
-import { FooterSection } from "@/components/landing/sections/FooterSection";
-import { GallerySection } from "@/components/landing/sections/GallerySection";
-import { HeroSection } from "@/components/landing/sections/HeroSection";
-import { ImageTextSection } from "@/components/landing/sections/ImageTextSection";
-import { LogoStripSection } from "@/components/landing/sections/LogoStripSection";
-import { TestimonialSection } from "@/components/landing/sections/TestimonialSection";
+import { resolveBlock } from "@/components/landing/blockRegistry";
+import "@/components/landing/blockAdapters";
 
 type PageRendererProps = {
   page: GeneratedPageSchema;
   resolveAsset: AssetResolver;
 };
 
-function MalformedSectionPlaceholder({ sectionId }: { sectionId: string }) {
+function MalformedBlockPlaceholder({ blockId }: { blockId: string }) {
   return (
     <section className="rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-5 py-6 text-sm text-amber-800">
-      Section <span className="font-mono">{sectionId}</span> could not be rendered due to malformed
-      content.
+      Block <span className="font-mono">{blockId}</span> could not be rendered due to malformed
+      props.
     </section>
   );
 }
 
-function UnknownSectionPlaceholder({ type }: { type: string }) {
+function UnknownBlockPlaceholder({ type }: { type: string }) {
   return (
     <section className="rounded-2xl border border-dashed border-neutral-300 bg-white px-5 py-6 text-sm text-neutral-600">
-      Unsupported section type: <span className="font-mono">{type}</span>
+      Unsupported block type: <span className="font-mono">{type}</span>
     </section>
   );
 }
 
-function renderSection(section: GeneratedSection, resolveAsset: AssetResolver) {
-  if (typeof section.id !== "string" || section.id.trim().length === 0) {
-    return <MalformedSectionPlaceholder sectionId="unknown" />;
+function renderBlock(block: GeneratedBlock, resolveAsset: AssetResolver) {
+  if (typeof block.id !== "string" || block.id.trim().length === 0) {
+    return <MalformedBlockPlaceholder blockId="unknown" />;
   }
 
-  const props = { section, resolveAsset };
+  const resolved = resolveBlock(String(block.type));
 
-  switch (section.type) {
-    case "hero":
-      return <HeroSection {...props} />;
-    case "logoStrip":
-      return <LogoStripSection {...props} />;
-    case "features":
-      return <FeaturesSection {...props} />;
-    case "imageText":
-      return <ImageTextSection {...props} />;
-    case "gallery":
-      return <GallerySection {...props} />;
-    case "testimonial":
-      return <TestimonialSection {...props} />;
-    case "faq":
-      return <FAQSection {...props} />;
-    case "cta":
-      return <CTASection {...props} />;
-    case "footer":
-      return <FooterSection {...props} />;
-    default:
-      return <UnknownSectionPlaceholder type={String(section.type)} />;
+  if (!resolved) {
+    return <UnknownBlockPlaceholder type={String(block.type)} />;
   }
+
+  if (resolved.validator && !resolved.validator(block.props)) {
+    return <MalformedBlockPlaceholder blockId={block.id} />;
+  }
+
+  const BlockComponent = resolved.component;
+  return <BlockComponent block={block} resolveAsset={resolveAsset} />;
 }
 
 export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
+  const blocks = page.blocks ?? page.sections;
+
   return (
     <div className="space-y-8 sm:space-y-10 lg:space-y-12">
-      {page.sections.map((section) => (
-        <div key={section.id} className="scroll-mt-24">
-          {renderSection(section, resolveAsset)}
+      {blocks.map((block, index) => (
+        <div
+          key={typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `block-${index}`}
+          className="scroll-mt-24"
+        >
+          {renderBlock(block, resolveAsset)}
         </div>
       ))}
     </div>
