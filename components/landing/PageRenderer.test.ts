@@ -65,6 +65,25 @@ describe("PageRenderer", () => {
     assert.match(markup, /not-registered/);
   });
 
+  it("renders malformed block fallback when block shape is invalid", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "",
+            type: "hero",
+            props: {
+              heading: "Missing id",
+            },
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /could not be rendered due to malformed props/);
+    assert.match(markup, /unknown/);
+  });
   it("renders malformed block fallback when props are invalid", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
