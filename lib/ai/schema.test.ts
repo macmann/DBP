@@ -2,10 +2,13 @@ import { describe, it } from "node:test";
 import * as assert from "node:assert/strict";
 
 import {
+  CURRENT_GENERATED_SCHEMA_VERSION,
   sanitizeGeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "./schema";
 import { buildPageGenerationPrompts } from "./promptBuilder";
+import legacySavedVersionFixture from "./fixtures/saved-version-v1.json";
+import currentSavedVersionFixture from "./fixtures/saved-version-v2.json";
 
 const validFixture = {
   pageTitle: "Acme Analytics",
@@ -374,6 +377,33 @@ describe("validateGeneratedPageSchema", () => {
       throw new Error("Expected validation success");
     }
     assert.equal(result.data.pageHeaderAlignment, "center");
+  });
+
+  it("migrates legacy saved schema fixtures at runtime", () => {
+    const result = validateGeneratedPageSchema(legacySavedVersionFixture);
+    assert.equal(result.success, true);
+    if (!result.success) {
+      throw new Error("Expected validation success");
+    }
+
+    assert.equal(result.data.schemaVersion, CURRENT_GENERATED_SCHEMA_VERSION);
+    assert.ok(Array.isArray(result.data.blocks));
+    assert.equal(result.data.blocks?.length, legacySavedVersionFixture.sections.length);
+    assert.deepEqual(
+      result.data.layout?.main,
+      legacySavedVersionFixture.sections.map((section) => section.id),
+    );
+  });
+
+  it("keeps v2 saved schema fixtures readable in demo/publish runtime", () => {
+    const result = validateGeneratedPageSchema(currentSavedVersionFixture);
+    assert.equal(result.success, true);
+    if (!result.success) {
+      throw new Error("Expected validation success");
+    }
+
+    assert.equal(result.data.schemaVersion, CURRENT_GENERATED_SCHEMA_VERSION);
+    assert.deepEqual(result.data.layout?.main, ["hero-modern"]);
   });
 });
 

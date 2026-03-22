@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 2,
+  "pageTitle": "Modern Landing",
+  "summary": "Current schema with blocks and explicit layout.",
+  "theme": {
+    "primaryColor": "#0F172A",
+    "accentColor": "#22C55E",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "Modern Landing",
+    "description": "Modern page content."
+  },
+  "blocks": [
+    {
+      "id": "hero-modern",
+      "type": "hero",
+      "props": {
+        "heading": "Modern hero heading",
+        "cta": {
+          "label": "Book demo",
+          "href": "/demo"
+        }
+      }
+    }
+  ],
+  "layout": {
+    "top": [
+      {
+        "id": "shell-page-header",
+        "type": "pageHeader"
+      }
+    ],
+    "main": ["hero-modern"],
+    "bottom": [
+      {
+        "id": "shell-build-meta",
+        "type": "buildMeta"
+      }
+    ]
+  }
+}
