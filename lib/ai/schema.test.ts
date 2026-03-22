@@ -389,18 +389,18 @@ describe("buildPageGenerationPrompts", () => {
 
     assert.match(
       prompt.systemPrompt,
-      /theme, seo, and sections are required and must be valid objects\/array\./,
+      /theme, seo, blocks, and layout are required and must be valid objects\/array\./,
     );
     assert.match(prompt.systemPrompt, /pageHeaderAlignment \(optional\)/);
     assert.match(prompt.systemPrompt, /seo.title must be 70 characters or fewer\./);
     assert.match(prompt.systemPrompt, /seo.description must be 160 characters or fewer\./);
     assert.match(
       prompt.systemPrompt,
-      /Every sections\[\]\.cta\.href must be either an absolute http\(s\) URL or a root-relative path that starts with '\/'\./,
+      /Every blocks\[\]\.props\.cta\.href must be either an absolute http\(s\) URL or a root-relative path that starts with '\/'\./,
     );
     assert.match(
       prompt.systemPrompt,
-      /assign relevant section\.mediaAssetIds for visual sections \(hero, imageText, gallery, logoStrip, testimonial\)\./,
+      /assign relevant blocks\[\]\.props\.mediaAssetIds for visual blocks \(hero, imageText, gallery, logoStrip, testimonial\)\./,
     );
     assert.match(
       prompt.systemPrompt,
@@ -410,10 +410,32 @@ describe("buildPageGenerationPrompts", () => {
       prompt.systemPrompt,
       /must follow the page prompt and not default to a fixed boilerplate sequence\./,
     );
-    assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, sections/);
+    assert.match(
+      prompt.systemPrompt,
+      /layout\.top, layout\.main, and layout\.bottom must be arrays of block IDs that reference existing blocks\[\]\.id values\./,
+    );
+    assert.match(
+      prompt.systemPrompt,
+      /Preserve deterministic JSON constraints while increasing semantic diversity: vary composition and copy strategy without inventing non-schema keys\./,
+    );
+    assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, blocks, layout/);
     assert.match(
       prompt.userPrompt,
       /"pageHeaderAlignment\?": "left \| center \/\/ controls top page header alignment"/,
+    );
+    assert.match(
+      prompt.userPrompt,
+      /"blocks": \[\n\n    \{\n\n      "id": "string \/\/ stable block id"/,
+    );
+    assert.match(prompt.userPrompt, /"variant\?": "string \/\/ optional layout\/style variant token for renderer"/);
+    assert.match(prompt.userPrompt, /"props": "object \/\/ block-specific payload/);
+    assert.match(prompt.userPrompt, /"layout": \{/);
+    assert.match(prompt.userPrompt, /"top": "string\[\] \/\/ block ids placed above main content"/);
+    assert.match(prompt.userPrompt, /"main": "string\[\] \/\/ block ids for primary narrative flow"/);
+    assert.match(prompt.userPrompt, /"bottom": "string\[\] \/\/ block ids for footer-adjacent content"/);
+    assert.match(
+      prompt.userPrompt,
+      /Ensure every layout ID exists in blocks\[\]\.id and preserve block ID uniqueness\./,
     );
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
     assert.match(prompt.userPrompt, /Allowed sections:\nhero, features, cta/);
