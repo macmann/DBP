@@ -1,7 +1,6 @@
 import type { GeneratedBlock, GeneratedPageSchema } from "@/lib/ai/schema";
 import type { AssetResolver } from "@/components/landing/types";
 import { resolveBlock } from "@/components/landing/blockRegistry";
-import { registerLandingBlocks } from "@/components/landing/registeredBlocks";
 
 type PageRendererProps = {
   page: GeneratedPageSchema;
@@ -66,7 +65,6 @@ function renderRegionEntries(
 }
 
 export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
-  registerLandingBlocks();
   const blocks = page.blocks ?? page.sections;
   const layout = page.layout;
   const blockMap = new Map(

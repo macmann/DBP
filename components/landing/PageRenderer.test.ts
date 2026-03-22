@@ -45,6 +45,25 @@ describe("PageRenderer", () => {
     assert.match(markup, /Known block heading/);
   });
 
+  it("renders another registered block type via registry", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "cta-1",
+            type: "cta",
+            props: {
+              heading: "Call to action heading",
+            },
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /Call to action heading/);
+  });
+
   it("renders unknown block fallback when type is not registered", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
