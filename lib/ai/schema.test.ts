@@ -11,6 +11,7 @@ import { buildPageGenerationPrompts } from "./promptBuilder";
 const validFixture = {
   pageTitle: "Acme Analytics",
   summary: "Analytics for modern teams",
+  pageHeaderAlignment: "left",
   theme: {
     primaryColor: "#111827",
     accentColor: "#3B82F6",
@@ -107,6 +108,25 @@ describe("validateGeneratedPageSchema", () => {
     assert.ok(result.errors.includes("theme.spacing must be a non-empty string when provided."));
     assert.ok(
       result.errors.includes("seo.ogImageAssetId must be a non-empty string when provided."),
+    );
+  });
+
+  it("fails when pageHeaderAlignment is invalid", () => {
+    const payload = {
+      ...validFixture,
+      pageHeaderAlignment: "right",
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(
+      result.errors.includes(
+        "pageHeaderAlignment must be either 'left' or 'center' when provided.",
+      ),
     );
   });
 
@@ -278,6 +298,7 @@ describe("validateGeneratedPageSchema", () => {
         title: `  ${"T".repeat(90)}  `,
         description: ` ${"D".repeat(180)} `,
       },
+      pageHeaderAlignment: "  CENTER ",
       sections: [
         {
           ...validFixture.sections[0],
@@ -301,6 +322,10 @@ describe("validateGeneratedPageSchema", () => {
     const result = validateGeneratedPageSchema(sanitized);
 
     assert.equal(result.success, true);
+    if (!result.success) {
+      throw new Error("Expected validation success");
+    }
+    assert.equal(result.data.pageHeaderAlignment, "center");
   });
 });
 
@@ -318,6 +343,7 @@ describe("buildPageGenerationPrompts", () => {
       prompt.systemPrompt,
       /theme, seo, and sections are required and must be valid objects\/array\./,
     );
+    assert.match(prompt.systemPrompt, /pageHeaderAlignment \(optional\)/);
     assert.match(prompt.systemPrompt, /seo.title must be 70 characters or fewer\./);
     assert.match(prompt.systemPrompt, /seo.description must be 160 characters or fewer\./);
     assert.match(
@@ -337,6 +363,10 @@ describe("buildPageGenerationPrompts", () => {
       /must follow the page prompt and not default to a fixed boilerplate sequence\./,
     );
     assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, sections/);
+    assert.match(
+      prompt.userPrompt,
+      /"pageHeaderAlignment\?": "left \| center \/\/ controls top page header alignment"/,
+    );
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
     assert.match(prompt.userPrompt, /Allowed sections:\nhero, features, cta/);
   });

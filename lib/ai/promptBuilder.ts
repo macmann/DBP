@@ -22,7 +22,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
   const systemPrompt = [
     "You are a landing page schema generator.",
     "Output JSON only (no markdown, no prose, no explanations).",
-    "Return exactly one JSON object with only these top-level keys: pageTitle, summary (optional), theme, seo, sections.",
+    "Return exactly one JSON object with only these top-level keys: pageTitle, summary (optional), pageHeaderAlignment (optional), theme, seo, sections.",
     "theme, seo, and sections are required and must be valid objects/array.",
     "seo.title must be 70 characters or fewer.",
     "seo.description must be 160 characters or fewer.",
@@ -63,6 +63,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "{",
     '  "pageTitle": "string // page title",',
     '  "summary?": "string // short page summary",',
+    '  "pageHeaderAlignment?": "left | center // controls top page header alignment",',
     '  "theme": {',
     '    "primaryColor": "string // hex or token",',
     '    "accentColor": "string // hex or token",',

@@ -123,6 +123,9 @@ export default async function DemoPage({ params }: DemoPageProps) {
   const currentVersionLabel = page.currentVersion?.versionNumber
     ? `v${page.currentVersion.versionNumber}`
     : "v?";
+  const normalizedHeaderAlignment =
+    schema.pageHeaderAlignment?.trim().toLowerCase() === "center" ? "center" : "left";
+  const isPageHeaderCentered = normalizedHeaderAlignment === "center";
   const themeVariables = {
     "--dbp-primary": schema.theme.primaryColor,
     "--dbp-accent": schema.theme.accentColor,
@@ -136,53 +139,57 @@ export default async function DemoPage({ params }: DemoPageProps) {
   return (
     <div style={themeVariables}>
       <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
-      <header className="mx-auto max-w-3xl space-y-4 text-center">
-        {logoAsset ? (
-          <div className="relative mx-auto h-12 w-28 sm:h-14 sm:w-32">
-            <Image
-              src={logoAsset.storageUrl}
-              alt={logoAsset.fileName || "Brand logo"}
-              fill
-              unoptimized
-              sizes="(max-width: 640px) 112px, 128px"
-              className="object-contain"
-            />
+        <header
+          className={`max-w-3xl space-y-4 ${isPageHeaderCentered ? "mx-auto text-center" : "text-left"}`}
+        >
+          {logoAsset ? (
+            <div
+              className={`relative h-12 w-28 sm:h-14 sm:w-32 ${isPageHeaderCentered ? "mx-auto" : ""}`}
+            >
+              <Image
+                src={logoAsset.storageUrl}
+                alt={logoAsset.fileName || "Brand logo"}
+                fill
+                unoptimized
+                sizes="(max-width: 640px) 112px, 128px"
+                className="object-contain"
+              />
+            </div>
+          ) : null}
+          <h1 className="text-balance text-3xl font-semibold tracking-tight text-[var(--dbp-ink)] sm:text-4xl lg:text-5xl">
+            {schema.pageTitle || page.title}
+          </h1>
+          {schema.summary ? (
+            <p className="text-pretty text-base leading-7 text-[var(--dbp-muted)] sm:text-lg">
+              {schema.summary}
+            </p>
+          ) : null}
+        </header>
+        <PageRenderer page={schema} resolveAsset={resolveAsset} />
+        {page.widgetEmbedHtml ? <WidgetEmbed html={page.widgetEmbedHtml} /> : null}
+        <footer className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-xs text-muted sm:px-5">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <span className="font-medium text-fg">Build {currentVersionLabel}</span>
+            <span>Theme:</span>
+            <span className="inline-flex items-center gap-1">
+              <span
+                className="inline-block h-3 w-3 rounded-full border border-border"
+                style={{ backgroundColor: schema.theme.primaryColor }}
+                aria-hidden
+              />
+              <code>{schema.theme.primaryColor}</code>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span
+                className="inline-block h-3 w-3 rounded-full border border-border"
+                style={{ backgroundColor: schema.theme.accentColor }}
+                aria-hidden
+              />
+              <code>{schema.theme.accentColor}</code>
+            </span>
+            <span>Font: {schema.theme.fontFamily}</span>
           </div>
-        ) : null}
-        <h1 className="text-balance text-3xl font-semibold tracking-tight text-[var(--dbp-ink)] sm:text-4xl lg:text-5xl">
-          {schema.pageTitle || page.title}
-        </h1>
-        {schema.summary ? (
-          <p className="text-pretty text-base leading-7 text-[var(--dbp-muted)] sm:text-lg">
-            {schema.summary}
-          </p>
-        ) : null}
-      </header>
-      <PageRenderer page={schema} resolveAsset={resolveAsset} />
-      {page.widgetEmbedHtml ? <WidgetEmbed html={page.widgetEmbedHtml} /> : null}
-      <footer className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-xs text-muted sm:px-5">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <span className="font-medium text-fg">Build {currentVersionLabel}</span>
-          <span>Theme:</span>
-          <span className="inline-flex items-center gap-1">
-            <span
-              className="inline-block h-3 w-3 rounded-full border border-border"
-              style={{ backgroundColor: schema.theme.primaryColor }}
-              aria-hidden
-            />
-            <code>{schema.theme.primaryColor}</code>
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span
-              className="inline-block h-3 w-3 rounded-full border border-border"
-              style={{ backgroundColor: schema.theme.accentColor }}
-              aria-hidden
-            />
-            <code>{schema.theme.accentColor}</code>
-          </span>
-          <span>Font: {schema.theme.fontFamily}</span>
-        </div>
-      </footer>
+        </footer>
       </Container>
     </div>
   );

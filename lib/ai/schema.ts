@@ -41,6 +41,7 @@ export type GeneratedSection = {
 export type GeneratedPageSchema = {
   pageTitle: string;
   summary?: string;
+  pageHeaderAlignment?: "left" | "center";
   theme: {
     primaryColor: string;
     accentColor: string;
@@ -112,6 +113,13 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     ...payload,
   };
 
+  if (typeof payload.pageHeaderAlignment === "string") {
+    const normalizedAlignment = payload.pageHeaderAlignment.trim().toLowerCase();
+    if (normalizedAlignment === "left" || normalizedAlignment === "center") {
+      sanitized.pageHeaderAlignment = normalizedAlignment;
+    }
+  }
+
   if (isRecord(payload.seo)) {
     const seo = { ...payload.seo };
     if (typeof seo.title === "string") {
@@ -162,6 +170,15 @@ export function validateGeneratedPageSchema(
 
   if (typeof payload.pageTitle !== "string" || payload.pageTitle.trim().length === 0) {
     errors.push("pageTitle must be a non-empty string.");
+  }
+
+  if (payload.pageHeaderAlignment !== undefined) {
+    if (
+      typeof payload.pageHeaderAlignment !== "string" ||
+      !["left", "center"].includes(payload.pageHeaderAlignment.trim().toLowerCase())
+    ) {
+      errors.push("pageHeaderAlignment must be either 'left' or 'center' when provided.");
+    }
   }
 
   if (!isRecord(payload.theme)) {
