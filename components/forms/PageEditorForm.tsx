@@ -14,6 +14,8 @@ import { FormTextArea } from "@/components/forms/FormTextArea";
 import { FormTextInput } from "@/components/forms/FormTextInput";
 import { ReferenceLinksListEditor } from "@/components/forms/ReferenceLinksListEditor";
 import { PublicUrlActions } from "@/components/dashboard/PublicUrlActions";
+import { STYLE_PRESETS, type StylePresetKey } from "@/lib/ai/stylePresets";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { buildCanonicalPublicPath } from "@/lib/config/publishing";
 import { cn } from "@/lib/utils/cn";
@@ -77,6 +79,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
     message: "Open preview to verify the latest published page in a new tab.",
   });
   const [hideDbpHeader, setHideDbpHeader] = useState(false);
+  const [stylePreset, setStylePreset] = useState<StylePresetKey>(initialModel.stylePreset);
 
   const previewPath = `${buildCanonicalPublicPath(previewSlug)}${hideDbpHeader ? "?hideDbpHeader=1" : ""}`;
 
@@ -127,6 +130,7 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
       className="space-y-5"
       aria-busy={isPending || isBuildPending || isVersionPending || isDeletePending}
     >
+      <input type="hidden" name="stylePreset" value={stylePreset} />
       <FormSection title="Page details" description="Update the name and URL slug for this page.">
         <div className="grid gap-4 md:grid-cols-2">
           <FormTextInput
@@ -162,6 +166,34 @@ export function PageEditorForm({ projectSlug, pageId, previewSlug, initialModel 
           error={state.fieldErrors?.prompt}
           disabled={isPending}
         />
+      </FormSection>
+
+      <FormSection
+        title="Visual style preset"
+        description="Choose one of six presets. This influences visual tone while layout/content remain prompt-driven."
+      >
+        {state.fieldErrors?.stylePreset ? <Alert variant="danger">{state.fieldErrors.stylePreset}</Alert> : null}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {STYLE_PRESETS.map((preset) => (
+            <label
+              key={preset.key}
+              className={`cursor-pointer rounded-xl border p-3 transition ${
+                stylePreset === preset.key ? "border-primary bg-primary/10" : "border-border hover:bg-secondary"
+              }`}
+            >
+              <input
+                type="radio"
+                className="sr-only"
+                name="stylePresetPreview"
+                value={preset.key}
+                checked={stylePreset === preset.key}
+                onChange={() => setStylePreset(preset.key)}
+              />
+              <p className="text-sm font-semibold text-fg">{preset.label}</p>
+              <p className="mt-1 text-xs text-muted">{preset.description}</p>
+            </label>
+          ))}
+        </div>
       </FormSection>
 
       <FormSection title="Widget embed" description="Paste external widget HTML/script to render on the public page.">

@@ -332,6 +332,10 @@ describe("buildPageGenerationPrompts", () => {
       prompt.systemPrompt,
       /demo renders real images instead of fallback placeholders\./,
     );
+    assert.match(
+      prompt.systemPrompt,
+      /must follow the page prompt and not default to a fixed boilerplate sequence\./,
+    );
     assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, sections/);
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
     assert.match(prompt.userPrompt, /Allowed sections:\nhero, features, cta/);

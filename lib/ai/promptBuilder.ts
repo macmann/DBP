@@ -31,6 +31,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "Any media references (section mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
     "If uploaded image/logo assets are provided, assign relevant section.mediaAssetIds for visual sections (hero, imageText, gallery, logoStrip, testimonial).",
     "Pick assets by semantic fit from fileName/type/metadata so the demo renders real images instead of fallback placeholders.",
+    "Section selection, section order, and content hierarchy must follow the page prompt and not default to a fixed boilerplate sequence.",
   ].join("\n");
 
   const userPrompt = [
