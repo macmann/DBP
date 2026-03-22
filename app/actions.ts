@@ -991,7 +991,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       message: "Build completed and new page version saved.",
       versionId: savedVersion.id,
       versionNumber: savedVersion.versionNumber,
-      sectionCount: (generatedSchema.blocks ?? generatedSchema.sections ?? []).length,
+      sectionCount: generatedSchema.blocks.length,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -1405,7 +1405,7 @@ export async function generateNewVersion(
       message: `Created v${savedVersion.versionNumber} from iterative instructions.`,
       versionId: savedVersion.id,
       versionNumber: savedVersion.versionNumber,
-      sectionCount: (revisedSchema.blocks ?? revisedSchema.sections ?? []).length,
+      sectionCount: revisedSchema.blocks.length,
     };
   } catch (error) {
     console.error("generateNewVersion failed", { projectSlug, pageId, error });

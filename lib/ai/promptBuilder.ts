@@ -34,7 +34,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "If uploaded image/logo assets are provided, assign relevant blocks[].props.mediaAssetIds for visual blocks (hero, imageText, gallery, logoStrip, testimonial).",
     "Pick assets by semantic fit from fileName/type/metadata so the demo renders real images instead of fallback placeholders.",
     "Block selection, block order, and content hierarchy must follow the page prompt and not default to a fixed boilerplate sequence.",
-    "Treat the page prompt as the source of truth for layout instructions: vary section types, ordering, density, and narrative flow based on the prompt.",
+    "Treat the page prompt as the source of truth for layout instructions: vary block types, ordering, density, and narrative flow based on the prompt.",
     "Do not reuse a default blueprint. If two prompts differ, the resulting block plan should differ in structure, not only copy or colors.",
     "When the prompt requests a specific layout pattern (for example split hero, comparison grid, FAQ-first, long-form storytelling), reflect that in block sequencing, block variants, and props content.",
     "Set blocks[].variant when useful so the renderer can apply explicit layout intent (examples: split, centered, media-left, media-right, cards-2, cards-3, cards-4, alternating, stacked).",

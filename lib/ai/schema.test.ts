@@ -608,6 +608,10 @@ describe("buildPageGenerationPrompts", () => {
     );
     assert.match(
       prompt.systemPrompt,
+      /Return exactly one JSON object with only these top-level keys: pageTitle, summary \(optional\), pageHeaderAlignment \(optional\), theme, seo, blocks, layout\./,
+    );
+    assert.match(
+      prompt.systemPrompt,
       /Preserve deterministic JSON constraints while increasing semantic diversity: vary composition and copy strategy without inventing non-schema keys\./,
     );
     assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, blocks, layout/);
@@ -638,6 +642,12 @@ describe("buildPageGenerationPrompts", () => {
     );
     assert.match(prompt.userPrompt, /Use only the keys above\. Block type names should be URL-safe and prompt-driven\./);
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
+    assert.match(
+      prompt.userPrompt,
+      /Important: layout must be instruction-driven from the Page prompt, not template-driven\./,
+    );
+    assert.doesNotMatch(prompt.systemPrompt, /\bsections?\b/);
+    assert.doesNotMatch(prompt.userPrompt, /"sections"/);
     assert.match(prompt.userPrompt, /Prompt-suggested block types:\nhero, features, cta/);
   });
 });
