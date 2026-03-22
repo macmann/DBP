@@ -41,7 +41,7 @@ export function VersionHistoryPanel({
 
   return (
     <section className="rounded-xl border border-border bg-surface-elevated p-6">
-      <details className="group space-y-3" open>
+      <details className="group space-y-3">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-semibold text-fg marker:content-none">
           <span>Version history</span>
           <span className="text-sm font-medium text-muted transition group-open:rotate-180">⌄</span>

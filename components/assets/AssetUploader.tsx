@@ -12,10 +12,22 @@ type AssetUploaderProps = {
   projectId: string;
   pageId: string;
   onUploaded: (asset: UploadedAssetDto) => void;
+  title?: string;
+  description?: string;
+  fixedType?: AssetType;
+  allowMultiple?: boolean;
 };
 
-export function AssetUploader({ projectId, pageId, onUploaded }: AssetUploaderProps) {
-  const [selectedType, setSelectedType] = useState<AssetType>("image");
+export function AssetUploader({
+  projectId,
+  pageId,
+  onUploaded,
+  title = "Upload assets",
+  description = "Assign a type before uploading so generated pages can use each file correctly.",
+  fixedType,
+  allowMultiple = true,
+}: AssetUploaderProps) {
+  const [selectedType, setSelectedType] = useState<AssetType>(fixedType ?? "image");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
@@ -31,7 +43,7 @@ export function AssetUploader({ projectId, pageId, onUploaded }: AssetUploaderPr
       return progressMessage;
     }
 
-    return "Drop files here or choose files to upload. Accepted formats include PNG, JPG, WEBP, GIF, SVG, PDF, TXT, and ZIP.";
+    return "Drop files here or choose a file to upload. Accepted formats include PNG, JPG, WEBP, GIF, SVG, PDF, TXT, and ZIP.";
   }, [errorMessage, progressMessage]);
 
   async function uploadFiles(fileList: FileList | null) {
@@ -44,7 +56,7 @@ export function AssetUploader({ projectId, pageId, onUploaded }: AssetUploaderPr
     setIsUploading(true);
 
     try {
-      const files = Array.from(fileList);
+      const files = allowMultiple ? Array.from(fileList) : [fileList[0]];
 
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index];
@@ -53,7 +65,7 @@ export function AssetUploader({ projectId, pageId, onUploaded }: AssetUploaderPr
         const payload = new FormData();
         payload.set("projectId", projectId);
         payload.set("pageId", pageId);
-        payload.set("type", selectedType);
+        payload.set("type", fixedType ?? selectedType);
         payload.set("file", file);
 
         const response = await fetch("/api/assets/upload", {
@@ -88,24 +100,30 @@ export function AssetUploader({ projectId, pageId, onUploaded }: AssetUploaderPr
     <section className="space-y-4 rounded-xl border border-border bg-surface-elevated p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-fg">Upload assets</h3>
-          <p className="text-sm text-muted">Assign a type before uploading so generated pages can use each file correctly.</p>
+          <h3 className="text-base font-semibold text-fg">{title}</h3>
+          <p className="text-sm text-muted">{description}</p>
         </div>
 
-        <label className="text-sm text-fg">
-          Type
-          <select
-            value={selectedType}
-            onChange={(event) => setSelectedType(event.target.value as AssetType)}
-            className="ml-2 rounded-lg border border-border bg-surface px-2 py-1 text-sm"
-          >
-            {ASSET_TYPES.map((assetType) => (
-              <option key={assetType} value={assetType}>
-                {assetType}
-              </option>
-            ))}
-          </select>
-        </label>
+        {fixedType ? (
+          <p className="text-sm text-muted">
+            Type: <span className="font-medium text-fg">{fixedType}</span>
+          </p>
+        ) : (
+          <label className="text-sm text-fg">
+            Type
+            <select
+              value={selectedType}
+              onChange={(event) => setSelectedType(event.target.value as AssetType)}
+              className="ml-2 rounded-lg border border-border bg-surface px-2 py-1 text-sm"
+            >
+              {ASSET_TYPES.map((assetType) => (
+                <option key={assetType} value={assetType}>
+                  {assetType}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       <div
@@ -143,7 +161,13 @@ export function AssetUploader({ projectId, pageId, onUploaded }: AssetUploaderPr
         >
           {isUploading ? "Uploading…" : "Choose files"}
         </Button>
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(event) => void uploadFiles(event.target.files)} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple={allowMultiple}
+          className="hidden"
+          onChange={(event) => void uploadFiles(event.target.files)}
+        />
       </div>
 
       <p className={`text-sm ${errorMessage ? "text-danger" : "text-muted"}`}>{helperMessage}</p>

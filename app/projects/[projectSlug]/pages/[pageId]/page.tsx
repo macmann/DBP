@@ -159,6 +159,7 @@ export default async function PageDetailPage({
         <PageAssetsSection
           projectId={page.projectId}
           pageId={page.id}
+          isGenerationReady={Boolean(page.currentVersionId)}
           initialAssets={page.assets.map((asset) => ({
             id: asset.id,
             projectId: asset.projectId,

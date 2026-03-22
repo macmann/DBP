@@ -10,9 +10,12 @@ type PageAssetsSectionProps = {
   projectId: string;
   pageId: string;
   initialAssets: UploadedAssetDto[];
+  isGenerationReady: boolean;
 };
 
-export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAssetsSectionProps) {
+const IMAGE_SLOT_COUNT = 4;
+
+export function PageAssetsSection({ projectId, pageId, initialAssets, isGenerationReady }: PageAssetsSectionProps) {
   const [assets, setAssets] = useState<UploadedAssetDto[]>(initialAssets);
   const [removingAssetId, setRemovingAssetId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -104,21 +107,54 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
     <section className="space-y-4 rounded-xl border border-border bg-surface-elevated p-6">
       <h2 className="text-lg font-semibold">Assets</h2>
       <div className="space-y-2 rounded-lg border border-border bg-surface p-3">
-        <h3 className="text-base font-semibold text-fg">Asset uploader area</h3>
-        <p className="text-sm text-muted">
-          Upload brand and page assets here so builds can use them as references.
-        </p>
-        <AssetUploader
-          projectId={projectId}
-          pageId={pageId}
-          onUploaded={(asset) => {
-            setAssets((current) =>
-              withOrder([...current, { ...asset, sortOrder: current.length }]),
-            );
-            setErrorMessage(null);
-            setStatusMessage(`Added ${asset.fileName}.`);
-          }}
-        />
+        <h3 className="text-base font-semibold text-fg">Image upload session</h3>
+        {isGenerationReady ? (
+          <p className="text-sm text-muted">
+            Upload files by slot (logo, image 1, image 2, etc.). Uploads appear immediately in the asset gallery and are available to future generations.
+          </p>
+        ) : (
+          <Alert variant="info">
+            This will be available after generation. Build or generate a version first, then upload files by slot.
+          </Alert>
+        )}
+
+        {isGenerationReady ? (
+          <div className="space-y-3">
+            <AssetUploader
+              projectId={projectId}
+              pageId={pageId}
+              title="Logo"
+              description="Upload the primary brand logo."
+              fixedType="logo"
+              allowMultiple={false}
+              onUploaded={(asset) => {
+                setAssets((current) =>
+                  withOrder([...current, { ...asset, sortOrder: current.length }]),
+                );
+                setErrorMessage(null);
+                setStatusMessage(`Added ${asset.fileName} to logo slot.`);
+              }}
+            />
+            {Array.from({ length: IMAGE_SLOT_COUNT }).map((_, index) => (
+              <AssetUploader
+                key={`image-slot-${index + 1}`}
+                projectId={projectId}
+                pageId={pageId}
+                title={`Image ${index + 1}`}
+                description={`Upload content image ${index + 1}.`}
+                fixedType="image"
+                allowMultiple={false}
+                onUploaded={(asset) => {
+                  setAssets((current) =>
+                    withOrder([...current, { ...asset, sortOrder: current.length }]),
+                  );
+                  setErrorMessage(null);
+                  setStatusMessage(`Added ${asset.fileName} to image ${index + 1} slot.`);
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {errorMessage ? (
@@ -136,8 +172,7 @@ export function PageAssetsSection({ projectId, pageId, initialAssets }: PageAsse
         <div className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">
           <p className="font-medium text-fg">No assets uploaded yet.</p>
           <p className="mt-1">
-            Choose a type, then drag files into the drop zone or use the picker to add your first
-            asset.
+            Generate a page first to unlock slot-based uploads (logo, image 1, image 2, and more).
           </p>
         </div>
       ) : (
