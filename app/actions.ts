@@ -13,7 +13,11 @@ import {
   sanitizeGeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "@/lib/ai/schema";
-import { sanitizeGeneratedPageBlockSafety } from "@/lib/ai/blockSafety";
+import {
+  formatBlockSafetyViolations,
+  inspectGeneratedPageBlockSafety,
+  sanitizeGeneratedPageBlockSafety,
+} from "@/lib/ai/blockSafety";
 import { applyPromptLayoutDirectives } from "@/lib/ai/layoutDirectives";
 import {
   composePromptWithStyle,
@@ -180,7 +184,7 @@ export type BuildPageResult =
     }
   | {
       status: "error";
-      code: "invalid_prompt" | "missing_api_key" | "generation_failure";
+      code: "invalid_prompt" | "missing_api_key" | "generation_failure" | "safety_policy_blocked";
       message: string;
     };
 
@@ -264,7 +268,7 @@ function buildGenerationDiagnostics(input: {
 }
 
 function mapBuildFailure(errorMessage: string): {
-  code: "invalid_prompt" | "missing_api_key" | "generation_failure";
+  code: "invalid_prompt" | "missing_api_key" | "generation_failure" | "safety_policy_blocked";
   message: string;
 } {
   if (errorMessage.includes("OPENAI_API_KEY is not configured")) {
@@ -855,12 +859,13 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       };
     }
 
-    const generatedSchema: GeneratedPageSchema = sanitizeGeneratedPageBlockSafety(
+    const blockSafety = inspectGeneratedPageBlockSafety(
       applyPromptLayoutDirectives(
         applyAssetFallbacks(parsed.data, page.assets),
         page.prompt ?? "",
       ),
     );
+    const generatedSchema: GeneratedPageSchema = sanitizeGeneratedPageBlockSafety(blockSafety.schema);
     const diagnostics = buildGenerationDiagnostics({
       rawSchema: parsed.data,
       sanitizedSchema: generatedSchema,
@@ -871,6 +876,56 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       pageId,
       diagnostics,
     });
+
+    if (blockSafety.violations.length > 0) {
+      const safetyMessage = formatBlockSafetyViolations(blockSafety.violations);
+      const conciseSafetyMessage =
+        "Build blocked by safety policy. Remove unsafe URLs or script-like HTML from prompt inputs.";
+      const context = {
+        reason: "safety_policy_blocked",
+        error: conciseSafetyMessage,
+        details: safetyMessage,
+        requestId: aiOutput.requestId,
+      };
+      console.error("buildPage blocked by safety policy", {
+        projectSlug,
+        pageId,
+        violationCount: blockSafety.violations.length,
+        violations: blockSafety.violations,
+        ...context,
+      });
+
+      await prisma.$transaction(async (tx) => {
+        await tx.page.update({
+          where: { id: page.id },
+          data: {
+            status: PageStatus.failed,
+            lastError: JSON.stringify(context),
+          },
+        });
+
+        await tx.buildJob.update({
+          where: { id: buildJob.id },
+          data: {
+            status: BuildJobStatus.failed,
+            finishedAt: new Date(),
+            errorMessage: conciseSafetyMessage,
+          },
+        });
+      });
+
+      revalidateProjectAndPublicPaths({
+        projectSlug,
+        pageId,
+        currentPublicSlug: page.publicSlug,
+      });
+
+      return {
+        status: "error",
+        code: "safety_policy_blocked",
+        message: `${conciseSafetyMessage} ${safetyMessage}`,
+      };
+    }
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({
@@ -1260,12 +1315,13 @@ export async function generateNewVersion(
       };
     }
 
-    const revisedSchema: GeneratedPageSchema = sanitizeGeneratedPageBlockSafety(
+    const blockSafety = inspectGeneratedPageBlockSafety(
       applyPromptLayoutDirectives(
         applyAssetFallbacks(parsed.data, page.assets),
         normalizedInstruction,
       ),
     );
+    const revisedSchema: GeneratedPageSchema = sanitizeGeneratedPageBlockSafety(blockSafety.schema);
     const diagnostics = buildGenerationDiagnostics({
       rawSchema: parsed.data,
       sanitizedSchema: revisedSchema,
@@ -1276,6 +1332,23 @@ export async function generateNewVersion(
       pageId,
       diagnostics,
     });
+
+    if (blockSafety.violations.length > 0) {
+      const safetyMessage = formatBlockSafetyViolations(blockSafety.violations);
+      console.error("generateNewVersion blocked by safety policy", {
+        projectSlug,
+        pageId,
+        requestId: aiOutput.requestId,
+        violationCount: blockSafety.violations.length,
+        violations: blockSafety.violations,
+      });
+      return {
+        status: "error",
+        message:
+          "Revision blocked by safety policy. Remove unsafe URLs or script-like HTML from your instructions and try again. " +
+          safetyMessage,
+      };
+    }
 
     const savedVersion = await prisma.$transaction(async (tx) => {
       const latestVersion = await tx.pageVersion.findFirst({

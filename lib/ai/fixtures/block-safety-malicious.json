@@ -1,0 +1,41 @@
+[
+  {
+    "name": "protocol_smuggling_and_script",
+    "block": {
+      "id": "hero-malicious-1",
+      "type": "hero",
+      "props": {
+        "href": "javascript:alert(1)",
+        "src": "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+        "nested": {
+          "url": "https://safe.example.com/path"
+        },
+        "html": "<div><script>alert(1)</script></div>"
+      }
+    },
+    "expectedViolationCodes": ["disallowed_url_protocol", "disallowed_url_protocol", "unsafe_html_payload"]
+  },
+  {
+    "name": "edge_case_whitespace_and_case_protocol_bypass",
+    "block": {
+      "id": "hero-malicious-2",
+      "type": "hero",
+      "props": {
+        "link": "  JaVaScRiPt:\talert(1)",
+        "sourceUrl": "\n data:text/plain,hello"
+      }
+    },
+    "expectedViolationCodes": ["disallowed_url_protocol", "disallowed_url_protocol"]
+  },
+  {
+    "name": "denied_embed_block",
+    "block": {
+      "id": "bad-embed-1",
+      "type": "htmlEmbed",
+      "props": {
+        "src": "https://evil.example.com/embed"
+      }
+    },
+    "expectedViolationCodes": ["denied_embed_block"]
+  }
+]

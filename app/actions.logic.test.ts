@@ -97,6 +97,7 @@ describe("action logic: build failure validation paths", () => {
   it("applies block safety sanitization before persisting build output", () => {
     const block = getFunctionBlock(actionsSource, "buildPage");
 
+    assert.match(block, /inspectGeneratedPageBlockSafety\(/);
     assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
     assert.match(block, /generatedSchemaJson: generatedSchema/);
   });
@@ -115,8 +116,24 @@ describe("action logic: build failure validation paths", () => {
   it("applies block safety sanitization before persisting generated revisions", () => {
     const block = getFunctionBlock(actionsSource, "generateNewVersion");
 
+    assert.match(block, /inspectGeneratedPageBlockSafety\(/);
     assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
     assert.match(block, /generatedSchemaJson: revisedSchema/);
+  });
+
+  it("buildPage surfaces actionable errors when safety policy blocks output", () => {
+    const block = getFunctionBlock(actionsSource, "buildPage");
+
+    assert.match(block, /code: "safety_policy_blocked"/);
+    assert.match(block, /Build blocked by safety policy/);
+    assert.match(block, /formatBlockSafetyViolations/);
+  });
+
+  it("generateNewVersion surfaces actionable safety policy errors", () => {
+    const block = getFunctionBlock(actionsSource, "generateNewVersion");
+
+    assert.match(block, /blocked by safety policy/);
+    assert.match(block, /Remove unsafe URLs or script-like HTML/);
   });
 
   it("logs structured generation diagnostics for iterative revisions", () => {
