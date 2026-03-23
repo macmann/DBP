@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "pageTitle": "Unknown Block Type",
+  "summary": "Open-ended prompt output using runtime-defined block types.",
+  "theme": {
+    "primaryColor": "#0F172A",
+    "accentColor": "#22C55E",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "Unknown Block Type",
+    "description": "Schema v2 payload with custom block type."
+  },
+  "blocks": [
+    {
+      "id": "social-proof-wall",
+      "type": "socialProofWall",
+      "variant": "compact",
+      "props": {
+        "heading": "Loved by modern teams",
+        "items": [
+          {
+            "quote": "This changed our launch velocity."
+          }
+        ]
+      }
+    }
+  ]
+}
