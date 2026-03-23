@@ -17,6 +17,7 @@ import {
 } from "@/lib/ai/schema";
 import {
   formatBlockSafetyViolations,
+  getBlockSafetyErrorDetails,
   getBlockingBlockSafetyViolations,
   hasBlockingBlockSafetyViolations,
   inspectGeneratedPageBlockSafety,
@@ -187,9 +188,19 @@ export type BuildPageResult =
     }
   | {
       status: "error";
-      code: "invalid_prompt" | "missing_api_key" | "generation_failure" | "safety_policy_blocked";
+      code:
+        | "invalid_prompt"
+        | "missing_api_key"
+        | "generation_failure"
+        | "safety_policy_blocked"
+        | "safety_embed_blocked"
+        | "safety_html_blocked"
+        | "safety_event_handler_blocked"
+        | "safety_mixed_blocked";
       message: string;
     };
+
+type BuildPageErrorCode = Extract<BuildPageResult, { status: "error" }>["code"];
 
 export type QuickGenerateState = {
   status: "idle" | "error" | "success";
@@ -309,7 +320,7 @@ function buildGenerationDiagnostics(input: {
 }
 
 function mapBuildFailure(errorMessage: string): {
-  code: "invalid_prompt" | "missing_api_key" | "generation_failure" | "safety_policy_blocked";
+  code: BuildPageErrorCode;
   message: string;
 } {
   if (errorMessage.includes("OPENAI_API_KEY is not configured")) {
@@ -336,6 +347,24 @@ function mapBuildFailure(errorMessage: string): {
     code: "generation_failure",
     message: "Generation failed. Please try again in a moment.",
   };
+}
+
+function mapBlockSafetyCategoryToBuildCode(
+  category: ReturnType<typeof getBlockSafetyErrorDetails>["category"],
+): BuildPageErrorCode {
+  if (category === "embed_policy_violation") {
+    return "safety_embed_blocked";
+  }
+
+  if (category === "html_payload_violation") {
+    return "safety_html_blocked";
+  }
+
+  if (category === "event_handler_violation") {
+    return "safety_event_handler_blocked";
+  }
+
+  return "safety_mixed_blocked";
 }
 
 function buildSafetyPolicyErrorMessage(safetyMessage: string): string {
@@ -932,10 +961,13 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
     if (hasBlockingBlockSafetyViolations(blockSafety.violations)) {
       const blockingViolations = getBlockingBlockSafetyViolations(blockSafety.violations);
+      const safetyDetails = getBlockSafetyErrorDetails(blockingViolations);
       const safetyMessage = formatBlockSafetyViolations(blockingViolations);
-      const conciseSafetyMessage = buildSafetyPolicyErrorMessage(safetyMessage);
+      const conciseSafetyMessage = buildSafetyPolicyErrorMessage(
+        `${safetyDetails.message} ${safetyMessage}`.trim(),
+      );
       const context = {
-        reason: "safety_policy_blocked",
+        reason: safetyDetails.category,
         error: conciseSafetyMessage,
         details: safetyMessage,
         requestId: aiOutput.requestId,
@@ -975,7 +1007,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
 
       return {
         status: "error",
-        code: "safety_policy_blocked",
+        code: mapBlockSafetyCategoryToBuildCode(safetyDetails.category),
         message: `${conciseSafetyMessage} ${safetyMessage}`,
       };
     }
@@ -1398,17 +1430,19 @@ export async function generateNewVersion(
 
     if (hasBlockingBlockSafetyViolations(blockSafety.violations)) {
       const blockingViolations = getBlockingBlockSafetyViolations(blockSafety.violations);
+      const safetyDetails = getBlockSafetyErrorDetails(blockingViolations);
       const safetyMessage = formatBlockSafetyViolations(blockingViolations);
       console.error("generateNewVersion blocked by safety policy", {
         projectSlug,
         pageId,
+        category: safetyDetails.category,
         requestId: aiOutput.requestId,
         violationCount: blockingViolations.length,
         violations: blockingViolations,
       });
       return {
         status: "error",
-        message: buildSafetyPolicyErrorMessage(safetyMessage),
+        message: buildSafetyPolicyErrorMessage(`${safetyDetails.message} ${safetyMessage}`.trim()),
       };
     }
 
