@@ -130,10 +130,6 @@ function coerceLegacySectionToBlock(section: Record<string, unknown>): Record<st
   };
 }
 
-function getRawBlocks(payload: Record<string, unknown>): unknown {
-  return payload.blocks ?? payload.sections;
-}
-
 function transformLegacySectionsPayload(payload: Record<string, unknown>): Record<string, unknown> {
   if (Array.isArray(payload.blocks) || !Array.isArray(payload.sections)) {
     return payload;
@@ -309,10 +305,9 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     sanitized.seo = seo;
   }
 
-  const rawBlocks = getRawBlocks(normalizedPayload);
   let normalizedBlockRecords: Record<string, unknown>[] = [];
-  if (Array.isArray(rawBlocks)) {
-    const normalizedBlocks = rawBlocks.map((block) => {
+  if (Array.isArray(normalizedPayload.blocks)) {
+    const normalizedBlocks = normalizedPayload.blocks.map((block) => {
       if (!isRecord(block)) {
         return block;
       }
@@ -387,8 +382,6 @@ export function validateGeneratedPageSchema(
       "seo",
       "blocks",
       "layout",
-      // retained to permit graceful migration before sanitizer strips this key
-      "sections",
     ])
   ) {
     errors.push("Output contains unsupported top-level keys.");
@@ -527,14 +520,12 @@ export function validateGeneratedPageSchema(
     }
   }
 
-  const rawBlocks = getRawBlocks(normalizedPayload);
-
-  if (!Array.isArray(rawBlocks)) {
+  if (!Array.isArray(normalizedPayload.blocks)) {
     errors.push("blocks must be an array.");
   }
 
-  if (Array.isArray(rawBlocks)) {
-    rawBlocks.forEach((maybeBlock, index) => {
+  if (Array.isArray(normalizedPayload.blocks)) {
+    normalizedPayload.blocks.forEach((maybeBlock, index) => {
       if (!isRecord(maybeBlock)) {
         errors.push(`blocks[${index}] must be an object.`);
         return;
