@@ -662,21 +662,21 @@ describe("buildPageGenerationPrompts", () => {
     );
     assert.match(
       prompt.userPrompt,
-      /"blocks": \[\n\n    \{\n\n      "id": "string \/\/ stable block id"/,
+      /"blocks": \[\n\n    \{\n\n      "id": "hero-main"/,
     );
     assert.match(
       prompt.userPrompt,
-      /"type": "string \/\/ required URL-safe token, usually derived from the page prompt"/,
+      /"type": "hero"/,
     );
     assert.match(
       prompt.userPrompt,
-      /"variant\?": "string \/\/ optional layout\/style variant token"/,
+      /"variant\?": "split"/,
     );
-    assert.match(prompt.userPrompt, /"props\?": "object \/\/ optional block payload/);
+    assert.match(prompt.userPrompt, /"props\?": \{ "\.\.\.": "\.\.\." \}/);
     assert.match(prompt.userPrompt, /"layout": \{/);
-    assert.match(prompt.userPrompt, /"top": "string\[\] \/\/ block ids placed above main content"/);
-    assert.match(prompt.userPrompt, /"main": "string\[\] \/\/ block ids for primary narrative flow"/);
-    assert.match(prompt.userPrompt, /"bottom": "string\[\] \/\/ block ids for footer-adjacent content"/);
+    assert.match(prompt.userPrompt, /"top": \["hero-main"\]/);
+    assert.match(prompt.userPrompt, /"main": \["features-grid"\]/);
+    assert.match(prompt.userPrompt, /"bottom": \[\]/);
     assert.match(
       prompt.userPrompt,
       /Ensure every layout ID exists in blocks\[\]\.id and preserve block ID uniqueness\./,
