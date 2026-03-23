@@ -676,8 +676,9 @@ describe("buildPageGenerationPrompts", () => {
 
     assert.match(
       prompt.systemPrompt,
-      /theme, seo, blocks, and layout are required and must be valid objects\/array\./,
+      /schemaVersion, theme, seo, blocks, and layout are required and must be valid values\./,
     );
+    assert.match(prompt.systemPrompt, /schemaVersion must be 2\./);
     assert.match(prompt.systemPrompt, /pageHeaderAlignment \(optional\)/);
     assert.match(prompt.systemPrompt, /seo.title must be 70 characters or fewer\./);
     assert.match(prompt.systemPrompt, /seo.description must be 160 characters or fewer\./);
@@ -711,13 +712,17 @@ describe("buildPageGenerationPrompts", () => {
     );
     assert.match(
       prompt.systemPrompt,
-      /Return exactly one JSON object with only these top-level keys: pageTitle, summary \(optional\), pageHeaderAlignment \(optional\), theme, seo, blocks, layout\./,
+      /Return exactly one JSON object with only these top-level keys: schemaVersion, pageTitle, summary \(optional\), pageHeaderAlignment \(optional\), theme, seo, blocks, layout\./,
     );
     assert.match(
       prompt.systemPrompt,
       /Preserve deterministic JSON constraints while increasing semantic diversity: vary composition and copy strategy without inventing non-schema keys\./,
     );
-    assert.match(prompt.userPrompt, /required keys: pageTitle, theme, seo, blocks, layout/);
+    assert.match(
+      prompt.userPrompt,
+      /required keys: schemaVersion, pageTitle, theme, seo, blocks, layout/,
+    );
+    assert.match(prompt.userPrompt, /"schemaVersion": 2/);
     assert.match(
       prompt.userPrompt,
       /"pageHeaderAlignment\?": "left \| center \/\/ controls top page header alignment"/,
@@ -732,7 +737,7 @@ describe("buildPageGenerationPrompts", () => {
     assert.match(prompt.userPrompt, /"bottom": \[\]/);
     assert.match(
       prompt.userPrompt,
-      /Ensure every layout ID exists in blocks\[\]\.id and preserve block ID uniqueness\./,
+      /Ensure every string layout ID exists in blocks\[\]\.id\. Inline layout blocks must provide unique id and valid type\./,
     );
     assert.match(
       prompt.userPrompt,
@@ -760,7 +765,7 @@ describe("buildPageGenerationPrompts", () => {
 
     assert.match(
       prompt.systemPrompt,
-      /layout\.header, layout\.content, layout\.rail, and layout\.footer must be arrays of block IDs that reference existing blocks\[\]\.id values\./,
+      /layout\.header, layout\.content, layout\.rail, and layout\.footer must be arrays containing block IDs and\/or inline block objects/,
     );
     assert.match(prompt.userPrompt, /"layout": \{/);
     assert.match(prompt.userPrompt, /"header": \["hero-main"\]/);

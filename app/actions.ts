@@ -8,7 +8,10 @@ import { callOpenAIForPageSchema } from "@/lib/ai/openaiClient";
 import { applyAssetFallbacks } from "@/lib/ai/applyAssetFallbacks";
 import { buildPageGenerationPrompts } from "@/lib/ai/promptBuilder";
 import {
+  CURRENT_GENERATED_SCHEMA_VERSION,
   type GeneratedPageSchema,
+  type ValidationResult,
+  migrateLegacySectionsPayload,
   sanitizeGeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "@/lib/ai/schema";
@@ -211,6 +214,46 @@ type GenerationDiagnostics = {
 };
 
 const AI_LAYOUT_REGIONS = ["top", "main", "bottom"] as const;
+
+function normalizeAndValidateGeneratedSchema(rawPayload: unknown): ValidationResult<GeneratedPageSchema> {
+  const sanitizedV2Payload = sanitizeGeneratedPageSchema(rawPayload);
+  const directValidation = validateGeneratedPageSchema(sanitizedV2Payload);
+  if (directValidation.success) {
+    return directValidation;
+  }
+
+  const recordPayload =
+    typeof rawPayload === "object" && rawPayload !== null && !Array.isArray(rawPayload)
+      ? (rawPayload as Record<string, unknown>)
+      : null;
+  const looksLikeLegacyV1 =
+    recordPayload !== null &&
+    recordPayload.schemaVersion === undefined &&
+    Array.isArray(recordPayload.sections) &&
+    !Array.isArray(recordPayload.blocks);
+
+  if (!looksLikeLegacyV1) {
+    return directValidation;
+  }
+
+  const migratedPayload = migrateLegacySectionsPayload(recordPayload);
+  const sanitizedMigratedPayload = sanitizeGeneratedPageSchema(migratedPayload);
+  const migratedValidation = validateGeneratedPageSchema(sanitizedMigratedPayload);
+  if (!migratedValidation.success) {
+    return migratedValidation;
+  }
+
+  if (migratedValidation.data.schemaVersion !== CURRENT_GENERATED_SCHEMA_VERSION) {
+    return {
+      success: false,
+      errors: [
+        `schemaVersion must be ${CURRENT_GENERATED_SCHEMA_VERSION} after legacy migration fallback.`,
+      ],
+    };
+  }
+
+  return migratedValidation;
+}
 
 function countJsonDifferences(before: unknown, after: unknown): number {
   if (Object.is(before, after)) {
@@ -806,7 +849,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     });
 
     const aiOutput = await callOpenAIForPageSchema(prompts);
-    const parsed = validateGeneratedPageSchema(aiOutput.json);
+    const parsed = normalizeAndValidateGeneratedSchema(aiOutput.json);
 
     if (!parsed.success) {
       const diagnostics = buildGenerationDiagnostics({
@@ -1315,7 +1358,7 @@ export async function generateNewVersion(
     });
 
     const aiOutput = await callOpenAIForPageSchema(prompts);
-    const parsed = validateGeneratedPageSchema(aiOutput.json);
+    const parsed = normalizeAndValidateGeneratedSchema(aiOutput.json);
 
     if (!parsed.success) {
       const diagnostics = buildGenerationDiagnostics({
