@@ -1,8 +1,9 @@
 import type { GeneratedBlock, GeneratedPageLayout, GeneratedPageSchema } from "@/lib/ai/schema";
-
-const SHELL_PAGE_HEADER_ID = "shell-page-header";
-const SHELL_WIDGET_EMBED_ID = "shell-widget-embed";
-const SHELL_BUILD_META_ID = "shell-build-meta";
+import {
+  SHELL_BUILD_META_ID,
+  SHELL_PAGE_HEADER_ID,
+  SHELL_WIDGET_EMBED_ID,
+} from "@/components/landing/shellBlocks";
 
 export type DemoShellBlockType = "pageHeader" | "widgetEmbed" | "buildMeta";
 
