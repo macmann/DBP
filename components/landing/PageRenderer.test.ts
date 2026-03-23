@@ -220,4 +220,24 @@ describe("PageRenderer", () => {
     assert.match(markup, /Unsupported block type/);
     assert.match(markup, /missing-block-ref/);
   });
+
+  it("falls back to a legacy main-only layout when layout is absent", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "hero-legacy",
+            type: "hero",
+            props: { heading: "Legacy hero in main region" },
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /data-layout-region=\"top\"/);
+    assert.match(markup, /data-layout-region=\"main\"/);
+    assert.match(markup, /data-layout-region=\"bottom\"/);
+    assert.match(markup, /Legacy hero in main region/);
+  });
 });

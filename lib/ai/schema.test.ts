@@ -583,6 +583,8 @@ describe("validateGeneratedPageSchema", () => {
       result.data.layout?.main,
       legacySavedVersionFixture.sections.map((section) => section.id),
     );
+    assert.deepEqual(result.data.layout?.top, ["shell-page-header"]);
+    assert.deepEqual(result.data.layout?.bottom, ["shell-widget-embed", "shell-build-meta"]);
   });
 
   it("keeps v2 saved schema fixtures readable in demo/publish runtime", () => {
@@ -593,7 +595,9 @@ describe("validateGeneratedPageSchema", () => {
     }
 
     assert.equal(result.data.schemaVersion, CURRENT_GENERATED_SCHEMA_VERSION);
+    assert.deepEqual(result.data.layout?.top, ["shell-page-header"]);
     assert.deepEqual(result.data.layout?.main, ["hero-modern"]);
+    assert.deepEqual(result.data.layout?.bottom, ["shell-build-meta"]);
   });
 });
 
