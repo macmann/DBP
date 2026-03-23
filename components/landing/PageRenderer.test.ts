@@ -124,6 +124,25 @@ describe("PageRenderer", () => {
     assert.match(markup, /could not be rendered due to malformed props/);
     assert.match(markup, /missing-type/);
   });
+
+  it("renders malformed block fallback when props are not an object", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "hero-bad-props",
+            type: "hero",
+            props: "invalid" as unknown as Record<string, unknown>,
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /could not be rendered due to malformed props/);
+    assert.match(markup, /hero-bad-props/);
+  });
+
   it("renders malformed block fallback when props are invalid", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
