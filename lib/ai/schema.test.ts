@@ -10,6 +10,8 @@ import {
 import { buildPageGenerationPrompts } from "./promptBuilder";
 import legacySavedVersionFixture from "./fixtures/saved-version-v1.json";
 import currentSavedVersionFixture from "./fixtures/saved-version-v2.json";
+import unknownBlockTypeFixture from "./fixtures/unknown-block-type-v2.json";
+import invalidTopLevelFieldsFixture from "./fixtures/invalid-top-level-fields.json";
 
 const validFixture = {
   pageTitle: "Acme Analytics",
@@ -193,12 +195,7 @@ describe("validateGeneratedPageSchema", () => {
   });
 
   it("fails when payload has unsupported top-level keys", () => {
-    const payload = {
-      ...validFixture,
-      invalidTopLevelKey: true,
-    };
-
-    const result = validateGeneratedPageSchema(payload);
+    const result = validateGeneratedPageSchema(invalidTopLevelFieldsFixture);
 
     assert.equal(result.success, false);
     if (result.success) {
@@ -301,17 +298,7 @@ describe("validateGeneratedPageSchema", () => {
   });
 
   it("allows unknown block types with baseline validation", () => {
-    const payload = {
-      ...validFixture,
-      blocks: [
-        {
-          id: "hero-1",
-          type: "video" as unknown as string,
-        },
-      ],
-    };
-
-    const result = validateGeneratedPageSchema(payload);
+    const result = validateGeneratedPageSchema(unknownBlockTypeFixture);
 
     assert.equal(result.success, true);
   });

@@ -1,0 +1,19 @@
+{
+  "pageTitle": "Invalid Top Level",
+  "theme": {
+    "primaryColor": "#111827",
+    "accentColor": "#3B82F6",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "Invalid Top Level",
+    "description": "Should fail validation due to extra keys."
+  },
+  "blocks": [
+    {
+      "id": "hero-invalid",
+      "type": "hero"
+    }
+  ],
+  "unexpectedFlag": true
+}
