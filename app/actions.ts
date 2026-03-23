@@ -210,6 +210,8 @@ type GenerationDiagnostics = {
   validationErrors: string[];
 };
 
+const AI_LAYOUT_REGIONS = ["top", "main", "bottom"] as const;
+
 function countJsonDifferences(before: unknown, after: unknown): number {
   if (Object.is(before, after)) {
     return 0;
@@ -788,7 +790,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         `Use ${page.project.name} brand voice where possible.`,
         "Prefer concise, conversion-oriented marketing copy.",
       ],
-      layoutRegions: ["top", "main", "bottom"],
+      layoutRegions: AI_LAYOUT_REGIONS,
     });
 
     const aiOutput = await callOpenAIForPageSchema(prompts);
@@ -1298,7 +1300,7 @@ export async function generateNewVersion(
         `Use ${page.project.name} brand voice where possible.`,
         "Preserve valid structure while applying requested improvements.",
       ],
-      layoutRegions: ["top", "main", "bottom"],
+      layoutRegions: AI_LAYOUT_REGIONS,
     });
 
     const aiOutput = await callOpenAIForPageSchema(prompts);

@@ -15,10 +15,29 @@ export type BuildPromptInput = {
   assets: PromptAsset[];
   allowedBlockTypes?: readonly string[];
   toneBrandingHints: string[];
-  layoutRegions: readonly ["top", "main", "bottom"];
+  layoutRegions: readonly string[];
 };
 
 export function buildPageGenerationPrompts(input: BuildPromptInput) {
+  const layoutRegions = input.layoutRegions.filter((region) => region.trim().length > 0);
+  const layoutRegionKeys = layoutRegions.length > 0 ? layoutRegions : ["top", "main", "bottom"];
+  const layoutRegionInstructionTokens = layoutRegionKeys.map((region) => `layout.${region}`);
+  const layoutRegionInstructions =
+    layoutRegionInstructionTokens.length === 1
+      ? layoutRegionInstructionTokens[0]
+      : `${layoutRegionInstructionTokens.slice(0, -1).join(", ")}, and ${
+          layoutRegionInstructionTokens[layoutRegionInstructionTokens.length - 1]
+        }`;
+  const layoutSampleEntries = layoutRegionKeys.map((region, index) => {
+    if (index === 0) {
+      return `    "${region}": ["hero-main"]`;
+    }
+    if (index === 1) {
+      return `    "${region}": ["features-grid"]`;
+    }
+    return `    "${region}": []`;
+  });
+
   const systemPrompt = [
     "You are a landing page schema generator.",
     "Output JSON only (no markdown, no prose, no explanations).",
@@ -39,7 +58,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "When the prompt requests a specific layout pattern (for example split hero, comparison grid, FAQ-first, long-form storytelling), reflect that in block sequencing, block variants, and props content.",
     "Set blocks[].variant when useful so the renderer can apply explicit layout intent (examples: split, centered, media-left, media-right, cards-2, cards-3, cards-4, alternating, stacked).",
     "Preserve deterministic JSON constraints while increasing semantic diversity: vary composition and copy strategy without inventing non-schema keys.",
-    `layout.${input.layoutRegions[0]}, layout.${input.layoutRegions[1]}, and layout.${input.layoutRegions[2]} must be arrays of block IDs that reference existing blocks[].id values.`,
+    `${layoutRegionInstructions} must be arrays of block IDs that reference existing blocks[].id values.`,
   ].join("\n");
 
   const userPrompt = [
@@ -96,9 +115,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "    }",
     "  ],",
     '  "layout": {',
-    `    "${input.layoutRegions[0]}": ["hero-main"],`,
-    `    "${input.layoutRegions[1]}": ["features-grid"],`,
-    `    "${input.layoutRegions[2]}": []`,
+    `${layoutSampleEntries.join(",\n")}`,
     "  }",
     "}",
     "Do not output any text before or after the JSON object.",
