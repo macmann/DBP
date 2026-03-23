@@ -176,6 +176,24 @@ describe("buildDemoRenderSchema", () => {
     const blockTypes = new Map(result.blocks?.map((block) => [block.id, block.type]));
     assert.equal(blockTypes.get("shell-page-header"), "pageHeader");
     assert.equal(blockTypes.get("shell-widget-embed"), "widgetEmbed");
-    assert.equal(blockTypes.get("shell-build-meta"), "buildMeta");
+    assert.equal(blockTypes.get("shell-build-meta"), "themeMeta");
+  });
+
+  it("accepts inline layout block refs for v2 composition", () => {
+    const schema = buildSchema({
+      layout: {
+        top: [{ id: "inline-top", type: "cta", props: { heading: "Inline top" } }],
+        main: ["hero-1"],
+        bottom: ["shell-build-meta"],
+      },
+    });
+
+    const result = buildDemoRenderSchema(schema, {
+      pageTitleFallback: "Fallback",
+      currentVersionLabel: "v9",
+      widgetEmbedHtml: "",
+    });
+
+    assert.equal(typeof result.layout?.top[0], "object");
   });
 });

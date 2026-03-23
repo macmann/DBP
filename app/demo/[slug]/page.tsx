@@ -151,7 +151,7 @@ export default async function DemoPage({ params }: DemoPageProps) {
 
   return (
     <div style={themeVariables}>
-      <Container className="space-y-10 py-10 sm:space-y-12 sm:py-12 lg:space-y-14 lg:py-16">
+      <Container className="py-10 sm:py-12 lg:py-16">
         <PageRenderer page={renderSchema} resolveAsset={resolveAsset} />
       </Container>
     </div>

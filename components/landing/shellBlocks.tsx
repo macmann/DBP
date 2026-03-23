@@ -7,6 +7,7 @@ import { PRODUCT_NAME } from "@/lib/config/brand";
 export const SHELL_PAGE_HEADER_ID = "shell-page-header";
 export const SHELL_WIDGET_EMBED_ID = "shell-widget-embed";
 export const SHELL_BUILD_META_ID = "shell-build-meta";
+export const SHELL_THEME_META_ID = SHELL_BUILD_META_ID;
 
 const SITE_DEFAULT_TITLE = PRODUCT_NAME;
 
@@ -51,7 +52,7 @@ function PageHeaderBlock({ block }: { block: GeneratedBlock }) {
   );
 }
 
-function BuildMetaBlock({ block }: { block: GeneratedBlock }) {
+function ThemeMetaBlock({ block }: { block: GeneratedBlock }) {
   const props = block.props && typeof block.props === "object" ? block.props : {};
   const currentVersionLabel =
     typeof props.currentVersionLabel === "string" && props.currentVersionLabel.trim().length > 0
@@ -107,7 +108,8 @@ export function registerShellBlocks() {
   }
 
   registerBlock("pageHeader", ({ block }) => <PageHeaderBlock block={block} />);
-  registerBlock("buildMeta", ({ block }) => <BuildMetaBlock block={block} />);
+  registerBlock("buildMeta", ({ block }) => <ThemeMetaBlock block={block} />);
+  registerBlock("themeMeta", ({ block }) => <ThemeMetaBlock block={block} />);
   registerBlock("widgetEmbed", ({ block }) => <WidgetEmbedBlock block={block} />);
 
   shellBlocksRegistered = true;

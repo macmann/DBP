@@ -1,11 +1,16 @@
-import type { GeneratedBlock, GeneratedPageLayout, GeneratedPageSchema } from "@/lib/ai/schema";
+import type {
+  GeneratedBlock,
+  GeneratedLayoutEntry,
+  GeneratedPageLayout,
+  GeneratedPageSchema,
+} from "@/lib/ai/schema";
 import {
-  SHELL_BUILD_META_ID,
   SHELL_PAGE_HEADER_ID,
+  SHELL_THEME_META_ID,
   SHELL_WIDGET_EMBED_ID,
 } from "@/components/landing/shellBlocks";
 
-export type DemoShellBlockType = "pageHeader" | "widgetEmbed" | "buildMeta";
+export type DemoShellBlockType = "pageHeader" | "widgetEmbed" | "themeMeta";
 
 export type DemoRenderSchemaOptions = {
   pageTitleFallback: string;
@@ -17,12 +22,32 @@ export type DemoRenderSchemaOptions = {
   };
 };
 
-function normalizeLayoutEntries(entries: string[] | undefined): string[] {
+function normalizeLayoutEntries(entries: GeneratedLayoutEntry[] | undefined): GeneratedLayoutEntry[] {
   if (!Array.isArray(entries)) {
     return [];
   }
 
-  return entries.map((entry) => entry.trim()).filter((entry) => entry.length > 0);
+  return entries
+    .map((entry) => {
+      if (typeof entry === "string") {
+        const trimmed = entry.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      }
+
+      if (
+        entry &&
+        typeof entry === "object" &&
+        typeof entry.id === "string" &&
+        entry.id.trim().length > 0 &&
+        typeof entry.type === "string" &&
+        entry.type.trim().length > 0
+      ) {
+        return { ...entry, id: entry.id.trim(), type: entry.type.trim() } satisfies GeneratedBlock;
+      }
+
+      return null;
+    })
+    .filter((entry): entry is GeneratedLayoutEntry => entry !== null);
 }
 
 function inferLegacyLayout(blocks: GeneratedBlock[]): GeneratedPageLayout {
@@ -33,7 +58,7 @@ function inferLegacyLayout(blocks: GeneratedBlock[]): GeneratedPageLayout {
   return {
     top: [SHELL_PAGE_HEADER_ID],
     main: contentBlockIds,
-    bottom: [SHELL_WIDGET_EMBED_ID, SHELL_BUILD_META_ID],
+    bottom: [SHELL_WIDGET_EMBED_ID, SHELL_THEME_META_ID],
   };
 }
 
@@ -97,8 +122,8 @@ export function buildDemoRenderSchema(
       },
     },
     {
-      id: SHELL_BUILD_META_ID,
-      type: "buildMeta",
+      id: SHELL_THEME_META_ID,
+      type: "themeMeta",
       props: {
         currentVersionLabel: options.currentVersionLabel,
         primaryColor: schema.theme.primaryColor,

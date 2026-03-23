@@ -1,4 +1,9 @@
-import type { GeneratedBlock, GeneratedPageLayout, GeneratedPageSchema } from "@/lib/ai/schema";
+import type {
+  GeneratedBlock,
+  GeneratedLayoutEntry,
+  GeneratedPageLayout,
+  GeneratedPageSchema,
+} from "@/lib/ai/schema";
 import type { AssetResolver } from "@/components/landing/types";
 import { resolveBlock } from "@/components/landing/blockRegistry";
 import "@/components/landing/blockRegistry.bootstrap";
@@ -56,14 +61,36 @@ function renderBlock(block: GeneratedBlock, resolveAsset: AssetResolver) {
   return <BlockComponent block={block} resolveAsset={resolveAsset} />;
 }
 
-function normalizeLayoutRegion(region: string[] | undefined): string[] {
+function normalizeLayoutRegion(region: GeneratedLayoutEntry[] | undefined): GeneratedLayoutEntry[] {
   if (!Array.isArray(region)) {
     return [];
   }
 
   return region
-    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-    .filter((entry) => entry.length > 0);
+    .map((entry) => {
+      if (typeof entry === "string") {
+        const trimmed = entry.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      }
+
+      if (
+        entry &&
+        typeof entry === "object" &&
+        typeof entry.id === "string" &&
+        entry.id.trim().length > 0 &&
+        typeof entry.type === "string" &&
+        entry.type.trim().length > 0
+      ) {
+        return {
+          ...entry,
+          id: entry.id.trim(),
+          type: entry.type.trim(),
+        } satisfies GeneratedBlock;
+      }
+
+      return null;
+    })
+    .filter((entry): entry is GeneratedLayoutEntry => entry !== null);
 }
 
 function getRenderableLayout(page: GeneratedPageSchema): GeneratedPageLayout | null {
@@ -105,10 +132,19 @@ function getOrderedBlocks(page: GeneratedPageSchema) {
   const orderedBlocks: GeneratedBlock[] = [];
   const missingBlockIds: string[] = [];
 
-  for (const blockId of [...renderableLayout.top, ...renderableLayout.main, ...renderableLayout.bottom]) {
-    const block = blockMap.get(blockId);
+  for (const layoutEntry of [
+    ...renderableLayout.top,
+    ...renderableLayout.main,
+    ...renderableLayout.bottom,
+  ]) {
+    if (typeof layoutEntry !== "string") {
+      orderedBlocks.push(layoutEntry);
+      continue;
+    }
+
+    const block = blockMap.get(layoutEntry);
     if (!block) {
-      missingBlockIds.push(blockId);
+      missingBlockIds.push(layoutEntry);
       continue;
     }
     orderedBlocks.push(block);
