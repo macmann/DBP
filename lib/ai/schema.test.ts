@@ -452,6 +452,43 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal("sections" in result.data, false);
   });
 
+  it("supports validating legacy sections and returning normalized blocks", () => {
+    const payload = {
+      ...validFixture,
+      sections: [
+        {
+          id: "legacy-cta",
+          type: "promptDefinedType",
+          layoutVariant: "dense",
+          cta: {
+            label: "Talk to sales",
+            href: "www.example.com/contact",
+          },
+        },
+      ],
+    };
+    delete (payload as { blocks?: unknown }).blocks;
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, true);
+    if (!result.success) {
+      throw new Error("Expected validation success");
+    }
+
+    assert.deepEqual(result.data.blocks[0], {
+      id: "legacy-cta",
+      type: "promptDefinedType",
+      variant: "dense",
+      props: {
+        cta: {
+          label: "Talk to sales",
+          href: "https://www.example.com/contact",
+        },
+      },
+    });
+    assert.equal("sections" in result.data, false);
+  });
+
   it("maps legacy sections with custom types into blocks without enum restrictions", () => {
     const payload = {
       ...validFixture,

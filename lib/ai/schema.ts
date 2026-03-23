@@ -166,6 +166,34 @@ function getBlockCta(block: Record<string, unknown>): unknown {
   return block.cta;
 }
 
+function validateBlockBaselineShape(block: Record<string, unknown>, index: number): string[] {
+  const errors: string[] = [];
+
+  if (typeof block.id !== "string" || block.id.trim().length === 0) {
+    errors.push(`blocks[${index}].id must be a non-empty string.`);
+  } else if (!isUrlSafeToken(block.id.trim())) {
+    errors.push(`blocks[${index}].id must be URL-safe (letters, numbers, '-' or '_').`);
+  }
+
+  if (typeof block.type !== "string" || block.type.trim().length === 0) {
+    errors.push(`blocks[${index}].type must be a non-empty string.`);
+  } else if (!isUrlSafeToken(block.type.trim())) {
+    errors.push(`blocks[${index}].type must be URL-safe (letters, numbers, '-' or '_').`);
+  }
+
+  if (block.variant !== undefined && (typeof block.variant !== "string" || block.variant.trim().length === 0)) {
+    errors.push(`blocks[${index}].variant must be a non-empty string when provided.`);
+  } else if (typeof block.variant === "string" && !isUrlSafeToken(block.variant.trim())) {
+    errors.push(`blocks[${index}].variant must be URL-safe (letters, numbers, '-' or '_').`);
+  }
+
+  if (block.props !== undefined && !isRecord(block.props)) {
+    errors.push(`blocks[${index}].props must be an object when provided.`);
+  }
+
+  return errors;
+}
+
 function sanitizeBlockRecord(block: Record<string, unknown>): Record<string, unknown> {
   const nextBlock = { ...block };
 
@@ -428,28 +456,7 @@ export function validateGeneratedPageSchema(
       }
 
       const block = payload.blocks ? maybeBlock : coerceLegacySectionToBlock(maybeBlock);
-
-      if (typeof block.id !== "string" || block.id.trim().length === 0) {
-        errors.push(`blocks[${index}].id must be a non-empty string.`);
-      } else if (!isUrlSafeToken(block.id.trim())) {
-        errors.push(`blocks[${index}].id must be URL-safe (letters, numbers, '-' or '_').`);
-      }
-
-      if (typeof block.type !== "string" || block.type.trim().length === 0) {
-        errors.push(`blocks[${index}].type must be a non-empty string.`);
-      } else if (!isUrlSafeToken(block.type.trim())) {
-        errors.push(`blocks[${index}].type must be URL-safe (letters, numbers, '-' or '_').`);
-      }
-
-      if (block.variant !== undefined && (typeof block.variant !== "string" || block.variant.trim().length === 0)) {
-        errors.push(`blocks[${index}].variant must be a non-empty string when provided.`);
-      } else if (typeof block.variant === "string" && !isUrlSafeToken(block.variant.trim())) {
-        errors.push(`blocks[${index}].variant must be URL-safe (letters, numbers, '-' or '_').`);
-      }
-
-      if (block.props !== undefined && !isRecord(block.props)) {
-        errors.push(`blocks[${index}].props must be an object when provided.`);
-      }
+      errors.push(...validateBlockBaselineShape(block, index));
 
       const cta = getBlockCta(block);
       if (cta !== undefined) {
