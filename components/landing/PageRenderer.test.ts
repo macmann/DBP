@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import type { GeneratedPageSchema } from "@/lib/ai/schema";
 import type { AssetResolver } from "@/components/landing/types";
+import { registerBlock } from "@/components/landing/blockRegistry";
 import { PageRenderer } from "@/components/landing/PageRenderer";
 
 const resolveAsset: AssetResolver = () => null;
@@ -30,6 +31,27 @@ function buildPage(
 }
 
 describe("PageRenderer", () => {
+  it("supports runtime registration of new block renderers", () => {
+    registerBlock("runtimePlugin", ({ block }) =>
+      createElement("section", null, `Runtime plugin rendered: ${block.id}`),
+    );
+
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "runtime-1",
+            type: "runtimePlugin",
+            props: {},
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /Runtime plugin rendered: runtime-1/);
+  });
+
   it("renders known block types via registry lookup", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {

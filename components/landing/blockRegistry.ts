@@ -10,6 +10,7 @@ export type BlockComponentProps = {
 export type BlockValidator = (props: Record<string, unknown> | undefined) => boolean;
 
 export type BlockRegistration = {
+  type: string;
   component: ComponentType<BlockComponentProps>;
   validator?: BlockValidator;
 };
@@ -31,7 +32,11 @@ export function registerBlock(
     return;
   }
 
-  blockRegistry.set(normalizedType, { component, validator });
+  blockRegistry.set(normalizedType, {
+    type: normalizedType,
+    component,
+    validator,
+  });
 }
 
 export function resolveBlock(type: string): BlockRegistration | null {
@@ -42,4 +47,16 @@ export function resolveBlock(type: string): BlockRegistration | null {
   }
 
   return blockRegistry.get(normalizedType) ?? null;
+}
+
+export function registerBlocks(
+  registrations: Array<{
+    type: string;
+    component: ComponentType<BlockComponentProps>;
+    validator?: BlockValidator;
+  }>,
+): void {
+  for (const registration of registrations) {
+    registerBlock(registration.type, registration.component, registration.validator);
+  }
 }
