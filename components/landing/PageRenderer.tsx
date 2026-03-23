@@ -48,52 +48,19 @@ function renderBlock(block: GeneratedBlock, resolveAsset: AssetResolver) {
   return <BlockComponent block={block} resolveAsset={resolveAsset} />;
 }
 
-function renderRegionEntries(
-  entries: NonNullable<GeneratedPageSchema["layout"]>["top"],
-  blockMap: Map<string, GeneratedBlock>,
-  resolveAsset: AssetResolver,
-) {
-  return entries.map((entry, index) => {
-    const block = blockMap.get(entry) ?? { id: entry, type: "missing-block-ref" };
-    const key = typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `layout-${index}`;
-
-    return (
-      <div key={key} className="scroll-mt-24">
-        {renderBlock(block, resolveAsset)}
-      </div>
-    );
-  });
-}
-
-function inferLegacyLayoutFromBlocks(blocks: GeneratedBlock[]): NonNullable<GeneratedPageSchema["layout"]> {
-  return {
-    top: [],
-    main: blocks
-      .map((block) => block.id)
-      .filter((id): id is string => typeof id === "string" && id.trim().length > 0),
-    bottom: [],
-  };
-}
-
 export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
-  const blocks = page.blocks ?? [];
-  const layout = page.layout ?? inferLegacyLayoutFromBlocks(blocks);
-  const blockMap = new Map(
-    blocks
-      .filter(
-        (block): block is GeneratedBlock =>
-          typeof block.id === "string" && block.id.trim().length > 0,
-      )
-      .map((block) => [block.id, block]),
-  );
-
   return (
     <div className="space-y-8 sm:space-y-10 lg:space-y-12">
-      <div data-layout-region="top">{renderRegionEntries(layout.top, blockMap, resolveAsset)}</div>
-      <div data-layout-region="main">{renderRegionEntries(layout.main, blockMap, resolveAsset)}</div>
-      <div data-layout-region="bottom">
-        {renderRegionEntries(layout.bottom, blockMap, resolveAsset)}
-      </div>
+      {(page.blocks ?? []).map((block, index) => {
+        const key =
+          typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `block-${index}`;
+
+        return (
+          <div key={key} className="scroll-mt-24">
+            {renderBlock(block, resolveAsset)}
+          </div>
+        );
+      })}
     </div>
   );
 }

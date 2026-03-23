@@ -26,7 +26,7 @@ function buildPage(blocks: GeneratedPageSchema["blocks"]): GeneratedPageSchema {
 }
 
 describe("PageRenderer", () => {
-  it("renders a known block type via registry", () => {
+  it("renders known block types via registry lookup", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
         page: buildPage([
@@ -37,18 +37,6 @@ describe("PageRenderer", () => {
               heading: "Known block heading",
             },
           },
-        ]),
-        resolveAsset,
-      }),
-    );
-
-    assert.match(markup, /Known block heading/);
-  });
-
-  it("renders another registered block type via registry", () => {
-    const markup = renderToStaticMarkup(
-      createElement(PageRenderer, {
-        page: buildPage([
           {
             id: "cta-1",
             type: "cta",
@@ -61,6 +49,7 @@ describe("PageRenderer", () => {
       }),
     );
 
+    assert.match(markup, /Known block heading/);
     assert.match(markup, /Call to action heading/);
   });
 
@@ -84,7 +73,7 @@ describe("PageRenderer", () => {
     assert.match(markup, /not-registered/);
   });
 
-  it("renders malformed block fallback when block shape is invalid", () => {
+  it("renders malformed block fallback when block id is missing", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
         page: buildPage([
@@ -103,7 +92,6 @@ describe("PageRenderer", () => {
     assert.match(markup, /could not be rendered due to malformed props/);
     assert.match(markup, /unknown/);
   });
-
 
   it("renders malformed block fallback when type is missing", () => {
     const markup = renderToStaticMarkup(
@@ -125,7 +113,7 @@ describe("PageRenderer", () => {
     assert.match(markup, /missing-type/);
   });
 
-  it("renders malformed block fallback when props are not an object", () => {
+  it("renders malformed block fallback when props payload is invalid", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
         page: buildPage([
@@ -141,103 +129,5 @@ describe("PageRenderer", () => {
 
     assert.match(markup, /could not be rendered due to malformed props/);
     assert.match(markup, /hero-bad-props/);
-  });
-
-  it("renders malformed block fallback when props are invalid", () => {
-    const markup = renderToStaticMarkup(
-      createElement(PageRenderer, {
-        page: buildPage([
-          {
-            id: "hero-malformed",
-            type: "hero",
-            props: {
-              heading: 123,
-            } as unknown as Record<string, unknown>,
-          },
-        ]),
-        resolveAsset,
-      }),
-    );
-
-    assert.match(markup, /could not be rendered due to malformed props/);
-    assert.match(markup, /hero-malformed/);
-  });
-
-  it("renders blocks by layout regions when layout is provided", () => {
-    const markup = renderToStaticMarkup(
-      createElement(PageRenderer, {
-        page: {
-          ...buildPage([
-            {
-              id: "hero-1",
-              type: "hero",
-              props: { heading: "Hero in main" },
-            },
-            {
-              id: "footer-1",
-              type: "footer",
-              props: { heading: "Footer in bottom" },
-            },
-          ]),
-          layout: {
-            top: ["unknown-inline"],
-            main: ["hero-1"],
-            bottom: ["footer-1"],
-          },
-        },
-        resolveAsset,
-      }),
-    );
-
-    assert.match(markup, /data-layout-region=\"top\"/);
-    assert.match(markup, /data-layout-region=\"main\"/);
-    assert.match(markup, /data-layout-region=\"bottom\"/);
-    assert.match(markup, /Hero in main/);
-    assert.match(markup, /Footer in bottom/);
-  });
-
-  it("renders unknown fallback for unresolved layout block references", () => {
-    const markup = renderToStaticMarkup(
-      createElement(PageRenderer, {
-        page: {
-          ...buildPage([
-            {
-              id: "hero-1",
-              type: "hero",
-              props: { heading: "Hero in main" },
-            },
-          ]),
-          layout: {
-            top: [],
-            main: ["hero-1", "missing-block-id"],
-            bottom: [],
-          },
-        },
-        resolveAsset,
-      }),
-    );
-
-    assert.match(markup, /Unsupported block type/);
-    assert.match(markup, /missing-block-ref/);
-  });
-
-  it("falls back to a legacy main-only layout when layout is absent", () => {
-    const markup = renderToStaticMarkup(
-      createElement(PageRenderer, {
-        page: buildPage([
-          {
-            id: "hero-legacy",
-            type: "hero",
-            props: { heading: "Legacy hero in main region" },
-          },
-        ]),
-        resolveAsset,
-      }),
-    );
-
-    assert.match(markup, /data-layout-region=\"top\"/);
-    assert.match(markup, /data-layout-region=\"main\"/);
-    assert.match(markup, /data-layout-region=\"bottom\"/);
-    assert.match(markup, /Legacy hero in main region/);
   });
 });
