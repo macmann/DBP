@@ -39,9 +39,9 @@ function inferDefaultLayout(blocks) {
     .filter((id) => typeof id === "string" && id.trim().length > 0);
 
   return {
-    top: [{ id: "shell-page-header", type: "pageHeader" }],
+    top: ["shell-page-header"],
     main: contentBlockIds,
-    bottom: [{ id: "shell-widget-embed", type: "widgetEmbed" }, { id: "shell-build-meta", type: "buildMeta" }],
+    bottom: ["shell-widget-embed", "shell-build-meta"],
   };
 }
 
@@ -55,12 +55,13 @@ function migrateGeneratedSchema(payload) {
     schemaVersion: CURRENT_SCHEMA_VERSION,
   };
 
-  const rawBlocks = Array.isArray(payload.blocks) ? payload.blocks : Array.isArray(payload.sections) ? payload.sections : null;
+  const rawBlocks =
+    Array.isArray(payload.blocks) ? payload.blocks : Array.isArray(payload.sections) ? payload.sections : null;
   if (rawBlocks) {
     const fromLegacySections = !Array.isArray(payload.blocks);
     const normalizedBlocks = rawBlocks.map((block) => normalizeBlock(block, fromLegacySections));
     next.blocks = normalizedBlocks;
-    next.sections = normalizedBlocks;
+    delete next.sections;
 
     if (!isRecord(payload.layout)) {
       next.layout = inferDefaultLayout(normalizedBlocks.filter((block) => isRecord(block)));

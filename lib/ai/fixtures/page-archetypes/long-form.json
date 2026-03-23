@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "pageTitle": "The 2026 State of RevOps",
+  "summary": "Long-form thought leadership with references and CTA.",
+  "theme": {
+    "primaryColor": "#111827",
+    "accentColor": "#22c55e",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "2026 RevOps Report",
+    "description": "Benchmarks, trends, and tactical recommendations."
+  },
+  "blocks": [
+    {
+      "id": "hero-1",
+      "type": "hero",
+      "props": {
+        "heading": "2026 RevOps Report",
+        "body": "A practical benchmark for GTM leaders."
+      }
+    },
+    {
+      "id": "features-1",
+      "type": "features",
+      "props": {
+        "heading": "Inside this report",
+        "items": [{ "title": "Benchmarks" }, { "title": "Playbooks" }, { "title": "Tooling" }]
+      }
+    },
+    {
+      "id": "testimonial-1",
+      "type": "testimonial",
+      "props": {
+        "heading": "Trusted by revenue teams"
+      }
+    },
+    {
+      "id": "cta-1",
+      "type": "cta",
+      "props": {
+        "heading": "Download the full report",
+        "cta": {
+          "label": "Download now",
+          "href": "/download"
+        }
+      }
+    }
+  ],
+  "layout": {
+    "top": ["hero-1"],
+    "main": ["features-1", "testimonial-1", "cta-1"],
+    "bottom": []
+  }
+}

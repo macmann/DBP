@@ -19,7 +19,9 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:migrate:schema-json": "node prisma/migrate-generated-schema-json.mjs"
+    "db:migrate:schema-json": "node prisma/migrate-generated-schema-json.mjs",
+    "ci:rollout-checks": "node scripts/ci/rollout-checks.mjs",
+    "test:ci": "npm run ci:rollout-checks"
   },
   "dependencies": {
     "next": "15.1.6",

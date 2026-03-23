@@ -70,6 +70,8 @@
 - [ ] Links, CTA buttons, and media sections render correctly across breakpoints.
 - [ ] Block registry coverage is verified: known blocks render, unknown block types show fallback placeholders.
 - [ ] Layout regions (`top`, `main`, `bottom`) are verified to render in region order with block-reference + inline-block entries.
+- [ ] Dynamic block rendering rollout is verified with `NEXT_PUBLIC_ENABLE_V2_BLOCK_LAYOUT_RENDERING=true` (layout regions active) and `false` (legacy block-order fallback).
+- [ ] Safety policy enforcement is validated end-to-end: policy-blocked generations surface `safety_policy_blocked` and unsafe embeds/html/event handlers map to explicit safety error codes.
 
 ## 3) “Done” Criteria (Release Gate)
 
@@ -79,4 +81,4 @@ A QA pass is considered complete only when all of the following are true:
 2. **DBP naming is consistent everywhere** (UI copy, metadata, docs, and status messages).
 3. **Professional UI baseline is complete** for key screens (home/generate, dashboard, editor, demo).
 4. **Sub-URL publishing flow is verified end-to-end**, including slug creation/update, publish transitions, and route revalidation.
-5. **Automated checks pass** for action logic and schema validation paths added for this release.
+5. **Automated checks pass** for schema parse/validate, render fallback behavior, legacy compatibility migration, and action logic paths added for this release.

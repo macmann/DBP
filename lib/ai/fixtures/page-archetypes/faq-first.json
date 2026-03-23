@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 2,
+  "pageTitle": "Acme Support FAQ",
+  "summary": "FAQ-heavy support landing page.",
+  "theme": {
+    "primaryColor": "#1f2937",
+    "accentColor": "#a855f7",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "Acme FAQ",
+    "description": "Answers to common customer questions."
+  },
+  "blocks": [
+    {
+      "id": "faq-1",
+      "type": "faq",
+      "props": {
+        "heading": "Frequently asked questions",
+        "items": [{ "question": "Do you offer trial?" }, { "question": "Can I cancel anytime?" }]
+      }
+    },
+    {
+      "id": "cta-1",
+      "type": "cta",
+      "props": {
+        "heading": "Need help now?",
+        "cta": {
+          "label": "Contact support",
+          "href": "/support"
+        }
+      }
+    }
+  ],
+  "layout": {
+    "top": ["faq-1"],
+    "main": ["cta-1"],
+    "bottom": []
+  }
+}

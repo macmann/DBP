@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "pageTitle": "Acme vs LegacySuite",
+  "summary": "Comparison-oriented page with proof and CTA.",
+  "theme": {
+    "primaryColor": "#0b1020",
+    "accentColor": "#f59e0b",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "Acme vs LegacySuite",
+    "description": "See why modern teams choose Acme."
+  },
+  "blocks": [
+    {
+      "id": "hero-1",
+      "type": "hero",
+      "props": {
+        "heading": "Switch from LegacySuite",
+        "body": "Modern workflows and transparent pricing."
+      }
+    },
+    {
+      "id": "features-1",
+      "type": "features",
+      "props": {
+        "heading": "Where Acme wins",
+        "items": [{ "title": "Faster onboarding" }, { "title": "Open APIs" }, { "title": "Lower TCO" }]
+      }
+    },
+    {
+      "id": "cta-1",
+      "type": "cta",
+      "props": {
+        "heading": "Run your migration plan",
+        "cta": {
+          "label": "Get migration guide",
+          "href": "/migration-guide"
+        }
+      }
+    }
+  ],
+  "layout": {
+    "top": ["hero-1"],
+    "main": ["features-1", "cta-1"],
+    "bottom": []
+  }
+}
