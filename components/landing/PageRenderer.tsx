@@ -83,39 +83,64 @@ function getRenderableLayout(page: GeneratedPageSchema): GeneratedPageLayout | n
   return hasRenderableEntries ? normalized : null;
 }
 
-export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
-  const blockMap = new Map<string, GeneratedBlock>();
+function getOrderedBlocks(page: GeneratedPageSchema) {
+  const blocks = page.blocks ?? [];
+  const renderableLayout = getRenderableLayout(page);
 
-  for (const block of page.blocks ?? []) {
+  if (!renderableLayout) {
+    return {
+      orderedBlocks: blocks,
+      missingBlockIds: [] as string[],
+    };
+  }
+
+  const blockMap = new Map<string, GeneratedBlock>();
+  for (const block of blocks) {
     if (typeof block.id !== "string" || block.id.trim().length === 0) {
       continue;
     }
     blockMap.set(block.id, block);
   }
 
-  const renderableLayout = getRenderableLayout(page);
+  const orderedBlocks: GeneratedBlock[] = [];
+  const missingBlockIds: string[] = [];
 
-  const renderOrder = renderableLayout
-    ? [...renderableLayout.top, ...renderableLayout.main, ...renderableLayout.bottom]
-    : (page.blocks ?? []).map((block) => block.id);
+  for (const blockId of [...renderableLayout.top, ...renderableLayout.main, ...renderableLayout.bottom]) {
+    const block = blockMap.get(blockId);
+    if (!block) {
+      missingBlockIds.push(blockId);
+      continue;
+    }
+    orderedBlocks.push(block);
+  }
+
+  return {
+    orderedBlocks,
+    missingBlockIds,
+  };
+}
+
+export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
+  const { orderedBlocks, missingBlockIds } = getOrderedBlocks(page);
 
   return (
     <div className="space-y-8 sm:space-y-10 lg:space-y-12">
-      {renderOrder.map((blockId, index) => {
+      {orderedBlocks.map((block, index) => {
         const key =
-          typeof blockId === "string" && blockId.trim().length > 0 ? blockId : `block-${index}`;
-        const block = blockMap.get(blockId);
+          typeof block.id === "string" && block.id.trim().length > 0 ? block.id : `block-${index}`;
 
         return (
           <div key={key} className="scroll-mt-24">
-            {block ? (
-              renderBlock(block, resolveAsset)
-            ) : (
-              <MissingLayoutBlockPlaceholder blockId={blockId} />
-            )}
+            {renderBlock(block, resolveAsset)}
           </div>
         );
       })}
+
+      {missingBlockIds.map((blockId, index) => (
+        <div key={`missing-${blockId}-${index}`} className="scroll-mt-24">
+          <MissingLayoutBlockPlaceholder blockId={blockId} />
+        </div>
+      ))}
     </div>
   );
 }

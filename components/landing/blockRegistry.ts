@@ -9,21 +9,37 @@ export type BlockComponentProps = {
 
 export type BlockValidator = (props: Record<string, unknown> | undefined) => boolean;
 
-type BlockRegistration = {
+export type BlockRegistration = {
   component: ComponentType<BlockComponentProps>;
   validator?: BlockValidator;
 };
 
 const blockRegistry = new Map<string, BlockRegistration>();
 
+function normalizeBlockType(type: string): string {
+  return type.trim();
+}
+
 export function registerBlock(
   type: string,
   component: ComponentType<BlockComponentProps>,
   validator?: BlockValidator,
 ): void {
-  blockRegistry.set(type, { component, validator });
+  const normalizedType = normalizeBlockType(type);
+
+  if (normalizedType.length === 0) {
+    return;
+  }
+
+  blockRegistry.set(normalizedType, { component, validator });
 }
 
 export function resolveBlock(type: string): BlockRegistration | null {
-  return blockRegistry.get(type) ?? null;
+  const normalizedType = normalizeBlockType(type);
+
+  if (normalizedType.length === 0) {
+    return null;
+  }
+
+  return blockRegistry.get(normalizedType) ?? null;
 }
