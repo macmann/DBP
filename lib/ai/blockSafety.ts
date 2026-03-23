@@ -56,6 +56,13 @@ export type BlockSafetyViolationCode =
   | "unsafe_html_payload"
   | "unsafe_event_handler";
 
+export type BlockSafetyErrorCategory =
+  | "embed_policy_violation"
+  | "html_payload_violation"
+  | "event_handler_violation"
+  | "url_protocol_violation"
+  | "mixed_unsafe_content";
+
 const BLOCKING_VIOLATION_CODES = new Set<BlockSafetyViolationCode>([
   "denied_embed_block",
   "unsafe_html_payload",
@@ -69,6 +76,11 @@ export type BlockSafetyViolation = {
   path: string;
   message: string;
   valuePreview?: string;
+};
+
+export type BlockSafetyErrorDetails = {
+  category: BlockSafetyErrorCategory;
+  message: string;
 };
 
 export type BlockSafetyResult = {
@@ -447,4 +459,56 @@ export function hasBlockingBlockSafetyViolations(
   violations: readonly BlockSafetyViolation[],
 ): boolean {
   return getBlockingBlockSafetyViolations(violations).length > 0;
+}
+
+export function getBlockSafetyErrorDetails(
+  violations: readonly BlockSafetyViolation[],
+): BlockSafetyErrorDetails {
+  const codes = new Set(violations.map((violation) => violation.code));
+
+  if (codes.size === 0) {
+    return {
+      category: "mixed_unsafe_content",
+      message:
+        "Blocked by safety policy. Remove unsafe URLs, inline event handlers, or script-like HTML payloads.",
+    };
+  }
+
+  if (codes.size > 1) {
+    return {
+      category: "mixed_unsafe_content",
+      message:
+        "Blocked by safety policy because multiple unsafe patterns were detected. Remove disallowed embed blocks, event handlers, and script-like HTML payloads.",
+    };
+  }
+
+  if (codes.has("denied_embed_block")) {
+    return {
+      category: "embed_policy_violation",
+      message:
+        "Blocked by safety policy because disallowed embed block types were generated. Use allowlisted blocks such as 'widgetEmbed' only.",
+    };
+  }
+
+  if (codes.has("unsafe_html_payload")) {
+    return {
+      category: "html_payload_violation",
+      message:
+        "Blocked by safety policy because raw HTML/script payloads were detected. Remove inline script-like markup and use structured props instead.",
+    };
+  }
+
+  if (codes.has("unsafe_event_handler")) {
+    return {
+      category: "event_handler_violation",
+      message:
+        "Blocked by safety policy because inline event handler props (for example onClick/onLoad) were detected. Remove event handler props.",
+    };
+  }
+
+  return {
+    category: "url_protocol_violation",
+    message:
+      "Blocked by safety policy because unsafe URL protocols were detected. Use only https/http URLs (and root-relative paths for form actions).",
+  };
 }

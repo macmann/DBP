@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 import {
   formatBlockSafetyViolations,
+  getBlockSafetyErrorDetails,
   getBlockingBlockSafetyViolations,
   hasBlockingBlockSafetyViolations,
   inspectGeneratedPageBlockSafety,
@@ -356,5 +357,67 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
       getBlockingBlockSafetyViolations(result.violations).map((violation) => violation.code),
       ["denied_embed_block"],
     );
+  });
+
+  it("blocks mixed-case and whitespace protocol bypass attempts", () => {
+    const result = inspectGeneratedPageBlockSafety(
+      createFixture({
+        blocks: [
+          {
+            id: "hero-1",
+            type: "hero",
+            props: {
+              href: " JaVaScRiPt:alert(1)",
+              src: " \n\tdata:text/html,<script>alert(1)</script>",
+            },
+          },
+        ],
+      }),
+    );
+
+    assert.deepEqual(result.schema.blocks?.[0]?.props, {});
+    assert.deepEqual(result.violations.map((violation) => violation.code), [
+      "disallowed_url_protocol",
+      "disallowed_url_protocol",
+    ]);
+  });
+
+  it("normalizes embed type casing/spacing and blocks denied embed variants", () => {
+    const result = inspectGeneratedPageBlockSafety(
+      createFixture({
+        blocks: [
+          {
+            id: "embed-variant",
+            type: "  IFrame  ",
+            props: {
+              src: "https://example.com/embed",
+            },
+          },
+        ],
+      }),
+    );
+
+    assert.deepEqual(result.schema.blocks, []);
+    assert.deepEqual(result.violations.map((violation) => violation.code), ["denied_embed_block"]);
+  });
+
+  it("categorizes blocking violations with explicit error messages", () => {
+    const result = inspectGeneratedPageBlockSafety(
+      createFixture({
+        blocks: [
+          {
+            id: "hero-1",
+            type: "hero",
+            props: {
+              onMouseOver: "alert(1)",
+            },
+          },
+        ],
+      }),
+    );
+
+    const details = getBlockSafetyErrorDetails(getBlockingBlockSafetyViolations(result.violations));
+    assert.equal(details.category, "event_handler_violation");
+    assert.match(details.message, /inline event handler props/i);
   });
 });
