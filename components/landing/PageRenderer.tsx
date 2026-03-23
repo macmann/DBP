@@ -6,7 +6,7 @@ import type {
 } from "@/lib/ai/schema";
 import type { AssetResolver } from "@/components/landing/types";
 import { resolveBlock } from "@/components/landing/blockRegistry";
-import "@/components/landing/blockRegistry.bootstrap";
+import { bootstrapBlockRegistry } from "@/components/landing/blockRegistry.bootstrap";
 import { ENABLE_V2_BLOCK_LAYOUT_RENDERING } from "@/lib/config/rendering";
 
 type PageRendererProps = {
@@ -170,6 +170,8 @@ export function PageRenderer({
   resolveAsset,
   enableV2LayoutRendering = ENABLE_V2_BLOCK_LAYOUT_RENDERING,
 }: PageRendererProps) {
+  bootstrapBlockRegistry();
+
   const { orderedBlocks, missingBlockIds } = getOrderedBlocks(page, enableV2LayoutRendering);
 
   return (
