@@ -57,6 +57,41 @@ describe("PageRenderer", () => {
     assert.match(markup, /Call to action heading/);
   });
 
+
+  it("ignores layout regions when v2 rendering flag is disabled", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage(
+          [
+            {
+              id: "hero-1",
+              type: "hero",
+              props: {
+                heading: "Hero heading",
+              },
+            },
+            {
+              id: "cta-1",
+              type: "cta",
+              props: {
+                heading: "CTA heading",
+              },
+            },
+          ],
+          {
+            top: ["cta-1"],
+            main: ["hero-1"],
+            bottom: [],
+          },
+        ),
+        resolveAsset,
+        enableV2LayoutRendering: false,
+      }),
+    );
+
+    assert.ok(markup.indexOf("Hero heading") < markup.indexOf("CTA heading"));
+  });
+
   it("renders regions in top/main/bottom layout order when layout is provided", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {

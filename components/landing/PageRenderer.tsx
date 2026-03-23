@@ -7,10 +7,12 @@ import type {
 import type { AssetResolver } from "@/components/landing/types";
 import { resolveBlock } from "@/components/landing/blockRegistry";
 import "@/components/landing/blockRegistry.bootstrap";
+import { ENABLE_V2_BLOCK_LAYOUT_RENDERING } from "@/lib/config/rendering";
 
 type PageRendererProps = {
   page: GeneratedPageSchema;
   resolveAsset: AssetResolver;
+  enableV2LayoutRendering?: boolean;
 };
 
 function MalformedBlockPlaceholder({ blockId }: { blockId: string }) {
@@ -110,8 +112,15 @@ function getRenderableLayout(page: GeneratedPageSchema): GeneratedPageLayout | n
   return hasRenderableEntries ? normalized : null;
 }
 
-function getOrderedBlocks(page: GeneratedPageSchema) {
+function getOrderedBlocks(page: GeneratedPageSchema, enableV2LayoutRendering: boolean) {
   const blocks = page.blocks ?? [];
+  if (!enableV2LayoutRendering) {
+    return {
+      orderedBlocks: blocks,
+      missingBlockIds: [] as string[],
+    };
+  }
+
   const renderableLayout = getRenderableLayout(page);
 
   if (!renderableLayout) {
@@ -156,8 +165,12 @@ function getOrderedBlocks(page: GeneratedPageSchema) {
   };
 }
 
-export function PageRenderer({ page, resolveAsset }: PageRendererProps) {
-  const { orderedBlocks, missingBlockIds } = getOrderedBlocks(page);
+export function PageRenderer({
+  page,
+  resolveAsset,
+  enableV2LayoutRendering = ENABLE_V2_BLOCK_LAYOUT_RENDERING,
+}: PageRendererProps) {
+  const { orderedBlocks, missingBlockIds } = getOrderedBlocks(page, enableV2LayoutRendering);
 
   return (
     <div className="space-y-8 sm:space-y-10 lg:space-y-12">

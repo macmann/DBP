@@ -1,8 +1,5 @@
-import {
-  type GeneratedBlock,
-  type GeneratedPageSchema,
-  validateGeneratedPageSchema,
-} from "@/lib/ai/schema";
+import { type GeneratedBlock, type GeneratedPageSchema } from "@/lib/ai/schema";
+import { normalizeGeneratedSchemaForRuntime } from "@/lib/ai/schemaMigration";
 
 export type BlockInspectionSummary = {
   id: string;
@@ -49,7 +46,7 @@ function getBlocks(schema: GeneratedPageSchema): GeneratedBlock[] {
 }
 
 export function normalizeSchemaForDisplay(payload: unknown): GeneratedPageSchema | null {
-  const validated = validateGeneratedPageSchema(payload);
+  const validated = normalizeGeneratedSchemaForRuntime(payload);
   if (!validated.success) {
     return null;
   }
@@ -58,7 +55,7 @@ export function normalizeSchemaForDisplay(payload: unknown): GeneratedPageSchema
 }
 
 export function inspectGeneratedSchema(payload: unknown): SchemaInspectionResult {
-  const validated = validateGeneratedPageSchema(payload);
+  const validated = normalizeGeneratedSchemaForRuntime(payload);
   if (!validated.success) {
     return {
       isValid: false,

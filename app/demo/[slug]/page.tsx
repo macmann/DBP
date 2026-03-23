@@ -6,7 +6,7 @@ import { PageRenderer } from "@/components/landing/PageRenderer";
 import { registerShellBlocks } from "@/components/landing/shellBlocks";
 import type { AssetResolver, ResolvedAsset } from "@/components/landing/types";
 import type { GeneratedPageSchema } from "@/lib/ai/schema";
-import { validateGeneratedPageSchema } from "@/lib/ai/schema";
+import { normalizeGeneratedSchemaForRuntime } from "@/lib/ai/schemaMigration";
 import { PRODUCT_DESCRIPTION, PRODUCT_NAME } from "@/lib/config/brand";
 import { getPublishedDemoPage } from "@/lib/public-pages";
 import { buildDemoRenderSchema } from "./demoLayout";
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: DemoPageProps): Promise<Metad
     };
   }
 
-  const parsedSchema = validateGeneratedPageSchema(page.currentVersion?.generatedSchemaJson);
+  const parsedSchema = normalizeGeneratedSchemaForRuntime(page.currentVersion?.generatedSchemaJson);
   if (!parsedSchema.success) {
     return {
       title: fallbackTitle,
@@ -95,7 +95,7 @@ export default async function DemoPage({ params }: DemoPageProps) {
     notFound();
   }
 
-  const parsedSchema = validateGeneratedPageSchema(page.currentVersion?.generatedSchemaJson);
+  const parsedSchema = normalizeGeneratedSchemaForRuntime(page.currentVersion?.generatedSchemaJson);
 
   if (!parsedSchema.success) {
     return <InvalidSchemaFallback publicSlug={page.publicSlug} />;

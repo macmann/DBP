@@ -1,0 +1,24 @@
+{
+  "archetypes": [
+    {
+      "fixture": "short-lp",
+      "expectedBlockTypes": ["hero", "cta"],
+      "expectedMainLayoutLength": 1
+    },
+    {
+      "fixture": "long-form",
+      "expectedBlockTypes": ["hero", "features", "testimonial", "cta"],
+      "expectedMainLayoutLength": 3
+    },
+    {
+      "fixture": "faq-first",
+      "expectedBlockTypes": ["faq", "cta"],
+      "expectedMainLayoutLength": 1
+    },
+    {
+      "fixture": "comparison",
+      "expectedBlockTypes": ["hero", "features", "cta"],
+      "expectedMainLayoutLength": 2
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "pageTitle": "Acme CRM for Teams",
+  "summary": "Fast setup CRM for startups.",
+  "theme": {
+    "primaryColor": "#0f172a",
+    "accentColor": "#38bdf8",
+    "fontFamily": "Inter"
+  },
+  "seo": {
+    "title": "Acme CRM | Close More Deals",
+    "description": "Simple CRM for startup sales teams."
+  },
+  "blocks": [
+    {
+      "id": "hero-1",
+      "type": "hero",
+      "props": {
+        "heading": "Close deals faster",
+        "body": "Pipeline, calls, and follow-ups in one place.",
+        "cta": {
+          "label": "Start free",
+          "href": "/signup"
+        }
+      }
+    },
+    {
+      "id": "cta-1",
+      "type": "cta",
+      "props": {
+        "heading": "Try Acme CRM",
+        "cta": {
+          "label": "Book demo",
+          "href": "https://example.com/demo"
+        }
+      }
+    }
+  ],
+  "layout": {
+    "top": ["hero-1"],
+    "main": ["cta-1"],
+    "bottom": []
+  }
+}
