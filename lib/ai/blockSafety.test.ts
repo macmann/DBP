@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 
 import {
   formatBlockSafetyViolations,
+  getBlockingBlockSafetyViolations,
+  hasBlockingBlockSafetyViolations,
   inspectGeneratedPageBlockSafety,
   sanitizeGeneratedPageBlockSafety,
 } from "@/lib/ai/blockSafety";
@@ -295,5 +297,46 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     const message = formatBlockSafetyViolations(result.violations);
     assert.match(message, /disallowed_url_protocol/);
     assert.match(message, /blocks\.hero-1\.props\.href/);
+  });
+
+  it("treats sanitized URL protocol violations as non-blocking", () => {
+    const result = inspectGeneratedPageBlockSafety(
+      createFixture({
+        blocks: [
+          {
+            id: "hero-1",
+            type: "hero",
+            props: {
+              href: "javascript:alert(1)",
+            },
+          },
+        ],
+      }),
+    );
+
+    assert.equal(hasBlockingBlockSafetyViolations(result.violations), false);
+    assert.deepEqual(getBlockingBlockSafetyViolations(result.violations), []);
+  });
+
+  it("treats denied embed/script-like payload violations as blocking", () => {
+    const result = inspectGeneratedPageBlockSafety(
+      createFixture({
+        blocks: [
+          {
+            id: "embed-1",
+            type: "htmlEmbed",
+            props: {
+              src: "https://evil.example.com/embed",
+            },
+          },
+        ],
+      }),
+    );
+
+    assert.equal(hasBlockingBlockSafetyViolations(result.violations), true);
+    assert.deepEqual(
+      getBlockingBlockSafetyViolations(result.violations).map((violation) => violation.code),
+      ["denied_embed_block"],
+    );
   });
 });

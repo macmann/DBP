@@ -14,6 +14,8 @@ import {
 } from "@/lib/ai/schema";
 import {
   formatBlockSafetyViolations,
+  getBlockingBlockSafetyViolations,
+  hasBlockingBlockSafetyViolations,
   inspectGeneratedPageBlockSafety,
 } from "@/lib/ai/blockSafety";
 import { applyPromptLayoutDirectives } from "@/lib/ai/layoutDirectives";
@@ -871,8 +873,9 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       diagnostics,
     });
 
-    if (blockSafety.violations.length > 0) {
-      const safetyMessage = formatBlockSafetyViolations(blockSafety.violations);
+    if (hasBlockingBlockSafetyViolations(blockSafety.violations)) {
+      const blockingViolations = getBlockingBlockSafetyViolations(blockSafety.violations);
+      const safetyMessage = formatBlockSafetyViolations(blockingViolations);
       const conciseSafetyMessage =
         "Build blocked by safety policy. Remove unsafe URLs or script-like HTML from prompt inputs.";
       const context = {
@@ -884,8 +887,8 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
       console.error("buildPage blocked by safety policy", {
         projectSlug,
         pageId,
-        violationCount: blockSafety.violations.length,
-        violations: blockSafety.violations,
+        violationCount: blockingViolations.length,
+        violations: blockingViolations,
         ...context,
       });
 
@@ -919,6 +922,16 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         code: "safety_policy_blocked",
         message: `${conciseSafetyMessage} ${safetyMessage}`,
       };
+    }
+
+    if (blockSafety.violations.length > 0) {
+      console.warn("buildPage sanitized non-blocking safety violations", {
+        projectSlug,
+        pageId,
+        requestId: aiOutput.requestId,
+        violationCount: blockSafety.violations.length,
+        violations: blockSafety.violations,
+      });
     }
 
     const savedVersion = await prisma.$transaction(async (tx) => {
@@ -1327,14 +1340,15 @@ export async function generateNewVersion(
       diagnostics,
     });
 
-    if (blockSafety.violations.length > 0) {
-      const safetyMessage = formatBlockSafetyViolations(blockSafety.violations);
+    if (hasBlockingBlockSafetyViolations(blockSafety.violations)) {
+      const blockingViolations = getBlockingBlockSafetyViolations(blockSafety.violations);
+      const safetyMessage = formatBlockSafetyViolations(blockingViolations);
       console.error("generateNewVersion blocked by safety policy", {
         projectSlug,
         pageId,
         requestId: aiOutput.requestId,
-        violationCount: blockSafety.violations.length,
-        violations: blockSafety.violations,
+        violationCount: blockingViolations.length,
+        violations: blockingViolations,
       });
       return {
         status: "error",
@@ -1342,6 +1356,16 @@ export async function generateNewVersion(
           "Revision blocked by safety policy. Remove unsafe URLs or script-like HTML from your instructions and try again. " +
           safetyMessage,
       };
+    }
+
+    if (blockSafety.violations.length > 0) {
+      console.warn("generateNewVersion sanitized non-blocking safety violations", {
+        projectSlug,
+        pageId,
+        requestId: aiOutput.requestId,
+        violationCount: blockSafety.violations.length,
+        violations: blockSafety.violations,
+      });
     }
 
     const savedVersion = await prisma.$transaction(async (tx) => {
