@@ -1,5 +1,5 @@
 import { createBlockAdapter, validateCommonProps } from "@/components/landing/blockAdapters";
-import { registerBlock } from "@/components/landing/blockRegistry";
+import { registerBlocks } from "@/components/landing/blockRegistry";
 import { CTASection } from "@/components/landing/sections/CTASection";
 import { FAQSection } from "@/components/landing/sections/FAQSection";
 import { FeaturesSection } from "@/components/landing/sections/FeaturesSection";
@@ -18,15 +18,53 @@ export function bootstrapBlockRegistry() {
     return;
   }
 
-  registerBlock("hero", createBlockAdapter(HeroSection), validateCommonProps);
-  registerBlock("logoStrip", createBlockAdapter(LogoStripSection), validateCommonProps);
-  registerBlock("features", createBlockAdapter(FeaturesSection), validateCommonProps);
-  registerBlock("imageText", createBlockAdapter(ImageTextSection), validateCommonProps);
-  registerBlock("gallery", createBlockAdapter(GallerySection), validateCommonProps);
-  registerBlock("testimonial", createBlockAdapter(TestimonialSection), validateCommonProps);
-  registerBlock("faq", createBlockAdapter(FAQSection), validateCommonProps);
-  registerBlock("cta", createBlockAdapter(CTASection), validateCommonProps);
-  registerBlock("footer", createBlockAdapter(FooterSection), validateCommonProps);
+  registerBlocks([
+    {
+      type: "hero",
+      component: createBlockAdapter(HeroSection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "logoStrip",
+      component: createBlockAdapter(LogoStripSection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "features",
+      component: createBlockAdapter(FeaturesSection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "imageText",
+      component: createBlockAdapter(ImageTextSection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "gallery",
+      component: createBlockAdapter(GallerySection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "testimonial",
+      component: createBlockAdapter(TestimonialSection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "faq",
+      component: createBlockAdapter(FAQSection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "cta",
+      component: createBlockAdapter(CTASection),
+      validator: validateCommonProps,
+    },
+    {
+      type: "footer",
+      component: createBlockAdapter(FooterSection),
+      validator: validateCommonProps,
+    },
+  ]);
   registerShellBlocks();
 
   initialized = true;
