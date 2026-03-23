@@ -41,8 +41,9 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
   const systemPrompt = [
     "You are a landing page schema generator.",
     "Output JSON only (no markdown, no prose, no explanations).",
-    "Return exactly one JSON object with only these top-level keys: pageTitle, summary (optional), pageHeaderAlignment (optional), theme, seo, blocks, layout.",
-    "theme, seo, blocks, and layout are required and must be valid objects/array.",
+    "Return exactly one JSON object with only these top-level keys: schemaVersion, pageTitle, summary (optional), pageHeaderAlignment (optional), theme, seo, blocks, layout.",
+    "schemaVersion, theme, seo, blocks, and layout are required and must be valid values.",
+    "schemaVersion must be 2.",
     "The response contract is block/layout based only: blocks[] define content units and layout maps placement by block ID or inline block objects.",
     "seo.title must be 70 characters or fewer.",
     "seo.description must be 160 characters or fewer.",
@@ -82,8 +83,9 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
             .join("\n")
         : "(none provided)"
     }`,
-    "Return this exact JSON shape (required keys: pageTitle, theme, seo, blocks, layout; optional keys shown with ?):",
+    "Return this exact JSON shape (required keys: schemaVersion, pageTitle, theme, seo, blocks, layout; optional keys shown with ?):",
     "{",
+    '  "schemaVersion": 2,',
     '  "pageTitle": "string // page title",',
     '  "summary?": "string // short page summary",',
     '  "pageHeaderAlignment?": "left | center // controls top page header alignment",',

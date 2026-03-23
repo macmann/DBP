@@ -18,7 +18,7 @@ function normalizePromptOutput(payload: ReturnType<typeof buildPageGenerationPro
 
   return {
     systemPromptHasLayoutRule: payload.systemPrompt.includes(
-      "layout.top, layout.main, and layout.bottom must be arrays of block IDs that reference existing blocks[].id values.",
+      "layout.top, layout.main, and layout.bottom must be arrays containing block IDs and/or inline block objects ({ id, type, variant?, props? }).",
     ),
     systemPromptHasVariationRule: payload.systemPrompt.includes(
       "If two prompts differ, the resulting block plan should differ in structure, not only copy or colors.",
