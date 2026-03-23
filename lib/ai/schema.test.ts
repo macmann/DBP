@@ -3,6 +3,7 @@ import * as assert from "node:assert/strict";
 
 import {
   CURRENT_GENERATED_SCHEMA_VERSION,
+  migrateLegacySectionsPayload,
   sanitizeGeneratedPageSchema,
   validateGeneratedPageSchema,
 } from "./schema";
@@ -191,6 +192,21 @@ describe("validateGeneratedPageSchema", () => {
     assert.ok(result.errors.includes("Output must be a JSON object."));
   });
 
+  it("fails when payload has unsupported top-level keys", () => {
+    const payload = {
+      ...validFixture,
+      invalidTopLevelKey: true,
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("Output contains unsupported top-level keys."));
+  });
+
   it("fails when SEO contains unsupported keys", () => {
     const payload = {
       ...validFixture,
@@ -371,9 +387,7 @@ describe("validateGeneratedPageSchema", () => {
     assert.ok(result.errors.includes("layout.top[0] must be a non-empty string reference."));
     assert.ok(result.errors.includes("layout.main[0] must be a non-empty string reference."));
     assert.ok(
-      result.errors.includes(
-        "layout.bottom[0] must be URL-safe (letters, numbers, '-' or '_').",
-      ),
+      result.errors.includes("layout.bottom[0] must be URL-safe (letters, numbers, '-' or '_')."),
     );
   });
 
@@ -450,6 +464,37 @@ describe("validateGeneratedPageSchema", () => {
       },
     });
     assert.equal("sections" in result.data, false);
+  });
+
+  it("exposes a legacy payload transformer for sections-to-blocks migration", () => {
+    const legacyPayload = {
+      ...validFixture,
+      sections: [
+        {
+          id: "legacy-hero",
+          type: "hero",
+          layoutVariant: "split",
+          heading: "Legacy heading",
+        },
+      ],
+    };
+    delete (legacyPayload as { blocks?: unknown }).blocks;
+
+    const transformed = migrateLegacySectionsPayload(legacyPayload) as {
+      blocks: Array<Record<string, unknown>>;
+      sections?: unknown;
+    };
+
+    assert.equal(Array.isArray(transformed.blocks), true);
+    assert.equal("sections" in transformed, false);
+    assert.deepEqual(transformed.blocks[0], {
+      id: "legacy-hero",
+      type: "hero",
+      variant: "split",
+      props: {
+        heading: "Legacy heading",
+      },
+    });
   });
 
   it("supports validating legacy sections and returning normalized blocks", () => {
@@ -563,9 +608,7 @@ describe("validateGeneratedPageSchema", () => {
       result.errors.includes("blocks[0].type must be URL-safe (letters, numbers, '-' or '_')."),
     );
     assert.ok(
-      result.errors.includes(
-        "blocks[0].variant must be URL-safe (letters, numbers, '-' or '_').",
-      ),
+      result.errors.includes("blocks[0].variant must be URL-safe (letters, numbers, '-' or '_')."),
     );
   });
 
@@ -660,18 +703,9 @@ describe("buildPageGenerationPrompts", () => {
       prompt.userPrompt,
       /"pageHeaderAlignment\?": "left \| center \/\/ controls top page header alignment"/,
     );
-    assert.match(
-      prompt.userPrompt,
-      /"blocks": \[\n\n    \{\n\n      "id": "hero-main"/,
-    );
-    assert.match(
-      prompt.userPrompt,
-      /"type": "hero"/,
-    );
-    assert.match(
-      prompt.userPrompt,
-      /"variant\?": "split"/,
-    );
+    assert.match(prompt.userPrompt, /"blocks": \[\n\n    \{\n\n      "id": "hero-main"/);
+    assert.match(prompt.userPrompt, /"type": "hero"/);
+    assert.match(prompt.userPrompt, /"variant\?": "split"/);
     assert.match(prompt.userPrompt, /"props\?": \{ "\.\.\.": "\.\.\." \}/);
     assert.match(prompt.userPrompt, /"layout": \{/);
     assert.match(prompt.userPrompt, /"top": \["hero-main"\]/);
@@ -681,7 +715,10 @@ describe("buildPageGenerationPrompts", () => {
       prompt.userPrompt,
       /Ensure every layout ID exists in blocks\[\]\.id and preserve block ID uniqueness\./,
     );
-    assert.match(prompt.userPrompt, /Use only the keys above\. Block type names should be URL-safe and prompt-driven\./);
+    assert.match(
+      prompt.userPrompt,
+      /Use only the keys above\. Block type names should be URL-safe and prompt-driven\./,
+    );
     assert.match(prompt.userPrompt, /Do not output any text before or after the JSON object\./);
     assert.match(
       prompt.userPrompt,
