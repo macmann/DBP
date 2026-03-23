@@ -110,16 +110,7 @@ function hasOnlyAllowedKeys(record: Record<string, unknown>, allowedKeys: string
 }
 
 function coerceLegacySectionToBlock(section: Record<string, unknown>): Record<string, unknown> {
-  const {
-    layoutVariant,
-    heading,
-    body,
-    items,
-    mediaAssetIds,
-    cta,
-    props,
-    ...rest
-  } = section;
+  const { layoutVariant, heading, body, items, mediaAssetIds, cta, props, ...rest } = section;
 
   const nextProps: Record<string, unknown> = {
     ...(isRecord(props) ? props : {}),
@@ -140,6 +131,35 @@ function coerceLegacySectionToBlock(section: Record<string, unknown>): Record<st
 
 function getRawBlocks(payload: Record<string, unknown>): unknown {
   return payload.blocks ?? payload.sections;
+}
+
+function transformLegacySectionsPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  if (Array.isArray(payload.blocks) || !Array.isArray(payload.sections)) {
+    return payload;
+  }
+
+  const transformedBlocks = payload.sections.map((section) => {
+    if (!isRecord(section)) {
+      return section;
+    }
+    return coerceLegacySectionToBlock(section);
+  });
+
+  const nextPayload: Record<string, unknown> = {
+    ...payload,
+    blocks: transformedBlocks,
+  };
+  delete nextPayload.sections;
+
+  return nextPayload;
+}
+
+export function migrateLegacySectionsPayload(payload: unknown): unknown {
+  if (!isRecord(payload)) {
+    return payload;
+  }
+
+  return transformLegacySectionsPayload(payload);
 }
 
 function isUrlSafeToken(value: string): boolean {
@@ -181,7 +201,10 @@ function validateBlockBaselineShape(block: Record<string, unknown>, index: numbe
     errors.push(`blocks[${index}].type must be URL-safe (letters, numbers, '-' or '_').`);
   }
 
-  if (block.variant !== undefined && (typeof block.variant !== "string" || block.variant.trim().length === 0)) {
+  if (
+    block.variant !== undefined &&
+    (typeof block.variant !== "string" || block.variant.trim().length === 0)
+  ) {
     errors.push(`blocks[${index}].variant must be a non-empty string when provided.`);
   } else if (typeof block.variant === "string" && !isUrlSafeToken(block.variant.trim())) {
     errors.push(`blocks[${index}].variant must be URL-safe (letters, numbers, '-' or '_').`);
@@ -201,7 +224,11 @@ function sanitizeBlockRecord(block: Record<string, unknown>): Record<string, unk
     nextBlock.variant = nextBlock.variant.trim();
   }
 
-  if (isRecord(nextBlock.props) && isRecord(nextBlock.props.cta) && typeof nextBlock.props.cta.href === "string") {
+  if (
+    isRecord(nextBlock.props) &&
+    isRecord(nextBlock.props.cta) &&
+    typeof nextBlock.props.cta.href === "string"
+  ) {
     nextBlock.props = {
       ...nextBlock.props,
       cta: {
@@ -226,20 +253,22 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     return payload;
   }
 
+  const normalizedPayload = transformLegacySectionsPayload(payload);
+
   const sanitized: Record<string, unknown> = {
-    ...payload,
+    ...normalizedPayload,
     schemaVersion: CURRENT_GENERATED_SCHEMA_VERSION,
   };
 
-  if (typeof payload.pageHeaderAlignment === "string") {
-    const normalizedAlignment = payload.pageHeaderAlignment.trim().toLowerCase();
+  if (typeof normalizedPayload.pageHeaderAlignment === "string") {
+    const normalizedAlignment = normalizedPayload.pageHeaderAlignment.trim().toLowerCase();
     if (normalizedAlignment === "left" || normalizedAlignment === "center") {
       sanitized.pageHeaderAlignment = normalizedAlignment;
     }
   }
 
-  if (isRecord(payload.seo)) {
-    const seo = { ...payload.seo };
+  if (isRecord(normalizedPayload.seo)) {
+    const seo = { ...normalizedPayload.seo };
     if (typeof seo.title === "string") {
       seo.title = seo.title.trim().slice(0, 70);
     }
@@ -252,7 +281,7 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     sanitized.seo = seo;
   }
 
-  const rawBlocks = getRawBlocks(payload);
+  const rawBlocks = getRawBlocks(normalizedPayload);
   let normalizedBlockRecords: Record<string, unknown>[] = [];
   if (Array.isArray(rawBlocks)) {
     const normalizedBlocks = rawBlocks.map((block) => {
@@ -260,7 +289,7 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
         return block;
       }
 
-      const nextBlock = Array.isArray(payload.blocks) ? { ...block } : coerceLegacySectionToBlock(block);
+      const nextBlock = { ...block };
       return sanitizeBlockRecord(nextBlock);
     });
 
@@ -268,35 +297,37 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
     if ("sections" in sanitized) {
       delete sanitized.sections;
     }
-    normalizedBlockRecords = normalizedBlocks.filter((block): block is Record<string, unknown> => isRecord(block));
+    normalizedBlockRecords = normalizedBlocks.filter((block): block is Record<string, unknown> =>
+      isRecord(block),
+    );
 
-    if (!isRecord(payload.layout)) {
+    if (!isRecord(normalizedPayload.layout)) {
       sanitized.layout = inferDefaultLayout(normalizedBlockRecords);
     }
   }
 
-  if (isRecord(payload.layout)) {
+  if (isRecord(normalizedPayload.layout)) {
     const regionNames = ["top", "main", "bottom"] as const;
     const nextLayout: Record<string, unknown> = {};
 
     for (const regionName of regionNames) {
-      const rawEntries = payload.layout[regionName];
+      const rawEntries = normalizedPayload.layout[regionName];
       if (!Array.isArray(rawEntries)) {
         continue;
       }
 
       nextLayout[regionName] = rawEntries
         .map((entry) => {
-        if (typeof entry === "string") {
-          return entry.trim();
-        }
+          if (typeof entry === "string") {
+            return entry.trim();
+          }
 
-        if (isRecord(entry) && typeof entry.id === "string") {
-          return entry.id.trim();
-        }
+          if (isRecord(entry) && typeof entry.id === "string") {
+            return entry.id.trim();
+          }
 
-        return "";
-      })
+          return "";
+        })
         .filter((entry) => entry.length > 0);
     }
 
@@ -326,34 +357,56 @@ export function validateGeneratedPageSchema(
     };
   }
 
-  if (typeof payload.pageTitle !== "string" || payload.pageTitle.trim().length === 0) {
+  const normalizedPayload = transformLegacySectionsPayload(payload);
+
+  if (
+    !hasOnlyAllowedKeys(normalizedPayload, [
+      "schemaVersion",
+      "pageTitle",
+      "summary",
+      "pageHeaderAlignment",
+      "theme",
+      "seo",
+      "blocks",
+      "layout",
+      // retained to permit graceful migration before sanitizer strips this key
+      "sections",
+    ])
+  ) {
+    errors.push("Output contains unsupported top-level keys.");
+  }
+
+  if (
+    typeof normalizedPayload.pageTitle !== "string" ||
+    normalizedPayload.pageTitle.trim().length === 0
+  ) {
     errors.push("pageTitle must be a non-empty string.");
   }
 
-  if (payload.schemaVersion !== undefined) {
+  if (normalizedPayload.schemaVersion !== undefined) {
     if (
-      typeof payload.schemaVersion !== "number" ||
-      !Number.isInteger(payload.schemaVersion) ||
-      payload.schemaVersion < 1
+      typeof normalizedPayload.schemaVersion !== "number" ||
+      !Number.isInteger(normalizedPayload.schemaVersion) ||
+      normalizedPayload.schemaVersion < 1
     ) {
       errors.push("schemaVersion must be a positive integer when provided.");
     }
   }
 
-  if (payload.pageHeaderAlignment !== undefined) {
+  if (normalizedPayload.pageHeaderAlignment !== undefined) {
     if (
-      typeof payload.pageHeaderAlignment !== "string" ||
-      !["left", "center"].includes(payload.pageHeaderAlignment.trim().toLowerCase())
+      typeof normalizedPayload.pageHeaderAlignment !== "string" ||
+      !["left", "center"].includes(normalizedPayload.pageHeaderAlignment.trim().toLowerCase())
     ) {
       errors.push("pageHeaderAlignment must be either 'left' or 'center' when provided.");
     }
   }
 
-  if (!isRecord(payload.theme)) {
+  if (!isRecord(normalizedPayload.theme)) {
     errors.push("theme must be an object.");
   } else {
     if (
-      !hasOnlyAllowedKeys(payload.theme, [
+      !hasOnlyAllowedKeys(normalizedPayload.theme, [
         "primaryColor",
         "accentColor",
         "fontFamily",
@@ -365,84 +418,98 @@ export function validateGeneratedPageSchema(
     }
 
     if (
-      typeof payload.theme.primaryColor !== "string" ||
-      payload.theme.primaryColor.trim().length === 0
+      typeof normalizedPayload.theme.primaryColor !== "string" ||
+      normalizedPayload.theme.primaryColor.trim().length === 0
     ) {
       errors.push("theme.primaryColor must be a non-empty string.");
     }
 
     if (
-      typeof payload.theme.accentColor !== "string" ||
-      payload.theme.accentColor.trim().length === 0
+      typeof normalizedPayload.theme.accentColor !== "string" ||
+      normalizedPayload.theme.accentColor.trim().length === 0
     ) {
       errors.push("theme.accentColor must be a non-empty string.");
     }
 
     if (
-      typeof payload.theme.fontFamily !== "string" ||
-      payload.theme.fontFamily.trim().length === 0
+      typeof normalizedPayload.theme.fontFamily !== "string" ||
+      normalizedPayload.theme.fontFamily.trim().length === 0
     ) {
       errors.push("theme.fontFamily must be a non-empty string.");
     }
 
-    if (payload.theme.spacing !== undefined) {
-      if (typeof payload.theme.spacing !== "string" || payload.theme.spacing.trim().length === 0) {
+    if (normalizedPayload.theme.spacing !== undefined) {
+      if (
+        typeof normalizedPayload.theme.spacing !== "string" ||
+        normalizedPayload.theme.spacing.trim().length === 0
+      ) {
         errors.push("theme.spacing must be a non-empty string when provided.");
       }
     }
 
-    if (payload.theme.radius !== undefined) {
-      if (typeof payload.theme.radius !== "string" || payload.theme.radius.trim().length === 0) {
+    if (normalizedPayload.theme.radius !== undefined) {
+      if (
+        typeof normalizedPayload.theme.radius !== "string" ||
+        normalizedPayload.theme.radius.trim().length === 0
+      ) {
         errors.push("theme.radius must be a non-empty string when provided.");
       }
     }
   }
 
-  if (!isRecord(payload.seo)) {
+  if (!isRecord(normalizedPayload.seo)) {
     errors.push("seo must be an object.");
   } else {
     if (
-      !hasOnlyAllowedKeys(payload.seo, ["title", "description", "canonicalUrl", "ogImageAssetId"])
+      !hasOnlyAllowedKeys(normalizedPayload.seo, [
+        "title",
+        "description",
+        "canonicalUrl",
+        "ogImageAssetId",
+      ])
     ) {
       errors.push("seo contains unsupported keys.");
     }
 
-    if (typeof payload.seo.title !== "string" || payload.seo.title.trim().length === 0) {
+    if (
+      typeof normalizedPayload.seo.title !== "string" ||
+      normalizedPayload.seo.title.trim().length === 0
+    ) {
       errors.push("seo.title must be a non-empty string.");
-    } else if (payload.seo.title.length > 70) {
+    } else if (normalizedPayload.seo.title.length > 70) {
       errors.push("seo.title must be at most 70 characters.");
     }
 
     if (
-      typeof payload.seo.description !== "string" ||
-      payload.seo.description.trim().length === 0
+      typeof normalizedPayload.seo.description !== "string" ||
+      normalizedPayload.seo.description.trim().length === 0
     ) {
       errors.push("seo.description must be a non-empty string.");
-    } else if (payload.seo.description.length > 160) {
+    } else if (normalizedPayload.seo.description.length > 160) {
       errors.push("seo.description must be at most 160 characters.");
     }
 
-    if (payload.seo.canonicalUrl !== undefined) {
+    if (normalizedPayload.seo.canonicalUrl !== undefined) {
       if (
-        typeof payload.seo.canonicalUrl !== "string" ||
-        payload.seo.canonicalUrl.trim().length === 0
+        typeof normalizedPayload.seo.canonicalUrl !== "string" ||
+        normalizedPayload.seo.canonicalUrl.trim().length === 0
       ) {
         errors.push("seo.canonicalUrl must be a non-empty string when provided.");
-      } else if (!isValidUrl(payload.seo.canonicalUrl)) {
+      } else if (!isValidUrl(normalizedPayload.seo.canonicalUrl)) {
         errors.push("seo.canonicalUrl must be a valid http(s) URL.");
       }
     }
 
     if (
-      payload.seo.ogImageAssetId !== undefined &&
-      (typeof payload.seo.ogImageAssetId !== "string" ||
-        payload.seo.ogImageAssetId.trim().length === 0)
+      normalizedPayload.seo.ogImageAssetId !== undefined &&
+      (typeof normalizedPayload.seo.ogImageAssetId !== "string" ||
+        normalizedPayload.seo.ogImageAssetId.trim().length === 0)
     ) {
       errors.push("seo.ogImageAssetId must be a non-empty string when provided.");
     }
   }
 
-  const rawBlocks = getRawBlocks(payload);
+  const rawBlocks = getRawBlocks(normalizedPayload);
 
   if (!Array.isArray(rawBlocks)) {
     errors.push("blocks must be an array.");
@@ -455,7 +522,7 @@ export function validateGeneratedPageSchema(
         return;
       }
 
-      const block = payload.blocks ? maybeBlock : coerceLegacySectionToBlock(maybeBlock);
+      const block = maybeBlock;
       errors.push(...validateBlockBaselineShape(block, index));
 
       const cta = getBlockCta(block);
@@ -493,17 +560,17 @@ export function validateGeneratedPageSchema(
     });
   }
 
-  if (payload.layout !== undefined) {
+  if (normalizedPayload.layout !== undefined) {
     const regionNames = ["top", "main", "bottom"] as const;
-    if (!isRecord(payload.layout)) {
+    if (!isRecord(normalizedPayload.layout)) {
       errors.push("layout must be an object when provided.");
     } else {
-      if (!hasOnlyAllowedKeys(payload.layout, [...regionNames])) {
+      if (!hasOnlyAllowedKeys(normalizedPayload.layout, [...regionNames])) {
         errors.push("layout contains unsupported keys.");
       }
 
       for (const regionName of regionNames) {
-        const regionEntries = payload.layout[regionName];
+        const regionEntries = normalizedPayload.layout[regionName];
         if (!Array.isArray(regionEntries)) {
           errors.push(`layout.${regionName} must be an array.`);
           continue;
