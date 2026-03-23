@@ -728,4 +728,26 @@ describe("buildPageGenerationPrompts", () => {
     assert.doesNotMatch(prompt.userPrompt, /"sections"/);
     assert.match(prompt.userPrompt, /Prompt-suggested block types:\nhero, features, cta/);
   });
+
+  it("supports runtime-defined layout regions in prompt instructions", () => {
+    const prompt = buildPageGenerationPrompts({
+      pagePrompt: "Create a long-form comparison page",
+      referenceLinks: [],
+      assets: [],
+      allowedBlockTypes: ["hero", "comparison-grid", "faq"],
+      toneBrandingHints: [],
+      layoutRegions: ["header", "content", "rail", "footer"],
+    });
+
+    assert.match(
+      prompt.systemPrompt,
+      /layout\.header, layout\.content, layout\.rail, and layout\.footer must be arrays of block IDs that reference existing blocks\[\]\.id values\./,
+    );
+    assert.match(prompt.userPrompt, /"layout": \{/);
+    assert.match(prompt.userPrompt, /"header": \["hero-main"\]/);
+    assert.match(prompt.userPrompt, /"content": \["features-grid"\]/);
+    assert.match(prompt.userPrompt, /"rail": \[\]/);
+    assert.match(prompt.userPrompt, /"footer": \[\]/);
+    assert.doesNotMatch(prompt.userPrompt, /"sections"/);
+  });
 });
