@@ -8,7 +8,10 @@ import { PageRenderer } from "@/components/landing/PageRenderer";
 
 const resolveAsset: AssetResolver = () => null;
 
-function buildPage(blocks: GeneratedPageSchema["blocks"]): GeneratedPageSchema {
+function buildPage(
+  blocks: GeneratedPageSchema["blocks"],
+  layout?: GeneratedPageSchema["layout"],
+): GeneratedPageSchema {
   return {
     pageTitle: "Test page",
     theme: {
@@ -22,6 +25,7 @@ function buildPage(blocks: GeneratedPageSchema["blocks"]): GeneratedPageSchema {
     },
     blocks,
     sections: blocks ?? [],
+    ...(layout ? { layout } : {}),
   };
 }
 
@@ -51,6 +55,126 @@ describe("PageRenderer", () => {
 
     assert.match(markup, /Known block heading/);
     assert.match(markup, /Call to action heading/);
+  });
+
+  it("renders regions in top/main/bottom layout order when layout is provided", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage(
+          [
+            {
+              id: "hero-1",
+              type: "hero",
+              props: {
+                heading: "Hero heading",
+              },
+            },
+            {
+              id: "cta-1",
+              type: "cta",
+              props: {
+                heading: "CTA heading",
+              },
+            },
+          ],
+          {
+            top: ["cta-1"],
+            main: ["hero-1"],
+            bottom: [],
+          },
+        ),
+        resolveAsset,
+      }),
+    );
+
+    assert.ok(markup.indexOf("CTA heading") < markup.indexOf("Hero heading"));
+  });
+
+  it("falls back to block order when layout is absent", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "hero-1",
+            type: "hero",
+            props: {
+              heading: "Hero heading",
+            },
+          },
+          {
+            id: "cta-1",
+            type: "cta",
+            props: {
+              heading: "CTA heading",
+            },
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.ok(markup.indexOf("Hero heading") < markup.indexOf("CTA heading"));
+  });
+
+  it("falls back to block order when layout has no renderable entries", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage(
+          [
+            {
+              id: "hero-1",
+              type: "hero",
+              props: {
+                heading: "Hero heading",
+              },
+            },
+            {
+              id: "cta-1",
+              type: "cta",
+              props: {
+                heading: "CTA heading",
+              },
+            },
+          ],
+          {
+            top: ["   "],
+            main: [],
+            bottom: [""],
+          },
+        ),
+        resolveAsset,
+      }),
+    );
+
+    assert.ok(markup.indexOf("Hero heading") < markup.indexOf("CTA heading"));
+  });
+
+  it("renders missing layout reference fallback when layout points to unknown block id", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage(
+          [
+            {
+              id: "hero-1",
+              type: "hero",
+              props: {
+                heading: "Hero heading",
+              },
+            },
+          ],
+          {
+            top: ["missing-1"],
+            main: ["hero-1"],
+            bottom: [],
+          },
+        ),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /Layout references missing block ID/);
+    assert.match(markup, /missing-1/);
+    assert.match(markup, /Hero heading/);
   });
 
   it("renders unknown block fallback when type is not registered", () => {
