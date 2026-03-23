@@ -29,10 +29,11 @@ export type GeneratedBlock = {
 
 // Backward-compatible alias for older call sites.
 export type GeneratedSection = GeneratedBlock;
+export type GeneratedLayoutEntry = string | GeneratedBlock;
 export type GeneratedPageLayout = {
-  top: string[];
-  main: string[];
-  bottom: string[];
+  top: GeneratedLayoutEntry[];
+  main: GeneratedLayoutEntry[];
+  bottom: GeneratedLayoutEntry[];
 };
 
 export const CURRENT_GENERATED_SCHEMA_VERSION = 2;
@@ -178,6 +179,33 @@ function inferDefaultLayout(blocks: Record<string, unknown>[]): GeneratedPageLay
   };
 }
 
+function sanitizeLayoutEntry(entry: unknown): GeneratedLayoutEntry | null {
+  if (typeof entry === "string") {
+    const trimmed = entry.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
+  if (!isRecord(entry) || typeof entry.id !== "string") {
+    return null;
+  }
+
+  const normalizedId = entry.id.trim();
+  if (normalizedId.length === 0) {
+    return null;
+  }
+
+  if (typeof entry.type === "string") {
+    const sanitizedInlineBlock = sanitizeBlockRecord({
+      ...entry,
+      id: normalizedId,
+      type: entry.type.trim(),
+    });
+    return sanitizedInlineBlock as GeneratedBlock;
+  }
+
+  return normalizedId;
+}
+
 function getBlockCta(block: Record<string, unknown>): unknown {
   if (isRecord(block.props) && block.props.cta !== undefined) {
     return block.props.cta;
@@ -317,18 +345,8 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
       }
 
       nextLayout[regionName] = rawEntries
-        .map((entry) => {
-          if (typeof entry === "string") {
-            return entry.trim();
-          }
-
-          if (isRecord(entry) && typeof entry.id === "string") {
-            return entry.id.trim();
-          }
-
-          return "";
-        })
-        .filter((entry) => entry.length > 0);
+        .map((entry) => sanitizeLayoutEntry(entry))
+        .filter((entry): entry is GeneratedLayoutEntry => entry !== null);
     }
 
     sanitized.layout = nextLayout;
@@ -577,15 +595,62 @@ export function validateGeneratedPageSchema(
         }
 
         regionEntries.forEach((entry, index) => {
-          if (typeof entry !== "string" || entry.trim().length === 0) {
-            errors.push(`layout.${regionName}[${index}] must be a non-empty string reference.`);
+          if (typeof entry === "string") {
+            if (entry.trim().length === 0) {
+              errors.push(`layout.${regionName}[${index}] must be a non-empty string reference.`);
+              return;
+            }
+
+            if (!isUrlSafeToken(entry.trim())) {
+              errors.push(
+                `layout.${regionName}[${index}] must be URL-safe (letters, numbers, '-' or '_').`,
+              );
+            }
             return;
           }
 
-          if (!isUrlSafeToken(entry.trim())) {
+          if (!isRecord(entry)) {
             errors.push(
-              `layout.${regionName}[${index}] must be URL-safe (letters, numbers, '-' or '_').`,
+              `layout.${regionName}[${index}] must be a string block ID or inline block object.`,
             );
+            return;
+          }
+
+          const inlineEntry = entry;
+          if (typeof inlineEntry.id !== "string" || inlineEntry.id.trim().length === 0) {
+            errors.push(`layout.${regionName}[${index}].id must be a non-empty string.`);
+          } else if (!isUrlSafeToken(inlineEntry.id.trim())) {
+            errors.push(
+              `layout.${regionName}[${index}].id must be URL-safe (letters, numbers, '-' or '_').`,
+            );
+          }
+
+          if (typeof inlineEntry.type !== "string" || inlineEntry.type.trim().length === 0) {
+            errors.push(`layout.${regionName}[${index}].type must be a non-empty string.`);
+          } else if (!isUrlSafeToken(inlineEntry.type.trim())) {
+            errors.push(
+              `layout.${regionName}[${index}].type must be URL-safe (letters, numbers, '-' or '_').`,
+            );
+          }
+
+          if (
+            inlineEntry.variant !== undefined &&
+            (typeof inlineEntry.variant !== "string" || inlineEntry.variant.trim().length === 0)
+          ) {
+            errors.push(
+              `layout.${regionName}[${index}].variant must be a non-empty string when provided.`,
+            );
+          } else if (
+            typeof inlineEntry.variant === "string" &&
+            !isUrlSafeToken(inlineEntry.variant.trim())
+          ) {
+            errors.push(
+              `layout.${regionName}[${index}].variant must be URL-safe (letters, numbers, '-' or '_').`,
+            );
+          }
+
+          if (inlineEntry.props !== undefined && !isRecord(inlineEntry.props)) {
+            errors.push(`layout.${regionName}[${index}].props must be an object when provided.`);
           }
         });
       }

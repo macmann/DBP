@@ -369,8 +369,20 @@ export function inspectGeneratedPageBlockSafety(
     const nextEntries: NonNullable<GeneratedPageSchema["layout"]>["top"] = [];
 
     for (const entry of entries) {
-      if (allowedBlockIds.has(entry)) {
-        nextEntries.push(entry);
+      if (typeof entry === "string") {
+        if (allowedBlockIds.has(entry)) {
+          nextEntries.push(entry);
+        }
+        continue;
+      }
+
+      const sanitizedInline = sanitizeBlock(entry, allowedInlineHtmlBlockTypes, violations);
+      if (!sanitizedInline) {
+        continue;
+      }
+
+      if (allowedBlockIds.has(sanitizedInline.id)) {
+        nextEntries.push(sanitizedInline);
       }
     }
 

@@ -356,6 +356,20 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal(result.success, true);
   });
 
+  it("accepts inline layout block refs", () => {
+    const payload = {
+      ...validFixture,
+      layout: {
+        top: [{ id: "hero-inline", type: "hero", props: { heading: "Inline hero" } }],
+        main: ["hero-1"],
+        bottom: [],
+      },
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, true);
+  });
+
   it("fails when layout has invalid region entries", () => {
     const payload = {
       ...validFixture,
@@ -376,6 +390,24 @@ describe("validateGeneratedPageSchema", () => {
     assert.ok(
       result.errors.includes("layout.bottom[0] must be URL-safe (letters, numbers, '-' or '_')."),
     );
+  });
+
+  it("fails when inline layout refs omit required block shape", () => {
+    const payload = {
+      ...validFixture,
+      layout: {
+        top: [{ id: "inline-no-type" }],
+        main: [],
+        bottom: [],
+      },
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, false);
+    if (result.success) {
+      throw new Error("Expected validation failure");
+    }
+    assert.ok(result.errors.includes("layout.top[0].type must be a non-empty string."));
   });
 
   it("sanitizes common model formatting issues", () => {
@@ -671,11 +703,11 @@ describe("buildPageGenerationPrompts", () => {
     );
     assert.match(
       prompt.systemPrompt,
-      /layout\.top, layout\.main, and layout\.bottom must be arrays of block IDs that reference existing blocks\[\]\.id values\./,
+      /layout\.top, layout\.main, and layout\.bottom must be arrays containing block IDs and\/or inline block objects/,
     );
     assert.match(
       prompt.systemPrompt,
-      /The response contract is block\/layout based only: blocks\[\] define content units and layout maps placement by block ID\./,
+      /The response contract is block\/layout based only: blocks\[\] define content units and layout maps placement by block ID or inline block objects\./,
     );
     assert.match(
       prompt.systemPrompt,

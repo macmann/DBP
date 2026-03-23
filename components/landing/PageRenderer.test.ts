@@ -90,6 +90,32 @@ describe("PageRenderer", () => {
     assert.ok(markup.indexOf("CTA heading") < markup.indexOf("Hero heading"));
   });
 
+  it("renders inline layout block refs through the same renderer", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage(
+          [
+            {
+              id: "hero-1",
+              type: "hero",
+              props: {
+                heading: "Hero heading",
+              },
+            },
+          ],
+          {
+            top: [{ id: "inline-cta", type: "cta", props: { heading: "Inline CTA heading" } }],
+            main: ["hero-1"],
+            bottom: [],
+          },
+        ),
+        resolveAsset,
+      }),
+    );
+
+    assert.ok(markup.indexOf("Inline CTA heading") < markup.indexOf("Hero heading"));
+  });
+
   it("falls back to block order when layout is absent", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
