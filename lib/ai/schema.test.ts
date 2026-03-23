@@ -53,6 +53,30 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal(result.success, true);
   });
 
+  it("accepts an explicit v2 payload with schemaVersion and blocks", () => {
+    const payload = {
+      ...validFixture,
+      schemaVersion: CURRENT_GENERATED_SCHEMA_VERSION,
+      blocks: [
+        {
+          id: "feature-grid",
+          type: "featureGrid",
+          variant: "three-column",
+          props: {
+            heading: "Everything in one place",
+          },
+        },
+      ],
+    };
+
+    const result = validateGeneratedPageSchema(payload);
+    assert.equal(result.success, true);
+    if (!result.success) {
+      throw new Error("Expected validation success");
+    }
+    assert.equal(result.data.schemaVersion, CURRENT_GENERATED_SCHEMA_VERSION);
+  });
+
   it("fails when theme is missing", () => {
     const { theme: _theme, ...payload } = validFixture;
     const result = validateGeneratedPageSchema(payload);
