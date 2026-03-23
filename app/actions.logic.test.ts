@@ -98,7 +98,7 @@ describe("action logic: build failure validation paths", () => {
     const block = getFunctionBlock(actionsSource, "buildPage");
 
     assert.match(block, /inspectGeneratedPageBlockSafety\(/);
-    assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
+    assert.match(block, /const generatedSchema: GeneratedPageSchema = blockSafety\.schema/);
     assert.match(block, /generatedSchemaJson: generatedSchema/);
   });
 
@@ -126,7 +126,7 @@ describe("action logic: build failure validation paths", () => {
     const block = getFunctionBlock(actionsSource, "generateNewVersion");
 
     assert.match(block, /inspectGeneratedPageBlockSafety\(/);
-    assert.match(block, /sanitizeGeneratedPageBlockSafety\(/);
+    assert.match(block, /const revisedSchema: GeneratedPageSchema = blockSafety\.schema/);
     assert.match(block, /generatedSchemaJson: revisedSchema/);
   });
 

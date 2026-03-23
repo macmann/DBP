@@ -147,6 +147,26 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     assert.equal((sanitized.blocks?.[0]?.props as Record<string, unknown>).html, "");
   });
 
+  it("strips non-script inline HTML payloads from non-allowlisted block types", () => {
+    const schema = createFixture({
+      blocks: [
+        {
+          id: "hero-1",
+          type: "hero",
+          props: {
+            html: "<p>safe markup but still raw HTML</p>",
+          },
+        },
+      ],
+      sections: [],
+    });
+
+    const result = inspectGeneratedPageBlockSafety(schema);
+
+    assert.equal((result.schema.blocks?.[0]?.props as Record<string, unknown>).html, "");
+    assert.deepEqual(result.violations.map((violation) => violation.code), ["unsafe_html_payload"]);
+  });
+
   it("neutralizes dangerous HTML-like payload strings on embed-like blocks", () => {
     const schema = createFixture({
       blocks: [
@@ -194,6 +214,25 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
       (sanitized.blocks?.[0]?.props as Record<string, unknown>).html,
       "<script src='https://safe-widget.example/script.js'></script>",
     );
+  });
+
+  it("does not treat non-embed widget block types as implicitly denied", () => {
+    const schema = createFixture({
+      blocks: [
+        {
+          id: "widget-card-1",
+          type: "widgetCard",
+          props: {
+            title: "A safe widget card",
+          },
+        },
+      ],
+      sections: [],
+    });
+
+    const result = inspectGeneratedPageBlockSafety(schema);
+    assert.equal(result.schema.blocks?.length, 1);
+    assert.equal(result.violations.length, 0);
   });
 
   it("drops denied embed-like blocks and removes matching layout references", () => {

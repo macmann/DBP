@@ -15,7 +15,6 @@ import {
 import {
   formatBlockSafetyViolations,
   inspectGeneratedPageBlockSafety,
-  sanitizeGeneratedPageBlockSafety,
 } from "@/lib/ai/blockSafety";
 import { applyPromptLayoutDirectives } from "@/lib/ai/layoutDirectives";
 import {
@@ -860,7 +859,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
         page.prompt ?? "",
       ),
     );
-    const generatedSchema: GeneratedPageSchema = sanitizeGeneratedPageBlockSafety(blockSafety.schema);
+    const generatedSchema: GeneratedPageSchema = blockSafety.schema;
     const diagnostics = buildGenerationDiagnostics({
       rawSchema: parsed.data,
       sanitizedSchema: generatedSchema,
@@ -1316,7 +1315,7 @@ export async function generateNewVersion(
         normalizedInstruction,
       ),
     );
-    const revisedSchema: GeneratedPageSchema = sanitizeGeneratedPageBlockSafety(blockSafety.schema);
+    const revisedSchema: GeneratedPageSchema = blockSafety.schema;
     const diagnostics = buildGenerationDiagnostics({
       rawSchema: parsed.data,
       sanitizedSchema: revisedSchema,
