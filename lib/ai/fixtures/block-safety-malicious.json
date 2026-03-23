@@ -37,5 +37,16 @@
       }
     },
     "expectedViolationCodes": ["denied_embed_block"]
+  },
+  {
+    "name": "raw_html_payload_on_non_allowlisted_block",
+    "block": {
+      "id": "hero-malicious-3",
+      "type": "hero",
+      "props": {
+        "markup": "<div>inline html should be stripped</div>"
+      }
+    },
+    "expectedViolationCodes": ["unsafe_html_payload"]
   }
 ]

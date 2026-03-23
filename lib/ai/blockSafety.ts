@@ -80,7 +80,6 @@ function isEmbedLikeType(type: string): boolean {
   return (
     normalizedType.includes("embed") ||
     normalizedType.includes("iframe") ||
-    normalizedType.includes("widget") ||
     BLOCK_SAFETY_POLICY.deniedEmbedBlockTypes.has(normalizedType) ||
     BLOCK_SAFETY_POLICY.allowedEmbedBlockTypes.has(normalizedType)
   );
@@ -113,7 +112,12 @@ function sanitizeUrlValue(value: string, requireRootRelative = false): string | 
 }
 
 function hasDangerousHtml(value: string): boolean {
-  return /<\s*script\b/i.test(value) || /on[a-z]+\s*=\s*/i.test(value) || /javascript\s*:/i.test(value);
+  return (
+    /<\s*script\b/i.test(value) ||
+    /<\s*(iframe|object|embed|link|meta|base)\b/i.test(value) ||
+    /on[a-z]+\s*=\s*/i.test(value) ||
+    /javascript\s*:/i.test(value)
+  );
 }
 
 function looksLikeHtml(value: string): boolean {
@@ -176,14 +180,16 @@ function sanitizePropValue(
 
     if (HTML_PROP_KEYS.has(normalizedKey) || (isEmbedLikeType(blockType) && looksLikeHtml(value))) {
       const allowInlineHtml = allowedInlineHtmlBlockTypes.has(blockType);
-      if (!allowInlineHtml && hasDangerousHtml(value)) {
+      if (!allowInlineHtml && looksLikeHtml(value)) {
         pushViolation(violations, {
           code: "unsafe_html_payload",
           blockId: blockContext.blockId,
           blockType: blockContext.blockType,
           path,
           value,
-          message: `Removed unsafe HTML/script payload from '${key}'.`,
+          message: hasDangerousHtml(value)
+            ? `Removed unsafe HTML/script payload from '${key}'.`
+            : `Removed inline HTML payload from '${key}' because this block type does not allow raw HTML.`,
         });
         return "";
       }
