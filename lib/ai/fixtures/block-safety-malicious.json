@@ -13,7 +13,11 @@
         "html": "<div><script>alert(1)</script></div>"
       }
     },
-    "expectedViolationCodes": ["disallowed_url_protocol", "disallowed_url_protocol", "unsafe_html_payload"]
+    "expectedViolationCodes": [
+      "disallowed_url_protocol",
+      "disallowed_url_protocol",
+      "unsafe_html_payload"
+    ]
   },
   {
     "name": "edge_case_whitespace_and_case_protocol_bypass",
@@ -25,7 +29,10 @@
         "sourceUrl": "\n data:text/plain,hello"
       }
     },
-    "expectedViolationCodes": ["disallowed_url_protocol", "disallowed_url_protocol"]
+    "expectedViolationCodes": [
+      "disallowed_url_protocol",
+      "disallowed_url_protocol"
+    ]
   },
   {
     "name": "denied_embed_block",
@@ -36,7 +43,9 @@
         "src": "https://evil.example.com/embed"
       }
     },
-    "expectedViolationCodes": ["denied_embed_block"]
+    "expectedViolationCodes": [
+      "denied_embed_block"
+    ]
   },
   {
     "name": "raw_html_payload_on_non_allowlisted_block",
@@ -47,6 +56,22 @@
         "markup": "<div>inline html should be stripped</div>"
       }
     },
-    "expectedViolationCodes": ["unsafe_html_payload"]
+    "expectedViolationCodes": [
+      "unsafe_html_payload"
+    ]
+  },
+  {
+    "name": "event_handler_in_props",
+    "block": {
+      "id": "hero-malicious-4",
+      "type": "hero",
+      "props": {
+        "onClick": "alert(1)",
+        "title": "Still present"
+      }
+    },
+    "expectedViolationCodes": [
+      "unsafe_event_handler"
+    ]
   }
 ]

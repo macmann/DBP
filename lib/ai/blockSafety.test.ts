@@ -194,28 +194,23 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     assert.equal((widgetProps.config as Record<string, unknown>).sourceUrl, undefined);
   });
 
-  it("permits dangerous HTML only for explicitly-allowed block types", () => {
+  it("allows benign inline HTML for allowlisted embed-like block types", () => {
     const schema = createFixture({
       blocks: [
         {
           id: "widget-1",
           type: "widgetEmbed",
           props: {
-            html: "<script src='https://safe-widget.example/script.js'></script>",
+            html: "<div>safe widget shell</div>",
           },
         },
       ],
       sections: [],
     });
 
-    const sanitized = sanitizeGeneratedPageBlockSafety(schema, {
-      allowedInlineHtmlBlockTypes: ["widgetEmbed"],
-    });
+    const sanitized = sanitizeGeneratedPageBlockSafety(schema);
 
-    assert.equal(
-      (sanitized.blocks?.[0]?.props as Record<string, unknown>).html,
-      "<script src='https://safe-widget.example/script.js'></script>",
-    );
+    assert.equal((sanitized.blocks?.[0]?.props as Record<string, unknown>).html, "<div>safe widget shell</div>");
   });
 
   it("does not treat non-embed widget block types as implicitly denied", () => {
@@ -277,6 +272,29 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
         `fixture failed: ${fixture.name}`,
       );
     }
+  });
+
+
+  it("removes event-handler props from generated payloads", () => {
+    const schema = createFixture({
+      blocks: [
+        {
+          id: "hero-ev-1",
+          type: "hero",
+          props: {
+            onClick: "alert(1)",
+            title: "Welcome",
+          },
+        },
+      ],
+      sections: [],
+    });
+
+    const result = inspectGeneratedPageBlockSafety(schema);
+
+    assert.deepEqual(result.schema.blocks?.[0]?.props, { title: "Welcome" });
+    assert.deepEqual(result.violations.map((violation) => violation.code), ["unsafe_event_handler"]);
+    assert.equal(hasBlockingBlockSafetyViolations(result.violations), true);
   });
 
   it("formats policy violations into actionable error text", () => {

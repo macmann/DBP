@@ -34,6 +34,8 @@ const DENIED_EMBED_BLOCK_TYPES = new Set([
   "rawhtml",
 ]);
 
+const EVENT_HANDLER_PROP_PATTERN = /^on[a-z]+$/i;
+
 export type BlockSafetyPolicy = {
   allowedEmbedBlockTypes: ReadonlySet<string>;
   deniedEmbedBlockTypes: ReadonlySet<string>;
@@ -51,11 +53,13 @@ export type SanitizeBlockSafetyOptions = {
 export type BlockSafetyViolationCode =
   | "denied_embed_block"
   | "disallowed_url_protocol"
-  | "unsafe_html_payload";
+  | "unsafe_html_payload"
+  | "unsafe_event_handler";
 
 const BLOCKING_VIOLATION_CODES = new Set<BlockSafetyViolationCode>([
   "denied_embed_block",
   "unsafe_html_payload",
+  "unsafe_event_handler",
 ]);
 
 export type BlockSafetyViolation = {
@@ -167,6 +171,18 @@ function sanitizePropValue(
 ): unknown {
   const normalizedKey = key.trim().toLowerCase();
 
+  if (EVENT_HANDLER_PROP_PATTERN.test(normalizedKey)) {
+    pushViolation(violations, {
+      code: "unsafe_event_handler",
+      blockId: blockContext.blockId,
+      blockType: blockContext.blockType,
+      path,
+      value,
+      message: `Removed event-handler property '${key}' from generated payload.`,
+    });
+    return null;
+  }
+
   if (typeof value === "string") {
     if (URL_PROP_KEYS.has(normalizedKey)) {
       const sanitizedUrl = sanitizeUrlValue(value, ROOT_RELATIVE_ONLY_URL_PROP_KEYS.has(normalizedKey));
@@ -185,7 +201,7 @@ function sanitizePropValue(
 
     if (HTML_PROP_KEYS.has(normalizedKey) || (isEmbedLikeType(blockType) && looksLikeHtml(value))) {
       const allowInlineHtml = allowedInlineHtmlBlockTypes.has(blockType);
-      if (!allowInlineHtml && looksLikeHtml(value)) {
+      if (!allowInlineHtml || hasDangerousHtml(value)) {
         pushViolation(violations, {
           code: "unsafe_html_payload",
           blockId: blockContext.blockId,
@@ -334,7 +350,9 @@ export function inspectGeneratedPageBlockSafety(
   options?: SanitizeBlockSafetyOptions,
 ): BlockSafetyResult {
   const allowedInlineHtmlBlockTypes = new Set(
-    (options?.allowedInlineHtmlBlockTypes ?? []).map((type) => normalizeType(type)),
+    (options?.allowedInlineHtmlBlockTypes ?? [...BLOCK_SAFETY_POLICY.allowedEmbedBlockTypes]).map((type) =>
+      normalizeType(type),
+    ),
   );
   const violations: BlockSafetyViolation[] = [];
 
@@ -394,7 +412,15 @@ export function formatBlockSafetyViolations(violations: readonly BlockSafetyViol
     .slice(0, 5)
     .map((violation, index) => {
       const valueSnippet = violation.valuePreview ? ` Value: ${violation.valuePreview}` : "";
-      return `${index + 1}. [${violation.code}] ${violation.message} (${violation.path}).${valueSnippet}`;
+      let remediation = "Remove unsafe payload patterns from prompt/reference inputs.";
+      if (violation.code === "disallowed_url_protocol") {
+        remediation = "Use only https/http URLs (or root-relative paths for form actions).";
+      } else if (violation.code === "denied_embed_block") {
+        remediation = "Use an allowlisted block type such as 'widgetEmbed'.";
+      } else if (violation.code === "unsafe_event_handler") {
+        remediation = "Remove inline event handlers like onClick/onLoad and use structured props only.";
+      }
+      return `${index + 1}. [${violation.code}] ${violation.message} (${violation.path}). ${remediation}${valueSnippet}`;
     })
     .join(" ");
 }
