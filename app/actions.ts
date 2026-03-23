@@ -295,6 +295,18 @@ function mapBuildFailure(errorMessage: string): {
   };
 }
 
+function buildSafetyPolicyErrorMessage(safetyMessage: string): string {
+  if (!safetyMessage) {
+    return "Blocked by safety policy. Remove unsafe URLs, inline event handlers, or script-like HTML payloads.";
+  }
+
+  return [
+    "Blocked by safety policy.",
+    "Fix generated content to use only safe https/http URLs (or root-relative form actions), remove inline event handlers, and avoid script-like HTML payloads.",
+    `Policy details: ${safetyMessage}`,
+  ].join(" ");
+}
+
 function isNextRedirectError(error: unknown): error is { digest: string } {
   return (
     typeof error === "object" &&
@@ -878,8 +890,7 @@ export async function buildPage(projectSlug: string, pageId: string): Promise<Bu
     if (hasBlockingBlockSafetyViolations(blockSafety.violations)) {
       const blockingViolations = getBlockingBlockSafetyViolations(blockSafety.violations);
       const safetyMessage = formatBlockSafetyViolations(blockingViolations);
-      const conciseSafetyMessage =
-        "Build blocked by safety policy. Remove unsafe URLs or script-like HTML from prompt inputs.";
+      const conciseSafetyMessage = buildSafetyPolicyErrorMessage(safetyMessage);
       const context = {
         reason: "safety_policy_blocked",
         error: conciseSafetyMessage,
@@ -1354,9 +1365,7 @@ export async function generateNewVersion(
       });
       return {
         status: "error",
-        message:
-          "Revision blocked by safety policy. Remove unsafe URLs or script-like HTML from your instructions and try again. " +
-          safetyMessage,
+        message: buildSafetyPolicyErrorMessage(safetyMessage),
       };
     }
 
