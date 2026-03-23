@@ -53,6 +53,11 @@ export type BlockSafetyViolationCode =
   | "disallowed_url_protocol"
   | "unsafe_html_payload";
 
+const BLOCKING_VIOLATION_CODES = new Set<BlockSafetyViolationCode>([
+  "denied_embed_block",
+  "unsafe_html_payload",
+]);
+
 export type BlockSafetyViolation = {
   code: BlockSafetyViolationCode;
   blockId: string;
@@ -392,4 +397,16 @@ export function formatBlockSafetyViolations(violations: readonly BlockSafetyViol
       return `${index + 1}. [${violation.code}] ${violation.message} (${violation.path}).${valueSnippet}`;
     })
     .join(" ");
+}
+
+export function getBlockingBlockSafetyViolations(
+  violations: readonly BlockSafetyViolation[],
+): BlockSafetyViolation[] {
+  return violations.filter((violation) => BLOCKING_VIOLATION_CODES.has(violation.code));
+}
+
+export function hasBlockingBlockSafetyViolations(
+  violations: readonly BlockSafetyViolation[],
+): boolean {
+  return getBlockingBlockSafetyViolations(violations).length > 0;
 }
