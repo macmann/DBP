@@ -53,6 +53,8 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "Any media references (blocks[].props.mediaAssetIds, seo.ogImageAssetId) must use uploaded asset.id values only.",
     "If uploaded image/logo assets are provided, assign relevant blocks[].props.mediaAssetIds for visual blocks (hero, imageText, gallery, logoStrip, testimonial).",
     "Pick assets by semantic fit from fileName/type/metadata so the demo renders real images instead of fallback placeholders.",
+    "Generate a complete static page schema from the prompt: include enough blocks and concrete copy to render a finished page, not a sparse outline.",
+    "When uploads are limited, still wire every visual block to the best available uploaded asset IDs; renderer placeholders are only for missing media.",
     "Block selection, block order, and content hierarchy must follow the page prompt and not default to a fixed boilerplate sequence.",
     "Treat the page prompt as the source of truth for layout instructions: vary block types, ordering, density, and narrative flow based on the prompt.",
     "Do not reuse a default blueprint. If two prompts differ, the resulting block plan should differ in structure, not only copy or colors.",

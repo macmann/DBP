@@ -65,4 +65,28 @@ describe("applyAssetFallbacks", () => {
     assert.deepEqual(result.blocks[0].mediaAssetIds, ["shot-a"]);
     assert.equal(result.seo.ogImageAssetId, "shot-a");
   });
+
+  it("normalizes media ids into props for renderer compatibility", () => {
+    const schemaWithPropsOnly: GeneratedPageSchema = {
+      ...baseSchema,
+      blocks: [
+        {
+          id: "hero-1",
+          type: "hero",
+          props: {
+            heading: "Hero",
+            mediaAssetIds: ["invalid-id", "logo-a"],
+          },
+        },
+      ],
+    };
+
+    const result = applyAssetFallbacks(schemaWithPropsOnly, [
+      { id: "logo-a", type: "logo", mimeType: "image/png" },
+    ]);
+
+    assert.deepEqual(result.blocks[0].mediaAssetIds, ["logo-a"]);
+    assert.deepEqual((result.blocks[0].props as Record<string, unknown>).mediaAssetIds, ["logo-a"]);
+    assert.equal(result.seo.ogImageAssetId, "logo-a");
+  });
 });

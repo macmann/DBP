@@ -12,6 +12,38 @@ function isImageAsset(asset: AssetRecord): boolean {
   return asset.mimeType.startsWith("image/");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getMediaAssetIdsFromBlock(block: GeneratedPageSchema["blocks"][number]): string[] {
+  if (Array.isArray(block.mediaAssetIds)) {
+    return block.mediaAssetIds.filter((id): id is string => typeof id === "string");
+  }
+
+  if (isRecord(block.props) && Array.isArray(block.props.mediaAssetIds)) {
+    return block.props.mediaAssetIds.filter((id): id is string => typeof id === "string");
+  }
+
+  return [];
+}
+
+function setMediaAssetIdsOnBlock(
+  block: GeneratedPageSchema["blocks"][number],
+  mediaAssetIds: string[],
+): GeneratedPageSchema["blocks"][number] {
+  const nextProps = isRecord(block.props) ? block.props : {};
+
+  return {
+    ...block,
+    mediaAssetIds,
+    props: {
+      ...nextProps,
+      mediaAssetIds,
+    },
+  };
+}
+
 export function applyAssetFallbacks(schema: GeneratedPageSchema, assets: AssetRecord[]): GeneratedPageSchema {
   const allAssetIds = new Set(assets.map((asset) => asset.id));
   const imageAssets = assets.filter((asset) => isImageAsset(asset));
@@ -27,21 +59,15 @@ export function applyAssetFallbacks(schema: GeneratedPageSchema, assets: AssetRe
       return section;
     }
 
-    const validExistingIds = (section.mediaAssetIds ?? []).filter((id) => imageAssetIds.has(id));
+    const validExistingIds = getMediaAssetIdsFromBlock(section).filter((id) => imageAssetIds.has(id));
     if (validExistingIds.length > 0) {
-      return {
-        ...section,
-        mediaAssetIds: validExistingIds,
-      };
+      return setMediaAssetIdsOnBlock(section, validExistingIds);
     }
 
     if (section.type === "logoStrip") {
       const logoIds = logoImageAssets.map((asset) => asset.id);
       return logoIds.length > 0
-        ? {
-            ...section,
-            mediaAssetIds: logoIds,
-          }
+        ? setMediaAssetIdsOnBlock(section, logoIds)
         : section;
     }
 
@@ -49,22 +75,14 @@ export function applyAssetFallbacks(schema: GeneratedPageSchema, assets: AssetRe
       const galleryIds = (nonLogoImageAssets.length > 0 ? nonLogoImageAssets : imageAssets)
         .slice(0, 6)
         .map((asset) => asset.id);
-      return galleryIds.length > 0
-        ? {
-            ...section,
-            mediaAssetIds: galleryIds,
-          }
-        : section;
+      return galleryIds.length > 0 ? setMediaAssetIdsOnBlock(section, galleryIds) : section;
     }
 
     if (!fallbackPrimaryImageId) {
       return section;
     }
 
-    return {
-      ...section,
-      mediaAssetIds: [fallbackPrimaryImageId],
-    };
+    return setMediaAssetIdsOnBlock(section, [fallbackPrimaryImageId]);
   });
 
   const hasValidOgImageId =
