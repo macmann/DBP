@@ -474,6 +474,21 @@ describe("validateGeneratedPageSchema", () => {
     assert.equal("sections" in result.data, false);
   });
 
+  it("drops unsupported top-level keys during sanitization", () => {
+    const payload = {
+      ...validFixture,
+      projectSlug: "acme-analytics",
+      reason: "build_failed",
+    };
+
+    const sanitized = sanitizeGeneratedPageSchema(payload) as Record<string, unknown>;
+    const result = validateGeneratedPageSchema(sanitized);
+
+    assert.equal("projectSlug" in sanitized, false);
+    assert.equal("reason" in sanitized, false);
+    assert.equal(result.success, true);
+  });
+
   it("maps legacy sections arrays into blocks during sanitization", () => {
     const payload = {
       ...validFixture,
