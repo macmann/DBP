@@ -214,6 +214,12 @@ describe("sanitizeGeneratedPageBlockSafety", () => {
     assert.equal((sanitized.blocks?.[0]?.props as Record<string, unknown>).html, "<div>safe widget shell</div>");
   });
 
+  it("returns schema without legacy sections top-level alias", () => {
+    const sanitized = sanitizeGeneratedPageBlockSafety(createFixture());
+
+    assert.equal("sections" in sanitized, false);
+  });
+
   it("does not treat non-embed widget block types as implicitly denied", () => {
     const schema = createFixture({
       blocks: [

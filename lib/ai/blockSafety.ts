@@ -413,7 +413,6 @@ export function inspectGeneratedPageBlockSafety(
     schema: {
       ...schema,
       blocks: sanitizedBlocks,
-      sections: sanitizedBlocks,
       ...(nextLayout ? { layout: nextLayout } : {}),
     },
     violations,
