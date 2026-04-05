@@ -37,6 +37,16 @@ export type GeneratedPageLayout = {
 };
 
 export const CURRENT_GENERATED_SCHEMA_VERSION = 2;
+const ALLOWED_TOP_LEVEL_KEYS = [
+  "schemaVersion",
+  "pageTitle",
+  "summary",
+  "pageHeaderAlignment",
+  "theme",
+  "seo",
+  "blocks",
+  "layout",
+] as const;
 
 export type GeneratedPageSchema = {
   schemaVersion?: number;
@@ -278,11 +288,19 @@ export function sanitizeGeneratedPageSchema(payload: unknown): unknown {
   }
 
   const normalizedPayload = transformLegacySectionsPayload(payload);
-
   const sanitized: Record<string, unknown> = {
-    ...normalizedPayload,
     schemaVersion: CURRENT_GENERATED_SCHEMA_VERSION,
   };
+
+  for (const allowedKey of ALLOWED_TOP_LEVEL_KEYS) {
+    if (allowedKey === "schemaVersion") {
+      continue;
+    }
+
+    if (allowedKey in normalizedPayload) {
+      sanitized[allowedKey] = normalizedPayload[allowedKey];
+    }
+  }
 
   if (typeof normalizedPayload.pageHeaderAlignment === "string") {
     const normalizedAlignment = normalizedPayload.pageHeaderAlignment.trim().toLowerCase();
@@ -373,16 +391,7 @@ export function validateGeneratedPageSchema(
   const normalizedPayload = transformLegacySectionsPayload(payload);
 
   if (
-    !hasOnlyAllowedKeys(normalizedPayload, [
-      "schemaVersion",
-      "pageTitle",
-      "summary",
-      "pageHeaderAlignment",
-      "theme",
-      "seo",
-      "blocks",
-      "layout",
-    ])
+    !hasOnlyAllowedKeys(normalizedPayload, [...ALLOWED_TOP_LEVEL_KEYS])
   ) {
     errors.push("Output contains unsupported top-level keys.");
   }
