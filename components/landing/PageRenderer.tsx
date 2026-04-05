@@ -8,6 +8,7 @@ import type { AssetResolver } from "@/components/landing/types";
 import { resolveBlock } from "@/components/landing/blockRegistry";
 import { bootstrapBlockRegistry } from "@/components/landing/blockRegistry.bootstrap";
 import { ENABLE_V2_BLOCK_LAYOUT_RENDERING } from "@/lib/config/rendering";
+import { SectionHeader, SectionShell } from "@/components/landing/sections/shared";
 
 type PageRendererProps = {
   page: GeneratedPageSchema;
@@ -21,6 +22,51 @@ function MalformedBlockPlaceholder({ blockId }: { blockId: string }) {
       Block <span className="font-mono">{blockId}</span> could not be rendered due to malformed
       props.
     </section>
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function GenericBlockFallback({ block }: { block: GeneratedBlock }) {
+  const props = isRecord(block.props) ? block.props : {};
+  const heading = typeof props.heading === "string" ? props.heading : null;
+  const body = typeof props.body === "string" ? props.body : null;
+  const items = Array.isArray(props.items)
+    ? props.items.filter((item): item is Record<string, unknown> => isRecord(item))
+    : [];
+
+  return (
+    <SectionShell className="space-y-6">
+      <div className="space-y-3">
+        <span className="inline-flex items-center rounded-full border border-[var(--dbp-border)] bg-[var(--dbp-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--dbp-muted)]">
+          Custom block · <span className="ml-1 font-mono">{block.type}</span>
+        </span>
+        <SectionHeader
+          heading={heading ?? `Custom content block`}
+          body={body ?? "Generated as prompt-specific content for this page."}
+        />
+      </div>
+
+      {items.length > 0 ? (
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {items.map((item, index) => {
+            const itemTitle = typeof item.title === "string" ? item.title : `Item ${index + 1}`;
+            const itemBody = typeof item.body === "string" ? item.body : null;
+            return (
+              <li
+                key={`${block.id}-custom-item-${index}`}
+                className="rounded-2xl border border-[var(--dbp-border)] bg-[var(--dbp-surface-muted)] px-4 py-3"
+              >
+                <h3 className="text-sm font-semibold text-[var(--dbp-ink)]">{itemTitle}</h3>
+                {itemBody ? <p className="mt-1 text-sm text-[var(--dbp-muted)]">{itemBody}</p> : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </SectionShell>
   );
 }
 
@@ -52,6 +98,9 @@ function renderBlock(block: GeneratedBlock, resolveAsset: AssetResolver) {
   const resolved = resolveBlock(block.type);
 
   if (!resolved) {
+    if (isRecord(block.props) || block.props === undefined) {
+      return <GenericBlockFallback block={block} />;
+    }
     return <UnknownBlockPlaceholder type={block.type} />;
   }
 

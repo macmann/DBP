@@ -79,6 +79,52 @@ describe("PageRenderer", () => {
     assert.match(markup, /Call to action heading/);
   });
 
+  it("maps common alias block types to supported renderers", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "feature-grid-1",
+            type: "feature-grid",
+            props: {
+              heading: "Alias features heading",
+              items: [{ title: "Feature A" }],
+            },
+          },
+          {
+            id: "testimonials-1",
+            type: "testimonials",
+            props: {
+              heading: "Alias testimonials heading",
+              items: [{ quote: "Great product", name: "Casey" }],
+            },
+          },
+          {
+            id: "nav-1",
+            type: "navbar",
+            props: {
+              pageTitle: "Alias navbar heading",
+            },
+          },
+          {
+            id: "cta-form-1",
+            type: "cta-form",
+            props: {
+              heading: "Alias cta heading",
+            },
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /Alias features heading/);
+    assert.match(markup, /Alias testimonials heading/);
+    assert.match(markup, /Alias navbar heading/);
+    assert.match(markup, /Alias cta heading/);
+    assert.doesNotMatch(markup, /Unsupported block type/);
+  });
+
 
   it("ignores layout regions when v2 rendering flag is disabled", () => {
     const markup = renderToStaticMarkup(
@@ -260,7 +306,7 @@ describe("PageRenderer", () => {
     assert.match(markup, /Hero heading/);
   });
 
-  it("renders unknown block fallback when type is not registered", () => {
+  it("renders a generic custom block for unknown types with valid props", () => {
     const markup = renderToStaticMarkup(
       createElement(PageRenderer, {
         page: buildPage([
@@ -268,8 +314,32 @@ describe("PageRenderer", () => {
             id: "unknown-1",
             type: "not-registered",
             props: {
-              heading: "Should not render",
+              heading: "Custom block heading",
+              body: "Custom block body",
+              items: [{ title: "Item one", body: "Item one body" }],
             },
+          },
+        ]),
+        resolveAsset,
+      }),
+    );
+
+    assert.match(markup, /Custom block heading/);
+    assert.match(markup, /Custom block body/);
+    assert.match(markup, /Item one/);
+    assert.match(markup, /Custom block/);
+    assert.match(markup, /not-registered/);
+    assert.doesNotMatch(markup, /Unsupported block type/);
+  });
+
+  it("renders unknown block placeholder when unknown type has malformed props", () => {
+    const markup = renderToStaticMarkup(
+      createElement(PageRenderer, {
+        page: buildPage([
+          {
+            id: "unknown-1",
+            type: "not-registered",
+            props: "bad-props" as unknown as Record<string, unknown>,
           },
         ]),
         resolveAsset,
