@@ -35,6 +35,7 @@ import {
   getPublicPathsToRevalidate,
 } from "@/lib/config/publishing";
 import {
+  PAGE_VALIDATION_LIMITS,
   hasPageFieldErrors,
   parseReferenceLinks,
   parseReferenceLinksFromForm,
@@ -1156,8 +1157,8 @@ export async function quickGeneratePage(
     fieldErrors.prompt = "Prompt is required.";
   }
 
-  if (prompt.length > 6000) {
-    fieldErrors.prompt = "Prompt must be 6000 characters or fewer.";
+  if (prompt.length > PAGE_VALIDATION_LIMITS.promptMaxLength) {
+    fieldErrors.prompt = `Prompt must be ${PAGE_VALIDATION_LIMITS.promptMaxLength} characters or fewer.`;
   }
 
   if (!stylePresetRaw) {

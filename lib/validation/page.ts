@@ -1,7 +1,7 @@
 export const PAGE_VALIDATION_LIMITS = {
   titleMaxLength: 120,
   slugMaxLength: 80,
-  promptMaxLength: 6000,
+  promptMaxLength: 20000,
   widgetEmbedHtmlMaxLength: 5000,
   maxReferenceLinks: 20,
 } as const;
