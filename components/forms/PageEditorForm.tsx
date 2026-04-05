@@ -99,10 +99,10 @@ export function PageEditorForm({
     status: "idle",
     message: "Open preview to verify the latest published page in a new tab.",
   });
-  const [hideDbpHeader, setHideDbpHeader] = useState(false);
+  const [showDbpHeader, setShowDbpHeader] = useState(false);
   const [stylePreset, setStylePreset] = useState<StylePresetKey>(initialModel.stylePreset);
 
-  const previewPath = `${buildCanonicalPublicPath(previewSlug)}${hideDbpHeader ? "?hideDbpHeader=1" : ""}`;
+  const previewPath = `${buildCanonicalPublicPath(previewSlug)}${showDbpHeader ? "?showDbpHeader=1" : ""}`;
 
   async function persistLatestFormState() {
     if (!formRef.current) {
@@ -255,11 +255,11 @@ export function PageEditorForm({
         <label className="flex items-center gap-2 text-sm text-fg">
           <input
             type="checkbox"
-            checked={hideDbpHeader}
-            onChange={(event) => setHideDbpHeader(event.target.checked)}
+            checked={showDbpHeader}
+            onChange={(event) => setShowDbpHeader(event.target.checked)}
             className="h-4 w-4 rounded border-border"
           />
-          Hide Atenxion DBP top header bar for a realistic demo view
+          Show Atenxion DBP top header bar in preview
         </label>
         <PublicUrlActions path={previewPath} compact />
       </section>
