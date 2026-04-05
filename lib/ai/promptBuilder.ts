@@ -113,7 +113,7 @@ export function buildPageGenerationPrompts(input: BuildPromptInput) {
     "    },",
     "    {",
     '      "id": "features-grid",',
-    '      "type": "feature-grid",',
+    '      "type": "features",',
     '      "variant?": "cards-3",',
     '      "props?": { "...": "..." }',
     "    }",

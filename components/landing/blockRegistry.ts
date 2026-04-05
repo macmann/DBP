@@ -16,9 +16,40 @@ export type BlockRegistration = {
 };
 
 const blockRegistry = new Map<string, BlockRegistration>();
+const blockRegistryByCanonicalType = new Map<string, BlockRegistration>();
 
 function normalizeBlockType(type: string): string {
   return type.trim();
+}
+
+function canonicalizeBlockType(type: string): string {
+  return type
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function normalizeKnownAlias(type: string): string {
+  const canonicalType = canonicalizeBlockType(type);
+
+  switch (canonicalType) {
+    case "featuregrid":
+    case "featurelist":
+    case "stats":
+    case "processsteps":
+    case "casestudies":
+      return "features";
+    case "testimonials":
+      return "testimonial";
+    case "ctaform":
+    case "leadform":
+      return "cta";
+    case "navbar":
+      return "pageHeader";
+    default:
+      return type.trim();
+  }
 }
 
 export function registerBlock(
@@ -32,11 +63,14 @@ export function registerBlock(
     return;
   }
 
-  blockRegistry.set(normalizedType, {
+  const registration = {
     type: normalizedType,
     component,
     validator,
-  });
+  };
+
+  blockRegistry.set(normalizedType, registration);
+  blockRegistryByCanonicalType.set(canonicalizeBlockType(normalizedType), registration);
 }
 
 export function resolveBlock(type: string): BlockRegistration | null {
@@ -46,7 +80,18 @@ export function resolveBlock(type: string): BlockRegistration | null {
     return null;
   }
 
-  return blockRegistry.get(normalizedType) ?? null;
+  const exactMatch = blockRegistry.get(normalizedType);
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const normalizedAliasType = normalizeKnownAlias(normalizedType);
+  const aliasMatch = blockRegistry.get(normalizedAliasType);
+  if (aliasMatch) {
+    return aliasMatch;
+  }
+
+  return blockRegistryByCanonicalType.get(canonicalizeBlockType(normalizedAliasType)) ?? null;
 }
 
 export function registerBlocks(
