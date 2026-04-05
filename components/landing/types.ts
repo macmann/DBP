@@ -15,6 +15,19 @@ export type SectionRenderProps = {
   resolveAsset: AssetResolver;
 };
 
+function isRenderableMediaUrl(value: string): boolean {
+  if (value.startsWith("/")) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function isSafeHref(value: string): boolean {
   if (value.startsWith("/")) {
     return true;
@@ -90,7 +103,24 @@ export function resolveMediaAssets(
   resolveAsset: AssetResolver,
 ): ResolvedAsset[] {
   return getMediaAssetIds(section)
-    .map((assetId) => resolveAsset(assetId))
+    .map((assetId) => {
+      const resolved = resolveAsset(assetId);
+      if (resolved) {
+        return resolved;
+      }
+
+      if (!isRenderableMediaUrl(assetId)) {
+        return null;
+      }
+
+      return {
+        id: assetId,
+        storageUrl: assetId,
+        fileName: "media",
+        mimeType: "image/*",
+        metadata: {},
+      } satisfies ResolvedAsset;
+    })
     .filter((asset): asset is ResolvedAsset => Boolean(asset));
 }
 
