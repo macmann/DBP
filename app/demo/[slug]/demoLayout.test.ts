@@ -196,4 +196,26 @@ describe("buildDemoRenderSchema", () => {
 
     assert.equal(typeof result.layout?.top[0], "object");
   });
+
+  it("injects shell blocks and promotes hero when schema layout omits shell placement", () => {
+    const schema = buildSchema({
+      layout: {
+        top: ["faq-1"],
+        main: ["faq-1"],
+        bottom: ["hero-1"],
+      },
+    });
+
+    const result = buildDemoRenderSchema(schema, {
+      pageTitleFallback: "Fallback",
+      currentVersionLabel: "v10",
+      widgetEmbedHtml: "",
+    });
+
+    assert.deepEqual(result.layout, {
+      top: ["shell-page-header"],
+      main: ["hero-1", "faq-1"],
+      bottom: ["shell-widget-embed", "shell-build-meta"],
+    });
+  });
 });
