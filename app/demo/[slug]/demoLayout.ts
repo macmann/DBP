@@ -66,6 +66,65 @@ function hasRenderableLayoutEntries(layout: GeneratedPageLayout): boolean {
   return layout.top.length > 0 || layout.main.length > 0 || layout.bottom.length > 0;
 }
 
+function getLayoutEntryId(entry: GeneratedLayoutEntry): string | null {
+  if (typeof entry === "string") {
+    return entry;
+  }
+
+  return typeof entry.id === "string" ? entry.id : null;
+}
+
+function includesAnyShellBlock(layout: GeneratedPageLayout): boolean {
+  const shellIds = new Set([SHELL_PAGE_HEADER_ID, SHELL_WIDGET_EMBED_ID, SHELL_THEME_META_ID]);
+  const entries = [...layout.top, ...layout.main, ...layout.bottom];
+
+  return entries.some((entry) => {
+    const entryId = getLayoutEntryId(entry);
+    return entryId ? shellIds.has(entryId) : false;
+  });
+}
+
+function dedupeAndOrderMainEntries(
+  layout: GeneratedPageLayout,
+  contentBlocks: GeneratedBlock[],
+): GeneratedLayoutEntry[] {
+  const heroBlockId = contentBlocks.find((block) => block.type === "hero")?.id;
+  const sourceEntries = [...layout.top, ...layout.main, ...layout.bottom];
+  const seen = new Set<string>();
+
+  const contentEntries: GeneratedLayoutEntry[] = [];
+  for (const entry of sourceEntries) {
+    const entryId = getLayoutEntryId(entry);
+    if (!entryId) {
+      continue;
+    }
+    if (
+      entryId === SHELL_PAGE_HEADER_ID ||
+      entryId === SHELL_WIDGET_EMBED_ID ||
+      entryId === SHELL_THEME_META_ID
+    ) {
+      continue;
+    }
+    if (seen.has(entryId)) {
+      continue;
+    }
+    seen.add(entryId);
+    contentEntries.push(entry);
+  }
+
+  if (!heroBlockId) {
+    return contentEntries;
+  }
+
+  const heroIndex = contentEntries.findIndex((entry) => getLayoutEntryId(entry) === heroBlockId);
+  if (heroIndex <= 0) {
+    return contentEntries;
+  }
+
+  const [heroEntry] = contentEntries.splice(heroIndex, 1);
+  return [heroEntry, ...contentEntries];
+}
+
 function resolveNormalizedLayout(
   schema: GeneratedPageSchema,
   contentBlocks: GeneratedBlock[],
@@ -84,7 +143,15 @@ function resolveNormalizedLayout(
     return inferLegacyLayout(contentBlocks);
   }
 
-  return normalizedLayout;
+  if (includesAnyShellBlock(normalizedLayout)) {
+    return normalizedLayout;
+  }
+
+  return {
+    top: [SHELL_PAGE_HEADER_ID],
+    main: dedupeAndOrderMainEntries(normalizedLayout, contentBlocks),
+    bottom: [SHELL_WIDGET_EMBED_ID, SHELL_THEME_META_ID],
+  };
 }
 
 export function buildDemoRenderSchema(
